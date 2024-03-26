@@ -1,33 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
-import 'package:web_view/button/favorites.dart';
-import 'package:web_view/button/history.dart';
-import 'package:web_view/button/settings.dart';
+import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/screen/settings_screen.dart';
+import 'package:web_view/constants/colors.dart';
 
-final homeUrl = Uri.parse('https://www.similarchart.com');
+final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
 class HomeScreen extends StatelessWidget {
-  WebViewController controller = WebViewController()
-    // ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    ..loadRequest(homeUrl);
+  final WebViewController controller = WebViewController();
 
-  HomeScreen({super.key});
+  Future<void> loadInitialUrl(WebViewController controller) async {
+    String lang = await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
+    Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
+    controller
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..loadRequest(homeUrl);
+  }
 
   @override
   Widget build(BuildContext context) {
+    // WebView 로드를 위한 초기 설정
+    Future.delayed(Duration.zero, () => loadInitialUrl(controller));
+
     return SafeArea(
       child: Scaffold(
         bottomNavigationBar: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: 65), // 이 값을 조절하여 높이를 변경하세요
           child: BottomAppBar(
-            color: Color(0xFF343a40), // 배경색 설정
+            color: AppColors.primaryColor, // 배경색 설정
             child: Row(
               children: <Widget>[
-                buildBottomIcon(Icons.home, '홈', onHomeTap(controller, homeUrl)),
-                buildBottomIcon(Icons.star, '즐겨찾기', onFavoritesTap),
-                buildBottomIcon(Icons.history, '방문기록', onHistoryTap),
-                buildBottomIcon(Icons.settings, '설정', onSettingsTap),
+                buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
+                buildBottomIcon(Icons.star, '즐겨찾기', () => {}),
+                buildBottomIcon(Icons.history, '방문기록', () => {}),
+                buildBottomIcon(Icons.settings, '설정', () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  );
+                }),
               ],
             ),
           ),
