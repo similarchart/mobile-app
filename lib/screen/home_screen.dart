@@ -6,8 +6,7 @@ import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/constants/colors.dart';
-
-import '../model/history_item.dart';
+import 'package:web_view/model/history_item.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
@@ -23,17 +22,18 @@ class HomeScreen extends StatelessWidget {
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (String url) {
-            _addCurrentUrlToHistory(url);
+          onPageFinished: (String url) async {
+            String? title = await controller.getTitle();
+            _addCurrentUrlToHistory(url,title??url);
           },
         ),
       )
       ..loadRequest(homeUrl);
   }
   
-  Future<void> _addCurrentUrlToHistory(String url) async {
+  Future<void> _addCurrentUrlToHistory(String url,String title) async {
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
-    final historyItem = HistoryItem(url: url, dateVisited: DateTime.now(), isFav: false);
+    final historyItem = HistoryItem(url: url,title: title, dateVisited: DateTime.now(), isFav: false);
     await historyBox.add(historyItem);
   }
 

@@ -18,20 +18,23 @@ class HistoryItemAdapter extends TypeAdapter<HistoryItem> {
     };
     return HistoryItem(
       url: fields[0] as String,
-      dateVisited: fields[1] as DateTime,
-      isFav: fields[2] as bool,
+      title: fields[1] as String,
+      dateVisited: fields[2] as DateTime,
+      isFav: fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, HistoryItem obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.url)
       ..writeByte(1)
-      ..write(obj.dateVisited)
+      ..write(obj.title)
       ..writeByte(2)
+      ..write(obj.dateVisited)
+      ..writeByte(3)
       ..write(obj.isFav);
   }
 

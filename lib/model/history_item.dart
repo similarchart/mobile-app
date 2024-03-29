@@ -8,10 +8,13 @@ class HistoryItem {
   final String url;
 
   @HiveField(1)
-  final DateTime dateVisited;
+  final String title;
 
   @HiveField(2)
+  final DateTime dateVisited;
+
+  @HiveField(3)
   bool isFav;
 
-  HistoryItem({required this.url, required this.dateVisited, required this.isFav});
+  HistoryItem({required this.url,required this.title ,required this.dateVisited, required this.isFav});
 }

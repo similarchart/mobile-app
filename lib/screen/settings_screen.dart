@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/constants/colors.dart'; // 색상 상수 import
@@ -71,20 +72,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: Text('적용'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor, // 버튼의 배경색 설정
-                foregroundColor: AppColors.textColor, // 버튼의 텍스트 색상 설정
-                elevation: 5, // 버튼의 그림자 정도
-                shape: RoundedRectangleBorder( // 버튼의 모양 정의
-                  borderRadius: BorderRadius.circular(10), // 모서리를 둥글게
-                  side: BorderSide(color: AppColors.secondaryColor, width: 2), // 테두리 색상과 두께
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context, true);
+                    },
+                    child: Text('적용'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor, // 버튼의 배경색 설정
+                      foregroundColor: AppColors.textColor, // 버튼의 텍스트 색상 설정
+                      elevation: 5, // 버튼의 그림자 정도
+                      shape: RoundedRectangleBorder( // 버튼의 모양 정의
+                        borderRadius: BorderRadius.circular(10), // 모서리를 둥글게
+                        side: BorderSide(color: AppColors.secondaryColor, width: 2), // 테두리 색상과 두께
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
