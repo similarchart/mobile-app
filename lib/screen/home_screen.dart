@@ -15,6 +15,7 @@ class HomeScreen extends StatelessWidget {
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..loadRequest(homeUrl);
   }
 
