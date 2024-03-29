@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:web_view/screen/histroy_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/constants/colors.dart';
+
+import '../model/history_item.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
@@ -15,10 +19,24 @@ class HomeScreen extends StatelessWidget {
         await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      //..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) {
+            _addCurrentUrlToHistory(url);
+          },
+        ),
+      )
       ..loadRequest(homeUrl);
   }
+  
+  Future<void> _addCurrentUrlToHistory(String url) async {
+    final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
+    final historyItem = HistoryItem(url: url, dateVisited: DateTime.now(), isFav: false);
+    await historyBox.add(historyItem);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +53,8 @@ class HomeScreen extends StatelessWidget {
               children: <Widget>[
                 buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
                 buildBottomIcon(Icons.star, '즐겨찾기', () => {}),
-                buildBottomIcon(Icons.history, '방문기록', () => {}),
+                buildBottomIcon(
+                    Icons.history, '방문기록', () => onHistoryTap(context)),
                 buildBottomIcon(
                     Icons.settings, '설정', () => onSettingsTap(context)),
               ],
@@ -67,6 +86,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  onHistoryTap(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => HistoryScreen()),
+    );
+  }
+
 // '설정' 버튼 탭 처리를 위한 별도의 함수
   Future<void> onSettingsTap(BuildContext context) async {
     final doRefresh = await Navigator.push(
@@ -84,10 +110,11 @@ class HomeScreen extends StatelessWidget {
       String preferLang = await LanguagePreference.getLanguageSetting();
 
       // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
-      Map<String, String> newQueryParameters = Map.from(currentUri.queryParameters);
+      Map<String, String> newQueryParameters =
+          Map.from(currentUri.queryParameters);
       newQueryParameters['lang'] = preferLang; // lang 매개변수 업데이트
 
-     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
+      // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
       Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
 
       // 새로운 URI로 웹뷰를 로드합니다.
