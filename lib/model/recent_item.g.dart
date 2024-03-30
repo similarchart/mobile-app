@@ -1,38 +1,41 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'history_item.dart';
+part of 'recent_item.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class HistoryItemAdapter extends TypeAdapter<HistoryItem> {
+class RecentItemAdapter extends TypeAdapter<RecentItem> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
-  HistoryItem read(BinaryReader reader) {
+  RecentItem read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return HistoryItem(
-      url: fields[0] as String,
-      title: fields[1] as String,
+    return RecentItem(
+      code: fields[0] as String,
+      name: fields[1] as String,
       dateVisited: fields[2] as DateTime,
+      isFav: fields[3] as bool,
     );
   }
 
   @override
-  void write(BinaryWriter writer, HistoryItem obj) {
+  void write(BinaryWriter writer, RecentItem obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
-      ..write(obj.url)
+      ..write(obj.code)
       ..writeByte(1)
-      ..write(obj.title)
+      ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.dateVisited);
+      ..write(obj.dateVisited)
+      ..writeByte(3)
+      ..write(obj.isFav);
   }
 
   @override
@@ -41,7 +44,7 @@ class HistoryItemAdapter extends TypeAdapter<HistoryItem> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is HistoryItemAdapter &&
+      other is RecentItemAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

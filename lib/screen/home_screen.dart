@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/screen/histroy_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
@@ -7,6 +8,8 @@ import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/history_item.dart';
+
+import '../model/recent_item.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
@@ -18,25 +21,68 @@ class HomeScreen extends StatelessWidget {
         await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
-      //..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) async {
-            String? title = await controller.getTitle();
-            _addCurrentUrlToHistory(url,title??url);
+            _addCurrentUrlToHistory(url);
+            _addCurrentUrlToRecent(url);
           },
         ),
       )
       ..loadRequest(homeUrl);
   }
-  
-  Future<void> _addCurrentUrlToHistory(String url,String title) async {
-    final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
-    final historyItem = HistoryItem(url: url,title: title, dateVisited: DateTime.now(), isFav: false);
-    await historyBox.add(historyItem);
+
+  _addCurrentUrlToRecent(String url) async {
+    Uri uri = Uri.parse(url);
+    String? title = await controller.getTitle();
+    if (uri.queryParameters.containsKey('code') && title != null) {
+      String codeValue = uri.queryParameters['code']!;
+
+      // '- ' 다음에 나오는 단어를 찾기 위한 정규 표현식
+      RegExp exp = RegExp(r'- ([\w가-힣]+)');
+
+      // 정규 표현식에 매칭되는 첫 번째 결과 찾기
+      RegExpMatch? match = exp.firstMatch(title);
+
+      if (match != null) {
+        final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
+
+// 똑같은 code를 가진 element의 키를 찾기
+        dynamic existingItemKey;
+        recentBox.toMap().forEach((key, item) {
+          if (item.code == codeValue) {
+            existingItemKey = key;
+          }
+        });
+
+// 만약 존재한다면, 기존 아이템 삭제
+        if (existingItemKey != null) {
+          await recentBox.delete(existingItemKey);
+        }
+
+// 새로운 RecentItem 생성
+        final recentItem = RecentItem(
+          dateVisited: DateTime.now(),
+          code: codeValue,
+          name: match.group(1)!,
+          isFav: false,
+        );
+
+// 새 아이템 추가
+        await recentBox.add(recentItem);
+      }
+    }
   }
 
+  _addCurrentUrlToHistory(String url) async {
+    String? title = await controller.getTitle();
+    final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
+    final historyItem =
+        HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
+    await historyBox.add(historyItem);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +98,8 @@ class HomeScreen extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
-                buildBottomIcon(Icons.star, '즐겨찾기', () => {}),
+                buildBottomIcon(
+                    Icons.star, '관심종목', () => onFavoriteTap(context)),
                 buildBottomIcon(
                     Icons.history, '방문기록', () => onHistoryTap(context)),
                 buildBottomIcon(
@@ -86,15 +133,27 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  onFavoriteTap(BuildContext context) async {
+    String? url = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => FavoriteScreen()),
+    );
+    if (url != null) {
+      controller.loadRequest(Uri.parse(url));
+    }
+  }
+
   onHistoryTap(BuildContext context) async {
-    String url = await Navigator.push(
+    String? url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => HistoryScreen()),
     );
-    controller.loadRequest(Uri.parse(url ?? ""));
+    if (url != null) {
+      controller.loadRequest(Uri.parse(url));
+    }
   }
 
-// '설정' 버튼 탭 처리를 위한 별도의 함수
+  // '설정' 버튼 탭 처리를 위한 별도의 함수
   onSettingsTap(BuildContext context) async {
     final doRefresh = await Navigator.push(
       context,
