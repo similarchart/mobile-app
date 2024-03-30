@@ -86,15 +86,16 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  onHistoryTap(BuildContext context) {
-    Navigator.push(
+  onHistoryTap(BuildContext context) async {
+    String url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => HistoryScreen()),
     );
+    controller.loadRequest(Uri.parse(url ?? ""));
   }
 
 // '설정' 버튼 탭 처리를 위한 별도의 함수
-  Future<void> onSettingsTap(BuildContext context) async {
+  onSettingsTap(BuildContext context) async {
     final doRefresh = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen()),
