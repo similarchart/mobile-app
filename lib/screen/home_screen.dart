@@ -39,14 +39,9 @@ class HomeScreen extends StatelessWidget {
     String? title = await controller.getTitle();
     if (uri.queryParameters.containsKey('code') && title != null) {
       String codeValue = uri.queryParameters['code']!;
+      String stockName = title.split(':').last.trimLeft()!;
 
-      // '- ' 다음에 나오는 단어를 찾기 위한 정규 표현식
-      RegExp exp = RegExp(r'- ([\w가-힣]+)');
-
-      // 정규 표현식에 매칭되는 첫 번째 결과 찾기
-      RegExpMatch? match = exp.firstMatch(title);
-
-      if (match != null) {
+      if (stockName != null) {
         final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
 // 똑같은 code를 가진 element의 키를 찾기
@@ -66,7 +61,7 @@ class HomeScreen extends StatelessWidget {
         final recentItem = RecentItem(
           dateVisited: DateTime.now(),
           code: codeValue,
-          name: match.group(1)!,
+          name: stockName,
           isFav: false,
         );
 

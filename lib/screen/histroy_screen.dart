@@ -61,8 +61,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemCount:
                 reversedList.length, // itemCount를 reversedList의 길이로 설정합니다.
             itemBuilder: (context, index) {
-              final historyItem =
-                  reversedList.elementAt(index); // 인덱스로 아이템에 접근합니다.
+              final historyItem = reversedList.elementAt(index); // 인덱스로 아이템에 접근합니다.
               return ListTile(
                 horizontalTitleGap: 10,
                 title: Text(historyItem.title,
