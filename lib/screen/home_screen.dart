@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:web_view/screen/favorite_screen.dart';
-import 'package:web_view/screen/histroy_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
@@ -51,12 +50,15 @@ class HomeScreen extends StatelessWidget {
           child: BottomAppBar(
             color: AppColors.primaryColor, // 배경색 설정
             child: Row(
+              // mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
+                buildBottomIcon(
+                    Icons.brush, '드로잉검색', () => {}),
+                buildBottomIcon(
+                    Icons.find_replace, '실시간검색', () => {}),
                 buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
                 buildBottomIcon(
-                    Icons.star, '관심종목', () => onFavoriteTap(context)),
-                buildBottomIcon(
-                    Icons.history, '방문기록', () => onHistoryTap(context)),
+                    Icons.history, '최근본종목', () => onFavoriteTap(context)),
                 buildBottomIcon(
                     Icons.settings, '설정', () => onSettingsTap(context)),
               ],
@@ -80,7 +82,7 @@ class HomeScreen extends StatelessWidget {
           children: <Widget>[
             Icon(icon, color: Colors.white), // 아이콘 색상 설정
             Text(label,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 12, color: Colors.white)), // 텍스트 색상 및 스타일 설정
           ],
         ),
@@ -93,36 +95,34 @@ class HomeScreen extends StatelessWidget {
     String? title = await controller.getTitle();
     if (uri.queryParameters.containsKey('code') && title != null) {
       String codeValue = uri.queryParameters['code']!;
-      String stockName = title.split(':').last.trimLeft()!;
+      String stockName = title.split(':').last.trimLeft();
 
-      if (stockName != null) {
-        final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
+      final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
 // 똑같은 code를 가진 element의 키를 찾기
-        dynamic existingItemKey;
-        recentBox.toMap().forEach((key, item) {
-          if (item.code == codeValue) {
-            existingItemKey = key;
-          }
-        });
+      dynamic existingItemKey;
+      recentBox.toMap().forEach((key, item) {
+        if (item.code == codeValue) {
+          existingItemKey = key;
+        }
+      });
 
 // 만약 존재한다면, 기존 아이템 삭제
-        if (existingItemKey != null) {
-          await recentBox.delete(existingItemKey);
-        }
+      if (existingItemKey != null) {
+        await recentBox.delete(existingItemKey);
+      }
 
 // 새로운 RecentItem 생성
-        final recentItem = RecentItem(
-          dateVisited: DateTime.now(),
-          code: codeValue,
-          name: stockName,
-          isFav: false,
-        );
+      final recentItem = RecentItem(
+        dateVisited: DateTime.now(),
+        code: codeValue,
+        name: stockName,
+        isFav: false,
+      );
 
 // 새 아이템 추가
-        await recentBox.add(recentItem);
-      }
-    }
+      await recentBox.add(recentItem);
+        }
   }
 
   _addCurrentUrlToHistory(String url) async {
@@ -143,42 +143,34 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  onHistoryTap(BuildContext context) async {
-    String? url = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HistoryScreen()),
-    );
-    if (url != null) {
-      controller.loadRequest(Uri.parse(url));
-    }
-  }
-
   // '설정' 버튼 탭 처리를 위한 별도의 함수
   onSettingsTap(BuildContext context) async {
-    final doRefresh = await Navigator.push(
+    final url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen()),
     );
 
-    // 설정 화면에서 돌아온 후 반환된 데이터에 따라 필요한 작업 수행
-    if (doRefresh != null && doRefresh) {
-      // 현재 웹뷰의 URL을 가져옵니다.
+    Uri currentUri;
+    if (url == null) { // 적용 버튼을 눌렀으면 apply라는 문자열이 반환
       String? currentUrl = await controller.currentUrl();
-      Uri currentUri = Uri.parse(currentUrl ?? "");
-
-      // 선호하는 언어 설정을 가져옵니다.
-      String preferLang = await LanguagePreference.getLanguageSetting();
-
-      // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
-      Map<String, String> newQueryParameters =
-          Map.from(currentUri.queryParameters);
-      newQueryParameters['lang'] = preferLang; // lang 매개변수 업데이트
-
-      // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
-      Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
-
-      // 새로운 URI로 웹뷰를 로드합니다.
-      controller.loadRequest(newUri);
+      currentUri = Uri.parse(currentUrl ?? "");
     }
+    else{ // 방문기록을 눌렀으면 url문자열 반환
+      currentUri = Uri.parse(url);
+    }
+
+    // 선호하는 언어 설정을 가져옵니다.
+    String preferLang = await LanguagePreference.getLanguageSetting();
+
+    // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
+    Map<String, String> newQueryParameters =
+        Map.from(currentUri.queryParameters);
+    newQueryParameters['lang'] = preferLang; // lang 매개변수 업데이트
+
+    // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
+    Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
+
+    // 새로운 URI로 웹뷰를 로드합니다.
+    controller.loadRequest(newUri);
   }
 }

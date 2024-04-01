@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:web_view/screen/histroy_screen.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/constants/colors.dart'; // 색상 상수 import
 
@@ -27,75 +28,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('설정', style: TextStyle(color: AppColors.textColor)),
+        title: const Text('설정', style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '언어',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textColor,
-                  ),
-                ),
-                Spacer(), // 텍스트와 드롭다운 사이에 공간을 추가합니다.
-                DropdownButton<String>(
-                  // 드롭다운 버튼의 크기를 강제로 제한하지 않고 내용에 맞게 조절합니다.
-                  value: _selectedLanguage,
-                  dropdownColor: AppColors.secondaryColor,
-                  items: [
-                    DropdownMenuItem(
-                        value: 'ko',
-                        child: Text('한국어',
-                            style: TextStyle(color: AppColors.textColor))),
-                    DropdownMenuItem(
-                        value: 'en',
-                        child: Text('English',
-                            style: TextStyle(color: AppColors.textColor))),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedLanguage = value;
-                      LanguagePreference.setLanguageSetting(value!);
-                    });
-                  },
-                  style: TextStyle(color: AppColors.textColor),
-                  underline: Container(height: 2, color: AppColors.textColor),
-                ),
-              ],
-            ),
-            Spacer(),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context, true);
-                    },
-                    child: Text('적용'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondaryColor, // 버튼의 배경색 설정
-                      foregroundColor: AppColors.textColor, // 버튼의 텍스트 색상 설정
-                      elevation: 5, // 버튼의 그림자 정도
-                      shape: RoundedRectangleBorder( // 버튼의 모양 정의
-                        borderRadius: BorderRadius.circular(10), // 모서리를 둥글게
-                        side: BorderSide(color: AppColors.tertiaryColor, width: 2), // 테두리 색상과 두께
+            Expanded(
+              child: ListView.separated(
+                itemCount: 2, // '언어' 설정과 '방문기록'을 포함한 항목 수
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    // '언어' 설정 항목
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '언어',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textColor),
+                        ),
+                        DropdownButton<String>(
+                          value: _selectedLanguage,
+                          dropdownColor: AppColors.secondaryColor,
+                          items: const [
+                            DropdownMenuItem(value: 'ko', child: Text('한국어', style: TextStyle(color: AppColors.textColor))),
+                            DropdownMenuItem(value: 'en', child: Text('English', style: TextStyle(color: AppColors.textColor))),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedLanguage = value;
+                              LanguagePreference.setLanguageSetting(value!);
+                            });
+                          },
+                          style: const TextStyle(color: AppColors.textColor),
+                          underline: Container(height: 2, color: AppColors.textColor),
+                        ),
+                      ],
+                    );
+                  } else if (index == 1) {
+                    // '방문기록' 항목
+                    return InkWell(
+                      onTap: () => onHistoryTap(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: const Text(
+                          '방문기록',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textColor),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                    );
+                  } else {
+                    return Container(); // 확장을 위한 여분의 공간
+                  }
+                },
+                separatorBuilder: (context, index) => const Divider(color: AppColors.tertiaryColor, height: 1),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+onHistoryTap(BuildContext context) async {
+  String? url = await Navigator.push( // 설정에서 들어간 방문기록에서 기록을 누르면 url를 받음
+    context,
+    MaterialPageRoute(builder: (context) => HistoryScreen()),
+  );
+  if (url != null) {
+    Navigator.pop(context, url); // apply 문자열 대신 url 반환
   }
 }

@@ -18,26 +18,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('방문기록', style: TextStyle(color: AppColors.textColor)),
+        title: const Text('방문기록', style: TextStyle(color: AppColors.textColor)),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.delete),
+            icon: const Icon(Icons.delete),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: Text('삭제 확인'),
-                    content: Text('방문기록을 모두 지우시겠습니까?'),
+                    title: const Text('삭제 확인'),
+                    content: const Text('방문기록을 모두 지우시겠습니까?'),
                     actions: <Widget>[
                       TextButton(
-                        child: Text('No'),
+                        child: const Text('No'),
                         onPressed: () {
                           Navigator.of(context).pop(); // 대화상자 닫기
                         },
                       ),
                       TextButton(
-                        child: Text('Yes'),
+                        child: const Text('Yes'),
                         onPressed: () async {
                           // Hive Box에서 해당 항목 삭제
                           historyBox.clear();
@@ -65,13 +65,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
               return ListTile(
                 horizontalTitleGap: 10,
                 title: Text(historyItem.title,
-                    style: TextStyle(color: AppColors.textColor)),
+                    style: const TextStyle(color: AppColors.textColor)),
                 subtitle: Text(
                     DateFormat('yyyy-MM-dd HH:mm:ss')
                         .format(historyItem.dateVisited),
-                    style: TextStyle(color: AppColors.textColor)),
+                    style: const TextStyle(color: AppColors.textColor)),
                 trailing: IconButton(
-                  icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                  icon: const Icon(Icons.close, color: AppColors.secondaryColor),
                   onPressed: () async {
                     // reversedList에서의 실제 인덱스를 계산합니다.
                     final realIndex = box.values.length - 1 - index;
@@ -84,7 +84,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 },
               );
             },
-            separatorBuilder: (context, index) => Divider(
+            separatorBuilder: (context, index) => const Divider(
               color: AppColors.secondaryColor,
               height: 1,
             ),
