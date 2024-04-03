@@ -20,7 +20,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('관심종목', style: TextStyle(color: AppColors.textColor)),
+        title: Text('종목기록', style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
       ),
       body: ValueListenableBuilder(

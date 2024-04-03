@@ -4,7 +4,7 @@ import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/screen/splash_screen.dart';
 import 'model/history_item.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();

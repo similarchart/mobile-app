@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:web_view/screen/favorite_screen.dart';
+import 'package:web_view/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
@@ -53,9 +54,9 @@ class HomeScreen extends StatelessWidget {
               // mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
                 buildBottomIcon(
-                    Icons.brush, '드로잉검색', () => {}),
+                    Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
                 buildBottomIcon(
-                    Icons.find_replace, '실시간검색', () => {}),
+                    Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
                 buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
                 buildBottomIcon(
                     Icons.history, '최근본종목', () => onFavoriteTap(context)),
@@ -179,5 +180,13 @@ class HomeScreen extends StatelessWidget {
 
     // 새로운 URI로 웹뷰를 로드합니다.
     controller.loadRequest(newUri);
+  }
+
+  onDrawingSearchTap() {
+    showToastMessage("곧 공개됩니다");
+  }
+
+  onRealTimeSearchTap() {
+    showToastMessage("곧 공개됩니다");
   }
 }
