@@ -46,7 +46,7 @@ class HomeScreen extends StatelessWidget {
     return SafeArea(
       child: Scaffold(
         bottomNavigationBar: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: 65), // 이 값을 조절하여 높이를 변경하세요
+          constraints: BoxConstraints(maxHeight: 67), // 이 값을 조절하여 높이를 변경하세요
           child: BottomAppBar(
             color: AppColors.primaryColor, // 배경색 설정
             child: Row(
@@ -145,27 +145,34 @@ class HomeScreen extends StatelessWidget {
 
   // '설정' 버튼 탭 처리를 위한 별도의 함수
   onSettingsTap(BuildContext context) async {
+    // 원래 설정된 언어를 저장
+    String originalLang = await LanguagePreference.getLanguageSetting();
+
+    // 설정 화면으로 이동
     final url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen()),
     );
 
+    // 설정에서 돌아온 후 언어 설정이 변경되었는지 확인
+    String currentLang = await LanguagePreference.getLanguageSetting();
+    if (url == null && originalLang == currentLang) {
+      return;
+    }
+
     Uri currentUri;
-    if (url == null) { // 적용 버튼을 눌렀으면 apply라는 문자열이 반환
+    if (url == null) {
       String? currentUrl = await controller.currentUrl();
       currentUri = Uri.parse(currentUrl ?? "");
-    }
-    else{ // 방문기록을 눌렀으면 url문자열 반환
+    } else {
+      // 방문기록을 눌렀으면 url문자열 반환
       currentUri = Uri.parse(url);
     }
 
-    // 선호하는 언어 설정을 가져옵니다.
-    String preferLang = await LanguagePreference.getLanguageSetting();
-
     // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
     Map<String, String> newQueryParameters =
-        Map.from(currentUri.queryParameters);
-    newQueryParameters['lang'] = preferLang; // lang 매개변수 업데이트
+    Map.from(currentUri.queryParameters);
+    newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
 
     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
     Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
