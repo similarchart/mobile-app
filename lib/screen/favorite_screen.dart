@@ -57,9 +57,17 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                     await recentItem.save();
                   },
                 ),
+                trailing: IconButton(
+                  icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                  onPressed: () async {
+                    await box.delete(recentItem.key);
+                    setState(() {});
+                  },
+                ),
                 onTap: () async {
                   String lang = await LanguagePreference.getLanguageSetting();
-                  String nextUrl = "https://www.similarchart.com/stock_info/?code=${recentItem.code}&lang=${lang}";
+                  String nextUrl =
+                      "https://www.similarchart.com/stock_info/?code=${recentItem.code}&lang=${lang}";
                   Navigator.pop(context, nextUrl);
                 },
               );
