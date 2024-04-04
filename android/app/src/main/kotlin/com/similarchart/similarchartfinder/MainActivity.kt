@@ -1,4 +1,4 @@
-package com.example.similarchart_mobileapp
+package com.similarchart.similarchartfinder
 
 import io.flutter.embedding.android.FlutterActivity
 
