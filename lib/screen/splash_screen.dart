@@ -8,21 +8,20 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  late final HomeScreen homeScreen; // 멤버 변수로 선언
-
   @override
   void initState() {
     super.initState();
-    homeScreen = HomeScreen(onLoaded: _onHomePageLoaded); // 인스턴스 초기화
-    homeScreen.loadInitialUrl(); // 로딩 시작
+    // 로딩 시작
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen(onLoaded: _onHomePageLoaded)),
+      );
+    });
   }
 
   void _onHomePageLoaded() {
     // 페이지 로딩이 끝나면 홈 화면으로 전환합니다.
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => homeScreen),
-    );
   }
 
   @override
