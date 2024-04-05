@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/services/toast_service.dart';
@@ -48,30 +49,69 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        bottomNavigationBar: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: 67), // 이 값을 조절하여 높이를 변경하세요
-          child: BottomAppBar(
-            color: AppColors.primaryColor, // 배경색 설정
-            child: Row(
-              // mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                buildBottomIcon(
-                    Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                buildBottomIcon(
-                    Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
-                buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
-                buildBottomIcon(
-                    Icons.history, '최근본종목', () => onFavoriteTap(context)),
-                buildBottomIcon(
-                    Icons.settings, '설정', () => onSettingsTap(context)),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (await controller.canGoBack()) {
+          controller.goBack();
+          return;
+        } else {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('앱 종료', style: TextStyle(color: AppColors.textColor)),
+              content: Text('앱을 종료하시겠습니까?',
+                  style: TextStyle(color: AppColors.textColor)),
+              backgroundColor: AppColors.primaryColor,
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    '아니오',
+                    style: TextStyle(
+                      color: AppColors.textColor,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    SystemNavigator.pop();
+                  },
+                  child:
+                      Text('예', style: TextStyle(color: AppColors.textColor)),
+                ),
               ],
             ),
+          );
+        }
+      },
+      child: SafeArea(
+        child: Scaffold(
+          bottomNavigationBar: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 67), // 이 값을 조절하여 높이를 변경하세요
+            child: BottomAppBar(
+              color: AppColors.primaryColor, // 배경색 설정
+              child: Row(
+                // mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  buildBottomIcon(
+                      Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
+                  buildBottomIcon(
+                      Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
+                  buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
+                  buildBottomIcon(
+                      Icons.history, '최근본종목', () => onFavoriteTap(context)),
+                  buildBottomIcon(
+                      Icons.settings, '설정', () => onSettingsTap(context)),
+                ],
+              ),
+            ),
           ),
-        ),
-        body: WebViewWidget(
-          controller: controller,
+          body: WebViewWidget(
+            controller: controller,
+          ),
         ),
       ),
     );
