@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:web_view/screen/histroy_screen.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/utils/utils.dart'; // 색상 상수 import
+import 'package:web_view/services/toast_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -69,11 +69,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                           onChanged: (value) {
                             setState(
-                                  () {
+                              () {
                                 _selectedLanguage = value;
                                 LanguagePreference.setLanguageSetting(value!);
-                                // Show toast message
-                                showToastMessage("적용되었습니다");
+                                ToastService().showToastMessage("적용되었습니다");
                               },
                             );
                           },

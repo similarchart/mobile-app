@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:web_view/screen/favorite_screen.dart';
-import 'package:web_view/utils/utils.dart';
+import 'package:web_view/services/toast_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
@@ -18,7 +18,8 @@ final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 class HomeScreen extends StatelessWidget {
   final WebViewController controller = WebViewController();
   final Function() onLoaded;
-  bool loadedCalled = false; // 이 플래그는 onLoaded가 호출되었는지 추적합니다.(앱 시작시 한번만 실행되기 위함)
+  bool loadedCalled =
+      false; // 이 플래그는 onLoaded가 호출되었는지 추적합니다.(앱 시작시 한번만 실행되기 위함)
 
   HomeScreen({required this.onLoaded});
 
@@ -34,7 +35,8 @@ class HomeScreen extends StatelessWidget {
           onPageFinished: (String url) async {
             _addCurrentUrlToHistory(url);
             _addCurrentUrlToRecent(url);
-            if(!loadedCalled) { // 앱 시작시 한번만 로딩완료를 스플래시 스크린에 알리기
+            if (!loadedCalled) {
+              // 앱 시작시 한번만 로딩완료를 스플래시 스크린에 알리기
               onLoaded();
               loadedCalled = true;
             }
@@ -95,19 +97,20 @@ class HomeScreen extends StatelessWidget {
 
   _addCurrentUrlToRecent(String url) async {
     Uri uri = Uri.parse(url);
-    bool startsWithDomestic = url.startsWith('https://m.stock.naver.com/domestic/stock/');
-    bool startsWithWorld = url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+    bool startsWithDomestic =
+        url.startsWith('https://m.stock.naver.com/domestic/stock/');
+    bool startsWithWorld =
+        url.startsWith('https://m.stock.naver.com/worldstock/stock/');
 
     String codeValue;
     String? title;
     if (uri.queryParameters.containsKey('code')) {
       codeValue = uri.queryParameters['code']!;
       title = await controller.getTitle();
-    }
-    else if (startsWithWorld || startsWithDomestic) {
+    } else if (startsWithWorld || startsWithDomestic) {
       String? ogTitle = (await controller.runJavaScriptReturningResult(
-          "document.querySelector('meta[property=\"og:title\"]').content;"
-      )) as String?;
+              "document.querySelector('meta[property=\"og:title\"]').content;"))
+          as String?;
 
       // JavaScript에서 반환된 JSON 문자열에서 실제 문자열 값을 추출합니다.
       title = jsonDecode(ogTitle!);
@@ -116,12 +119,10 @@ class HomeScreen extends StatelessWidget {
       final matches = regExp.firstMatch(url);
       if (matches != null && matches.groupCount >= 1) {
         codeValue = matches.group(1)!; // 1번 그룹이 'stock'과 'total' 사이의 값
-      }
-      else {
+      } else {
         return;
       }
-    }
-    else {
+    } else {
       return;
     }
     if (title == null) {
@@ -130,38 +131,38 @@ class HomeScreen extends StatelessWidget {
 
     String stockName = title.split('-').first.trimRight();
 
-      final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
+    final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
 // 똑같은 code를 가진 element의 키를 찾기
-      dynamic existingItemKey;
-      recentBox.toMap().forEach((key, item) {
-        if (item.code == codeValue) {
-          existingItemKey = key;
-        }
-      });
+    dynamic existingItemKey;
+    recentBox.toMap().forEach((key, item) {
+      if (item.code == codeValue) {
+        existingItemKey = key;
+      }
+    });
 
 // 만약 존재한다면, 기존 아이템 삭제
-      if (existingItemKey != null) {
-        await recentBox.delete(existingItemKey);
-      }
+    if (existingItemKey != null) {
+      await recentBox.delete(existingItemKey);
+    }
 
 // 새로운 RecentItem 생성
-      final recentItem = RecentItem(
-        dateVisited: DateTime.now(),
-        code: codeValue,
-        name: stockName,
-        isFav: false,
-      );
+    final recentItem = RecentItem(
+      dateVisited: DateTime.now(),
+      code: codeValue,
+      name: stockName,
+      isFav: false,
+    );
 
 // 새 아이템 추가
-      await recentBox.add(recentItem);
-    }
+    await recentBox.add(recentItem);
+  }
 
   _addCurrentUrlToHistory(String url) async {
     String? title = await controller.getTitle();
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =
-    HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
+        HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
     await historyBox.add(historyItem);
   }
 
@@ -203,7 +204,7 @@ class HomeScreen extends StatelessWidget {
 
     // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
     Map<String, String> newQueryParameters =
-    Map.from(currentUri.queryParameters);
+        Map.from(currentUri.queryParameters);
     newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
 
     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
@@ -214,10 +215,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   onDrawingSearchTap() {
-    showToastMessage("곧 공개됩니다");
+    ToastService().showToastMessage("곧 공개됩니다");
   }
 
   onRealTimeSearchTap() {
-    showToastMessage("곧 공개됩니다");
+    ToastService().showToastMessage("곧 공개됩니다");
   }
 }
