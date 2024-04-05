@@ -14,7 +14,7 @@ class ToastService {
   void showToastMessage(String message) {
     final now = DateTime.now();
     if (lastToastTime == null ||
-        now.difference(lastToastTime!).inSeconds >= 1) {
+        now.difference(lastToastTime!).inSeconds >= 2) {
       lastToastTime = now;
       Fluttertoast.showToast(
         msg: message,
