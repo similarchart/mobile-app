@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:web_view/screen/favorite_screen.dart';
@@ -93,10 +95,40 @@ class HomeScreen extends StatelessWidget {
 
   _addCurrentUrlToRecent(String url) async {
     Uri uri = Uri.parse(url);
-    String? title = await controller.getTitle();
-    if (uri.queryParameters.containsKey('code') && title != null) {
-      String codeValue = uri.queryParameters['code']!;
-      String stockName = title.split(':').last.trimLeft();
+    bool startsWithDomestic = url.startsWith('https://m.stock.naver.com/domestic/stock/');
+    bool startsWithWorld = url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+
+    String codeValue;
+    String? title;
+    if (uri.queryParameters.containsKey('code')) {
+      codeValue = uri.queryParameters['code']!;
+      title = await controller.getTitle();
+    }
+    else if (startsWithWorld || startsWithDomestic) {
+      String? ogTitle = (await controller.runJavaScriptReturningResult(
+          "document.querySelector('meta[property=\"og:title\"]').content;"
+      )) as String?;
+
+      // JavaScript에서 반환된 JSON 문자열에서 실제 문자열 값을 추출합니다.
+      title = jsonDecode(ogTitle!);
+      // 정규 표현식을 사용하여 'stock'과 'total' 사이의 값을 추출
+      RegExp regExp = RegExp(r'stock/(\d+)/total');
+      final matches = regExp.firstMatch(url);
+      if (matches != null && matches.groupCount >= 1) {
+        codeValue = matches.group(1)!; // 1번 그룹이 'stock'과 'total' 사이의 값
+      }
+      else {
+        return;
+      }
+    }
+    else {
+      return;
+    }
+    if (title == null) {
+      return;
+    }
+
+    String stockName = title.split('-').first.trimRight();
 
       final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
@@ -123,8 +155,7 @@ class HomeScreen extends StatelessWidget {
 
 // 새 아이템 추가
       await recentBox.add(recentItem);
-        }
-  }
+    }
 
   _addCurrentUrlToHistory(String url) async {
     String? title = await controller.getTitle();
