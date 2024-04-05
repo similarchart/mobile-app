@@ -16,26 +16,14 @@ import '../model/recent_item.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
+  final WebViewController controller = WebViewController();
   final Function() onLoaded;
+  bool loadedCalled =
+      false; // 이 플래그는 onLoaded가 호출되었는지 추적합니다.(앱 시작시 한번만 실행되기 위함)
 
   HomeScreen({required this.onLoaded});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final WebViewController controller = WebViewController();
-
-  @override
-  void initState() {
-    super.initState();
-    // 페이지 로딩을 시작합니다.
-    loadInitialUrl();
-  }
-
-  bool loadedCalled = false;
   Future<void> loadInitialUrl() async {
     String lang =
         await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
@@ -50,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _addCurrentUrlToRecent(url);
             if (!loadedCalled) {
               // 앱 시작시 한번만 로딩완료를 스플래시 스크린에 알리기
-              widget.onLoaded();
+              onLoaded();
               loadedCalled = true;
             }
           },
