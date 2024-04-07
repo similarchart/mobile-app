@@ -128,7 +128,7 @@ class HomeScreen extends StatelessWidget {
             Icon(icon, color: Colors.white), // 아이콘 색상 설정
             Text(label,
                 style: const TextStyle(
-                    fontSize: 12, color: Colors.white)), // 텍스트 색상 및 스타일 설정
+                    fontSize: 10, color: Colors.white)), // 텍스트 색상 및 스타일 설정
           ],
         ),
       ),
