@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:web_view/model/recent_item.dart';
-import 'package:web_view/screen/splash_screen.dart';
+import 'package:web_view/screen/home_screen.dart';
 import 'model/history_item.dart';
 
 void main() async {
@@ -14,9 +14,9 @@ void main() async {
   await Hive.openBox<RecentItem>('recent');
 
   runApp(
-    MaterialApp(
+    const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: HomeScreen(),
     ),
   );
 }

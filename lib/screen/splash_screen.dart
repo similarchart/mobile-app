@@ -1,33 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
-import 'home_screen.dart'; // HomeScreen을 import 합니다.
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  late final HomeScreen homeScreen; // 멤버 변수로 선언
-
-  @override
-  void initState() {
-    super.initState();
-    homeScreen = HomeScreen(onLoaded: _onHomePageLoaded); // 인스턴스 초기화
-    homeScreen.loadInitialUrl(); // 로딩 시작
-  }
-
-  void _onHomePageLoaded() {
-    // 페이지 로딩이 끝나면 홈 화면으로 전환합니다.
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => homeScreen),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
           fontFamily: "NotoSansKR"
       ),
@@ -83,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               Container(
-                height: 65, // 상단 바의 높이
+                height: 67, // 하단 바의 높이
                 color: AppColors.primaryColor, // 상단 바의 배경색
               ),
             ]

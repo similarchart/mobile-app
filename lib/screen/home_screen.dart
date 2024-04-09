@@ -9,6 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/button/home.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/screen/settings_screen.dart';
+import 'package:web_view/screen/splash_screen.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/history_item.dart';
 
@@ -16,17 +17,26 @@ import '../model/recent_item.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
-class HomeScreen extends StatelessWidget {
-  final WebViewController controller = WebViewController();
-  final Function() onLoaded;
-  bool loadedCalled =
-      false; // 이 플래그는 onLoaded가 호출되었는지 추적합니다.(앱 시작시 한번만 실행되기 위함)
+class HomeScreen extends StatefulWidget {
 
-  HomeScreen({required this.onLoaded});
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final WebViewController controller = WebViewController();
+  bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true
+
+  @override
+  void initState() {
+    super.initState();
+    loadInitialUrl(); // 초기 URL 로드
+  }
 
   Future<void> loadInitialUrl() async {
-    String lang =
-        await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
+    String lang = await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -34,13 +44,13 @@ class HomeScreen extends StatelessWidget {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) async {
+            if (_isFirstLoad) {
+              setState(() {
+                _isFirstLoad = false; // 첫 페이지 로드가 완료되면 false로 설정
+              });
+            }
             _addCurrentUrlToHistory(url);
             _addCurrentUrlToRecent(url);
-            if (!loadedCalled) {
-              // 앱 시작시 한번만 로딩완료를 스플래시 스크린에 알리기
-              onLoaded();
-              loadedCalled = true;
-            }
           },
         ),
       )
@@ -79,43 +89,43 @@ class HomeScreen extends StatelessWidget {
                   onPressed: () {
                     SystemNavigator.pop();
                   },
-                  child:
-                      Text('예', style: TextStyle(color: AppColors.textColor)),
+                  child: Text('예', style: TextStyle(color: AppColors.textColor)),
                 ),
               ],
             ),
           );
         }
       },
-      child: SafeArea(
-        child: Scaffold(
-          bottomNavigationBar: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 67), // 이 값을 조절하여 높이를 변경하세요
-            child: BottomAppBar(
-              color: AppColors.primaryColor, // 배경색 설정
-              child: Row(
-                // mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: <Widget>[
-                  buildBottomIcon(
-                      Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                  buildBottomIcon(
-                      Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
-                  buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
-                  buildBottomIcon(
-                      Icons.history, '최근본종목', () => onFavoriteTap(context)),
-                  buildBottomIcon(
-                      Icons.settings, '설정', () => onSettingsTap(context)),
-                ],
+      child: Stack( // Stack을 Scaffold 바깥에 배치
+        children: [
+          SafeArea(
+            child: Scaffold(
+              bottomNavigationBar: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 67),
+                child: BottomAppBar(
+                  color: AppColors.primaryColor,
+                  child: Row(
+                    children: <Widget>[
+                      buildBottomIcon(Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
+                      buildBottomIcon(Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
+                      buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
+                      buildBottomIcon(Icons.history, '최근본종목', () => onFavoriteTap(context)),
+                      buildBottomIcon(Icons.settings, '설정', () => onSettingsTap(context)),
+                    ],
+                  ),
+                ),
+              ),
+              body: WebViewWidget(
+                controller: controller,
               ),
             ),
           ),
-          body: WebViewWidget(
-            controller: controller,
-          ),
-        ),
+          _isFirstLoad ? const SplashScreen() : Container(), // SplashScreen을 SafeArea 위에 표시
+        ],
       ),
     );
   }
+
 
   Widget buildBottomIcon(IconData icon, String label, VoidCallback onTap) {
     return Expanded(
