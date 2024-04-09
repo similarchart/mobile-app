@@ -18,7 +18,6 @@ import '../model/recent_item.dart';
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
 class HomeScreen extends StatefulWidget {
-
   const HomeScreen({super.key});
 
   @override
@@ -29,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final WebViewController controller = WebViewController();
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true
   bool _showFloatingActionButton = false; // FAB 표시 여부
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -37,7 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> loadInitialUrl() async {
-    String lang = await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
+    String lang =
+        await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -46,17 +47,27 @@ class _HomeScreenState extends State<HomeScreen> {
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
             // URL 변경을 감지하여 FAB 표시 여부를 결정
-            bool startsWithDomestic = request.url.startsWith('https://m.stock.naver.com/domestic/stock/');
-            bool startsWithWorld = request.url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+            bool startsWithDomestic = request.url
+                .startsWith('https://m.stock.naver.com/domestic/stock/');
+            bool startsWithWorld = request.url
+                .startsWith('https://m.stock.naver.com/worldstock/stock/');
             setState(() {
               _showFloatingActionButton = startsWithDomestic || startsWithWorld;
+              _isLoading = true;
             });
             return NavigationDecision.navigate; // 네비게이션을 계속 진행
           },
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = false;
+            });
+          },
           onPageFinished: (String url) async {
             // 현재 URL에 따라 플로팅 버튼의 표시 여부를 결정
-            bool startsWithDomestic = url.startsWith('https://m.stock.naver.com/domestic/stock/');
-            bool startsWithWorld = url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+            bool startsWithDomestic =
+                url.startsWith('https://m.stock.naver.com/domestic/stock/');
+            bool startsWithWorld =
+                url.startsWith('https://m.stock.naver.com/worldstock/stock/');
             setState(() {
               _showFloatingActionButton = startsWithDomestic || startsWithWorld;
             });
@@ -111,28 +122,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     SystemNavigator.pop();
                   },
-                  child: Text('예', style: TextStyle(color: AppColors.textColor)),
+                  child:
+                      Text('예', style: TextStyle(color: AppColors.textColor)),
                 ),
               ],
             ),
           );
         }
       },
-      child: Stack( // Stack을 Scaffold 바깥에 배치
+      child: Stack(
+        // Stack을 Scaffold 바깥에 배치
         children: [
           SafeArea(
             child: Scaffold(
               bottomNavigationBar: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: bottomNavigationBarHeight),
+                constraints:
+                    BoxConstraints(maxHeight: bottomNavigationBarHeight),
                 child: BottomAppBar(
                   color: AppColors.primaryColor,
                   child: Row(
                     children: <Widget>[
-                      buildBottomIcon(Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                      buildBottomIcon(Icons.find_replace, '실시간검색', () => onRealTimeSearchTap()),
-                      buildBottomIcon(Icons.home, '홈', () => onHomeTap(controller)),
-                      buildBottomIcon(Icons.history, '최근본종목', () => onFavoriteTap(context)),
-                      buildBottomIcon(Icons.settings, '설정', () => onSettingsTap(context)),
+                      buildBottomIcon(
+                          Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
+                      buildBottomIcon(Icons.find_replace, '실시간검색',
+                          () => onRealTimeSearchTap()),
+                      buildBottomIcon(
+                          Icons.home, '홈', () => onHomeTap(controller)),
+                      buildBottomIcon(
+                          Icons.history, '최근본종목', () => onFavoriteTap(context)),
+                      buildBottomIcon(
+                          Icons.settings, '설정', () => onSettingsTap(context)),
                     ],
                   ),
                 ),
@@ -142,27 +161,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          _isFirstLoad ? const SplashScreen() : Container(), // 첫 로드면 스플래시 화면 띄우기
+          _isFirstLoad
+              ? const SplashScreen()
+              : Container(), // 첫 로드면 스플래시 화면 띄우기
           Positioned(
             right: 16,
-            bottom: bottomNavigationBarHeight + fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
+            bottom: bottomNavigationBarHeight +
+                fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
             child: _showFloatingActionButton
                 ? FloatingActionButton(
-              onPressed: () {
-                // FAB 클릭 시 실행될 동작
-                _goStockInfoPage();
-              },
-              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
-              backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
-              elevation: 0, // 그림자 제거
-            )
+                    onPressed: () {
+                      // FAB 클릭 시 실행될 동작
+                      _goStockInfoPage();
+                    },
+                    child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
+                    backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
+                    elevation: 0, // 그림자 제거
+                  )
                 : Container(),
           ),
+          _isLoading ? Center(child: CircularProgressIndicator()) : Container(),
         ],
       ),
     );
   }
-
 
   Widget buildBottomIcon(IconData icon, String label, VoidCallback onTap) {
     return Expanded(
@@ -204,7 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
       String currentLang = await LanguagePreference.getLanguageSetting();
 
       // 최종 URL을 구성합니다.
-      String finalUrl = 'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
+      String finalUrl =
+          'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
 
       // 구성한 URL로 웹뷰를 이동시킵니다.
       controller.loadRequest(Uri.parse(finalUrl));
