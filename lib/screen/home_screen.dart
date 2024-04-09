@@ -28,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final WebViewController controller = WebViewController();
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true
+  bool _showFloatingActionButton = false; // FAB 표시 여부
 
   @override
   void initState() {
@@ -43,7 +44,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) {
+            // URL 변경을 감지하여 FAB 표시 여부를 결정
+            bool startsWithDomestic = request.url.startsWith('https://m.stock.naver.com/domestic/stock/');
+            bool startsWithWorld = request.url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+            setState(() {
+              _showFloatingActionButton = startsWithDomestic || startsWithWorld;
+            });
+            return NavigationDecision.navigate; // 네비게이션을 계속 진행
+          },
           onPageFinished: (String url) async {
+            // 현재 URL에 따라 플로팅 버튼의 표시 여부를 결정
+            bool startsWithDomestic = url.startsWith('https://m.stock.naver.com/domestic/stock/');
+            bool startsWithWorld = url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+            setState(() {
+              _showFloatingActionButton = startsWithDomestic || startsWithWorld;
+            });
+
             if (_isFirstLoad) {
               setState(() {
                 _isFirstLoad = false; // 첫 페이지 로드가 완료되면 false로 설정
@@ -59,6 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // BottomNavigationBar의 높이를 정의합니다. 실제 높이에 따라 조정할 수 있습니다.
+    const double bottomNavigationBarHeight = 67;
+    // FloatingActionButton의 반지름입니다. 실제 크기에 따라 조정할 수 있습니다.
+    const double fabRadius = 18;
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
@@ -101,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Scaffold(
               bottomNavigationBar: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: 67),
+                constraints: BoxConstraints(maxHeight: bottomNavigationBarHeight),
                 child: BottomAppBar(
                   color: AppColors.primaryColor,
                   child: Row(
@@ -120,7 +142,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          _isFirstLoad ? const SplashScreen() : Container(), // SplashScreen을 SafeArea 위에 표시
+          _isFirstLoad ? const SplashScreen() : Container(), // 첫 로드면 스플래시 화면 띄우기
+          Positioned(
+            right: 16,
+            bottom: bottomNavigationBarHeight + fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
+            child: _showFloatingActionButton
+                ? FloatingActionButton(
+              onPressed: () {
+                // FAB 클릭 시 실행될 동작
+                _goStockInfoPage();
+              },
+              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
+              backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
+              elevation: 0, // 그림자 제거
+            )
+                : Container(),
+          ),
         ],
       ),
     );
@@ -143,6 +180,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _goStockInfoPage() async {
+    // 현재 웹뷰의 URL을 가져옵니다.
+    String currentUrl = await controller.currentUrl() ?? '';
+    print('현재 URL: $currentUrl'); // 현재 URL 로그 출력
+
+    // CodeValue를 추출하기 위한 정규 표현식입니다.
+    RegExp regExp = RegExp(r'stock/([A-Z0-9.]+)/total');
+    final matches = regExp.firstMatch(currentUrl);
+
+    if (matches != null && matches.groupCount >= 1) {
+      String codeValue = matches.group(1)!; // 'stock'과 'total' 사이의 값입니다.
+      print('추출된 CodeValue: $codeValue'); // 추출된 CodeValue 로그 출력
+
+      if (codeValue.contains('.')) {
+        codeValue = codeValue.split('.')[0]; // '.'을 기준으로 분할하여 첫 번째 값을 사용합니다.
+        print('수정된 CodeValue: $codeValue'); // 수정된 CodeValue 로그 출력
+      }
+
+      // 사용자의 언어 설정을 가져옵니다.
+      String currentLang = await LanguagePreference.getLanguageSetting();
+
+      // 최종 URL을 구성합니다.
+      String finalUrl = 'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
+
+      // 구성한 URL로 웹뷰를 이동시킵니다.
+      controller.loadRequest(Uri.parse(finalUrl));
+    }
   }
 
   _addCurrentUrlToRecent(String url) async {
