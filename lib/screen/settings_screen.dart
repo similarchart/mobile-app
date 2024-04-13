@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:web_view/screen/histroy_screen.dart';
 import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/services/push_notifications_preference.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/services/toast_service.dart';
 
@@ -12,15 +13,18 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedLanguage;
+  late bool _selectedPushNotification;
 
   @override
   void initState() {
     super.initState();
-    _loadLanguageSetting();
+    _loadSettings();
   }
 
-  Future<void> _loadLanguageSetting() async {
+  Future<void> _loadSettings() async {
     _selectedLanguage = await LanguagePreference.getLanguageSetting();
+    _selectedPushNotification =
+        await PushNotificationPreference.getPushNotificationSetting();
     setState(() {});
   }
 
@@ -38,7 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Expanded(
               child: ListView.separated(
-                itemCount: 2, // '언어' 설정과 '방문기록'을 포함한 항목 수
+                itemCount: 3, // '언어' 설정과 '방문기록'을 포함한 항목 수
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     // '언어' 설정 항목
@@ -96,6 +100,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: AppColors.textColor),
                         ),
                       ),
+                    );
+                  } else if (index == 2) {
+                    // '푸시 알림 허용' 설정 항목
+                    return SwitchListTile(
+                      title: const Text(
+                        '푸시 알림 허용',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
+                        ),
+                      ),
+                      value: _selectedPushNotification,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _selectedPushNotification = value;
+                          // 여기에 푸시 알림 설정을 저장하는 코드를 넣으세요.
+                          ToastService().showToastMessage("적용되었습니다");
+                        });
+                      },
+                      activeColor: AppColors.textColor,
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 0), // 좌우 패딩을 0으로 조정
+                      // 다른 항목들과 패딩을 맞추기 위해 필요하다면 위 값을 조정하세요.
                     );
                   } else {
                     return Container(); // 확장을 위한 여분의 공간
