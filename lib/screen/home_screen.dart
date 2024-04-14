@@ -268,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    String stockName = title.split('-').first.trimRight();
+    String stockName = title.split(' - ').first.trimRight();
 
     final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
