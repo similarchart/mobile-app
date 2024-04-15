@@ -69,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               Container(
-                height: 67, // 하단 바의 높이
+                height: 60, // 하단 바의 높이
                 color: AppColors.primaryColor, // 상단 바의 배경색
               ),
             ]

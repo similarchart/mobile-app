@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // BottomNavigationBar의 높이를 정의합니다. 실제 높이에 따라 조정할 수 있습니다.
-    const double bottomNavigationBarHeight = 67;
+    const double bottomNavigationBarHeight = 60;
     // FloatingActionButton의 반지름입니다. 실제 크기에 따라 조정할 수 있습니다.
     const double fabRadius = 18;
 
@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: <Widget>[
                       buildBottomIcon(
                           Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                      buildBottomIcon(Icons.find_replace, '실시간검색',
+                      buildBottomIcon(Icons.trending_up, '패턴 검색',
                           () => onRealTimeSearchTap()),
                       buildBottomIcon(
                           Icons.home, '홈', () => onHomeTap(controller)),
@@ -180,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 : Container(),
           ),
-          _isLoading ? Center(child: CircularProgressIndicator()) : Container(),
+          _isLoading ? const Center(child: CircularProgressIndicator()) : Container(),
         ],
       ),
     );
@@ -194,10 +194,11 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(icon, color: Colors.white), // 아이콘 색상 설정
+            Icon(icon, color: Colors.white,
+              size: 20,), // 아이콘 색상 설정
             Text(label,
                 style: const TextStyle(
-                    fontSize: 10, color: Colors.white)), // 텍스트 색상 및 스타일 설정
+                    fontSize: 9, color: Colors.white)), // 텍스트 색상 및 스타일 설정
           ],
         ),
       ),

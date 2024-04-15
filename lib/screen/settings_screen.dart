@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          '언어',
+                          '사이트 언어',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -93,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: const Text(
-                          '방문기록',
+                          '방문 기록',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -116,11 +116,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (bool value) {
                         setState(() {
                           _selectedPushNotification = value;
+                          PushNotificationPreference.setPushNotificationSetting(
+                              _selectedPushNotification);
                           // 여기에 푸시 알림 설정을 저장하는 코드를 넣으세요.
-                          ToastService().showToastMessage("적용되었습니다");
+                          if (value == true) {
+                            ToastService().showToastMessage("푸시 알림 허용\n\n절전 모드시 푸시 알림이\n 제데로 동작하지 않습니다");
+                          } else {
+                            ToastService().showToastMessage("푸시 알림 비허용");
+                          }
                         });
                       },
-                      activeColor: AppColors.textColor,
+                      activeColor: Colors.green,
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 0), // 좌우 패딩을 0으로 조정
                       // 다른 항목들과 패딩을 맞추기 위해 필요하다면 위 값을 조정하세요.
