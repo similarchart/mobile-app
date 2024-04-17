@@ -14,6 +14,7 @@ import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/history_item.dart';
 
 import '../model/recent_item.dart';
+import 'drawing_board.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
@@ -354,8 +355,24 @@ class _HomeScreenState extends State<HomeScreen> {
     controller.loadRequest(newUri);
   }
 
-  onDrawingSearchTap() {
-    ToastService().showToastMessage("곧 공개됩니다");
+  void onDrawingSearchTap() {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height * 2 / 3;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(0),
+          child: Container(
+            width: width,
+            height: height,
+            child: DrawingBoard(),
+          ),
+        );
+      },
+    );
   }
 
   onRealTimeSearchTap() {
