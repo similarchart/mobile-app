@@ -59,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return NavigationDecision.navigate; // 네비게이션을 계속 진행
           },
           onPageStarted: (String url) {
+            print('yes');
             setState(() {
               _isLoading = false;
             });
@@ -181,7 +182,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 : Container(),
           ),
-          _isLoading ? const Center(child: CircularProgressIndicator()) : Container(),
+          _isLoading
+              ? Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true, // 모든 터치 이벤트 무시
+              child: Container(
+                color: Colors.black.withOpacity(0.5), // 반투명 오버레이
+                child: Center(
+                  child: FutureBuilder<String>(
+                    future: LanguagePreference.getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
+                    builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
+                      } else if (snapshot.hasData) {
+                        String lang = snapshot.data!;
+                        // 언어 설정에 따라 다른 GIF 이미지 로드
+                        return Image.asset(lang == 'ko'
+                            ? 'assets/loading_image.gif'
+                            : 'assets/loading_image_en.gif');
+                      } else {
+                        return Text('로딩 이미지를 불러올 수 없습니다.');
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+          )
+              : Container(),
+
         ],
       ),
     );
