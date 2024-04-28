@@ -13,8 +13,6 @@ class _DrawingBoardState extends State<DrawingBoard> {
   String selectedCountry = '한국';
   final List<String> sizes = ['128', '64', '32', '16', '8'];
   final List<String> countries = ['미국', '한국'];
-  bool isValid = true; // 그림의 유효성 검사 결과를 저장하는 변수
-  String errMsg = "";
 
   @override
   Widget build(BuildContext context) {
@@ -62,30 +60,17 @@ class _DrawingBoardState extends State<DrawingBoard> {
         ],
       ),
       body: Builder(builder: (BuildContext innerContext) {
-        return Stack(
-          children: [
-            GestureDetector(
-              onPanUpdate: drawingEnabled
-                  ? (details) => onPanUpdate(details, innerContext)
-                  : null,
-              onPanEnd: onPanEnd,
-              child: ClipRect(
-                child: CustomPaint(
-                  painter: DrawingPainter(points, drawingEnabled, isValid),
-                  child: Container(),
-                ),
-              ),
+        return GestureDetector(
+          onPanUpdate: drawingEnabled
+              ? (details) => onPanUpdate(details, innerContext)
+              : null,
+          onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
+          child: ClipRect(
+            child: CustomPaint(
+              painter: DrawingPainter(points, drawingEnabled),
+              child: Container(),
             ),
-            if (!isValid)
-              Positioned(
-                bottom: 10,
-                left: 10,
-                child: Text(
-                  '그래프가 유효하지 않습니다: ' + errMsg,
-                  style: TextStyle(color: Colors.red, fontSize: 18),
-                ),
-              ),
-          ],
+          ),
         );
       }),
     );
@@ -100,19 +85,33 @@ class _DrawingBoardState extends State<DrawingBoard> {
 
   void onPanEnd(DragEndDetails details) {
     setState(() {
-      validateDrawing();
-      drawingEnabled = false;
-      interpolatePoints();
+      validatePoints();
+      if (points.length > 1) {
+        interpolatePoints();
+        drawingEnabled = false;
+      }
     });
   }
 
-  void validateDrawing() {}
+  void validatePoints() {
+    List<Offset> result = [];
+    double? prevX;
+
+    for (int i = 0; i < points.length; i++) {
+      double currentX = points[i].dx;
+      if (prevX == null || currentX >= prevX) {
+        result.add(points[i]);
+        prevX = currentX;
+      }
+    }
+
+    points = result;
+  }
 
   void resetDrawing() {
     setState(() {
       points.clear();
       drawingEnabled = true;
-      isValid = true;
     });
   }
 
@@ -122,8 +121,6 @@ class _DrawingBoardState extends State<DrawingBoard> {
   }
 
   void interpolatePoints() {
-    if (points.isEmpty) return;
-
     // 최소와 최대 x 좌표값 찾기
     double minX = points.map((p) => p.dx).reduce(min);
     double maxX = points.map((p) => p.dx).reduce(max);
@@ -135,15 +132,17 @@ class _DrawingBoardState extends State<DrawingBoard> {
 
     // 마지막 점을 제외하고 newPoints 리스트 생성
     for (int i = 1; i < numPoints - 1; i++) {
-    double newX = minX + i * interval;
-    // 보간을 위해 가장 가까운 두 점 찾기
-    Offset p1 = points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
-    Offset p2 = points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+      double newX = minX + i * interval;
+      // 보간을 위해 가장 가까운 두 점 찾기
+      Offset p1 =
+      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+      Offset p2 =
+      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
 
-    // 선형 보간 계산
-    double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
-    double newY = p1.dy + slope * (newX - p1.dx);
-    newPoints.add(Offset(newX, newY));
+      // 선형 보간 계산
+      double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
+      double newY = p1.dy + slope * (newX - p1.dx);
+      newPoints.add(Offset(newX, newY));
     }
 
     newPoints.add(points.last); // 마지막 점 추가
@@ -154,15 +153,13 @@ class _DrawingBoardState extends State<DrawingBoard> {
 class DrawingPainter extends CustomPainter {
   final List<Offset> points;
   final bool drawingEnabled;
-  final bool isValid; // 그림의 유효성 상태를 나타내는 변수
-  DrawingPainter(this.points, this.drawingEnabled, this.isValid);
+  DrawingPainter(this.points, this.drawingEnabled);
 
   @override
   void paint(Canvas canvas, Size size) {
     // 그림 그리기 설정
     Paint paint = Paint()
-      ..color =
-          isValid ? (drawingEnabled ? Colors.black : Colors.grey) : Colors.red
+      ..color = drawingEnabled ? Colors.black : Colors.grey
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 5.0;
 
