@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -12,7 +11,6 @@ import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/screen/splash_screen.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/history_item.dart';
-
 import '../model/recent_item.dart';
 import 'drawing_board.dart';
 
@@ -42,12 +40,13 @@ class _HomeScreenState extends State<HomeScreen> {
         await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      //..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
             // URL 변경을 감지하여 FAB 표시 여부를 결정
+
             bool startsWithDomestic = request.url
                 .startsWith('https://m.stock.naver.com/domestic/stock/');
             bool startsWithWorld = request.url
@@ -56,10 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
               _showFloatingActionButton = startsWithDomestic || startsWithWorld;
               _isLoading = true;
             });
+
             return NavigationDecision.navigate; // 네비게이션을 계속 진행
           },
           onPageStarted: (String url) {
-            print('yes');
             setState(() {
               _isLoading = false;
             });
@@ -184,33 +183,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           _isLoading
               ? Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true, // 모든 터치 이벤트 무시
-              child: Container(
-                color: Colors.black.withOpacity(0.5), // 반투명 오버레이
-                child: Center(
-                  child: FutureBuilder<String>(
-                    future: LanguagePreference.getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
-                    builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
-                      } else if (snapshot.hasData) {
-                        String lang = snapshot.data!;
-                        // 언어 설정에 따라 다른 GIF 이미지 로드
-                        return Image.asset(lang == 'ko'
-                            ? 'assets/loading_image.gif'
-                            : 'assets/loading_image_en.gif');
-                      } else {
-                        return Text('로딩 이미지를 불러올 수 없습니다.');
-                      }
-                    },
-                  ),
+            child: Container(
+              color: Colors.black.withOpacity(0.5), // 반투명 오버레이
+              child: Center(
+                child: FutureBuilder<String>(
+                  future: LanguagePreference.getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
+                  builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
+                    } else if (snapshot.hasData) {
+                      String lang = snapshot.data!;
+                      // 언어 설정에 따라 다른 GIF 이미지 로드
+                      return Image.asset(lang == 'ko'
+                          ? 'assets/loading_image.gif'
+                          : 'assets/loading_image_en.gif');
+                    } else {
+                      return Text('로딩 이미지를 불러올 수 없습니다.');
+                    }
+                  },
                 ),
               ),
             ),
           )
               : Container(),
-
         ],
       ),
     );
@@ -238,7 +233,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _goStockInfoPage() async {
     // 현재 웹뷰의 URL을 가져옵니다.
     String currentUrl = await controller.currentUrl() ?? '';
-    print('현재 URL: $currentUrl'); // 현재 URL 로그 출력
 
     // CodeValue를 추출하기 위한 정규 표현식입니다.
     RegExp regExp = RegExp(r'stock/([A-Z0-9.]+)/total');
@@ -246,11 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (matches != null && matches.groupCount >= 1) {
       String codeValue = matches.group(1)!; // 'stock'과 'total' 사이의 값입니다.
-      print('추출된 CodeValue: $codeValue'); // 추출된 CodeValue 로그 출력
 
       if (codeValue.contains('.')) {
         codeValue = codeValue.split('.')[0]; // '.'을 기준으로 분할하여 첫 번째 값을 사용합니다.
-        print('수정된 CodeValue: $codeValue'); // 수정된 CodeValue 로그 출력
       }
 
       // 사용자의 언어 설정을 가져옵니다.
@@ -342,6 +334,9 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (context) => FavoriteScreen()),
     );
     if (url != null) {
+      setState(() {
+        _isLoading = true;
+      });
       controller.loadRequest(Uri.parse(url));
     }
   }
@@ -381,6 +376,9 @@ class _HomeScreenState extends State<HomeScreen> {
     Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
 
     // 새로운 URI로 웹뷰를 로드합니다.
+    setState(() {
+      _isLoading = true;
+    });
     controller.loadRequest(newUri);
   }
 
