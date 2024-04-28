@@ -10,7 +10,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
   List<Offset> points = [];
   bool drawingEnabled = true;
   String selectedSize = '128';
-  String selectedCountry = '미국';
+  String selectedCountry = '한국';
   final List<String> sizes = ['128', '64', '32', '16', '8'];
   final List<String> countries = ['미국', '한국'];
   bool isValid = true; // 그림의 유효성 검사 결과를 저장하는 변수
@@ -100,6 +100,11 @@ class _DrawingBoardState extends State<DrawingBoard> {
     setState(() {
       validateDrawing();
       drawingEnabled = false;
+      print(points.length);
+      print(points);
+      points = interpolatePoints(points, int.parse(selectedSize));
+      print(points.length);
+      print(points);
     });
   }
 
@@ -116,6 +121,32 @@ class _DrawingBoardState extends State<DrawingBoard> {
   void sendDrawing() {
     // 서버 전송 로직 구현: selectedSize와 selectedCountry 변수도 함께 전송
     print("Drawing sent with size $selectedSize and country $selectedCountry!");
+  }
+
+  List<Offset> interpolatePoints(List<Offset> points, int desiredSize) {
+    if (points.length >= desiredSize) {
+      return points.sublist(0, desiredSize);
+    }
+
+    List<Offset> interpolatedPoints = [];
+    int numSegments = points.length - 1;
+    double step = numSegments / (desiredSize - 1);
+
+    for (int i = 0; i < desiredSize; i++) {
+      double segmentIndex = i * step;
+      int lowIndex = segmentIndex.floor();
+      int highIndex = min(lowIndex + 1, numSegments);
+      double fraction = segmentIndex - lowIndex;
+
+      Offset start = points[lowIndex];
+      Offset end = points[highIndex];
+      double x = start.dx + (end.dx - start.dx) * fraction;
+      double y = start.dy + (end.dy - start.dy) * fraction;
+
+      interpolatedPoints.add(Offset(x, y));
+    }
+
+    return interpolatedPoints;
   }
 }
 
