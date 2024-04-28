@@ -69,9 +69,11 @@ class _DrawingBoardState extends State<DrawingBoard> {
                   ? (details) => onPanUpdate(details, innerContext)
                   : null,
               onPanEnd: onPanEnd,
-              child: CustomPaint(
-                painter: DrawingPainter(points, drawingEnabled, isValid),
-                child: Container(),
+              child: ClipRect(
+                child: CustomPaint(
+                  painter: DrawingPainter(points, drawingEnabled, isValid),
+                  child: Container(),
+                ),
               ),
             ),
             if (!isValid)
@@ -100,11 +102,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
     setState(() {
       validateDrawing();
       drawingEnabled = false;
-      print(points.length);
-      print(points);
-      points = interpolatePoints(points, int.parse(selectedSize));
-      print(points.length);
-      print(points);
+      interpolatePoints();
     });
   }
 
@@ -123,30 +121,33 @@ class _DrawingBoardState extends State<DrawingBoard> {
     print("Drawing sent with size $selectedSize and country $selectedCountry!");
   }
 
-  List<Offset> interpolatePoints(List<Offset> points, int desiredSize) {
-    if (points.length >= desiredSize) {
-      return points.sublist(0, desiredSize);
+  void interpolatePoints() {
+    if (points.isEmpty) return;
+
+    // 최소와 최대 x 좌표값 찾기
+    double minX = points.map((p) => p.dx).reduce(min);
+    double maxX = points.map((p) => p.dx).reduce(max);
+    int numPoints = int.parse(selectedSize); // selectedSize를 정수로 변환
+    double interval = (maxX - minX) / (numPoints - 1);
+
+    List<Offset> newPoints = [];
+    newPoints.add(points.first); // 첫 번째 점 추가
+
+    // 마지막 점을 제외하고 newPoints 리스트 생성
+    for (int i = 1; i < numPoints - 1; i++) {
+    double newX = minX + i * interval;
+    // 보간을 위해 가장 가까운 두 점 찾기
+    Offset p1 = points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+    Offset p2 = points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+
+    // 선형 보간 계산
+    double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
+    double newY = p1.dy + slope * (newX - p1.dx);
+    newPoints.add(Offset(newX, newY));
     }
 
-    List<Offset> interpolatedPoints = [];
-    int numSegments = points.length - 1;
-    double step = numSegments / (desiredSize - 1);
-
-    for (int i = 0; i < desiredSize; i++) {
-      double segmentIndex = i * step;
-      int lowIndex = segmentIndex.floor();
-      int highIndex = min(lowIndex + 1, numSegments);
-      double fraction = segmentIndex - lowIndex;
-
-      Offset start = points[lowIndex];
-      Offset end = points[highIndex];
-      double x = start.dx + (end.dx - start.dx) * fraction;
-      double y = start.dy + (end.dy - start.dy) * fraction;
-
-      interpolatedPoints.add(Offset(x, y));
-    }
-
-    return interpolatedPoints;
+    newPoints.add(points.last); // 마지막 점 추가
+    points = newPoints; // points 리스트 업데이트
   }
 }
 
