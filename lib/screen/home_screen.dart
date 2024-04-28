@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -37,10 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadInitialUrl() async {
     String lang =
-        await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
+    await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
-      //..setJavaScriptMode(JavaScriptMode.unrestricted)
+    //..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -66,9 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onPageFinished: (String url) async {
             // 현재 URL에 따라 플로팅 버튼의 표시 여부를 결정
             bool startsWithDomestic =
-                url.startsWith('https://m.stock.naver.com/domestic/stock/');
+            url.startsWith('https://m.stock.naver.com/domestic/stock/');
             bool startsWithWorld =
-                url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+            url.startsWith('https://m.stock.naver.com/worldstock/stock/');
             setState(() {
               _showFloatingActionButton = startsWithDomestic || startsWithWorld;
             });
@@ -124,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SystemNavigator.pop();
                   },
                   child:
-                      Text('예', style: TextStyle(color: AppColors.textColor)),
+                  Text('예', style: TextStyle(color: AppColors.textColor)),
                 ),
               ],
             ),
@@ -136,29 +137,31 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           SafeArea(
             child: Scaffold(
-              bottomNavigationBar: ConstrainedBox(
-                constraints:
-                    BoxConstraints(maxHeight: bottomNavigationBarHeight),
-                child: BottomAppBar(
-                  color: AppColors.primaryColor,
-                  child: Row(
-                    children: <Widget>[
-                      buildBottomIcon(
-                          Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                      buildBottomIcon(Icons.trending_up, '패턴 검색',
-                          () => onRealTimeSearchTap()),
-                      buildBottomIcon(
-                          Icons.home, '홈', () => onHomeTap(controller)),
-                      buildBottomIcon(
-                          Icons.history, '최근본종목', () => onFavoriteTap(context)),
-                      buildBottomIcon(
-                          Icons.settings, '설정', () => onSettingsTap(context)),
-                    ],
+              body: Column(
+                children: [
+                  Expanded(
+                    child: WebViewWidget(
+                      controller: controller,
+                    ),
                   ),
-                ),
-              ),
-              body: WebViewWidget(
-                controller: controller,
+                  SizedBox(
+                    height: 60,
+                    child: Row(
+                      children: [
+                        buildBottomIcon(
+                            Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
+                        buildBottomIcon(Icons.trending_up, '패턴 검색',
+                                () => onRealTimeSearchTap()),
+                        buildBottomIcon(
+                            Icons.home, '홈', () => onHomeTap(controller)),
+                        buildBottomIcon(
+                            Icons.history, '최근본종목', () => onFavoriteTap(context)),
+                        buildBottomIcon(
+                            Icons.settings, '설정', () => onSettingsTap(context)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -171,14 +174,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
             child: _showFloatingActionButton
                 ? FloatingActionButton(
-                    onPressed: () {
-                      // FAB 클릭 시 실행될 동작
-                      _goStockInfoPage();
-                    },
-                    child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
-                    backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
-                    elevation: 0, // 그림자 제거
-                  )
+              onPressed: () {
+                // FAB 클릭 시 실행될 동작
+                _goStockInfoPage();
+              },
+              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
+              backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
+              elevation: 0, // 그림자 제거
+            )
                 : Container(),
           ),
           _isLoading
@@ -213,22 +216,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildBottomIcon(IconData icon, String label, VoidCallback onTap) {
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(icon, color: Colors.white,
-              size: 20,), // 아이콘 색상 설정
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 9, color: Colors.white)), // 텍스트 색상 및 스타일 설정
-          ],
+      child: Material(
+        color: AppColors.primaryColor,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, color: Colors.white, size: 20,), // 아이콘 색상 및 크기 설정
+                Text(label, style: TextStyle(fontSize: 9, color: Colors.white)), // 텍스트 스타일 설정
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+
+
 
   Future<void> _goStockInfoPage() async {
     // 현재 웹뷰의 URL을 가져옵니다.
@@ -260,9 +270,9 @@ class _HomeScreenState extends State<HomeScreen> {
   _addCurrentUrlToRecent(String url) async {
     Uri uri = Uri.parse(url);
     bool startsWithDomestic =
-        url.startsWith('https://m.stock.naver.com/domestic/stock/');
+    url.startsWith('https://m.stock.naver.com/domestic/stock/');
     bool startsWithWorld =
-        url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+    url.startsWith('https://m.stock.naver.com/worldstock/stock/');
 
     String codeValue;
     String? title;
@@ -271,8 +281,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title = await controller.getTitle();
     } else if (startsWithWorld || startsWithDomestic) {
       String? ogTitle = (await controller.runJavaScriptReturningResult(
-              "document.querySelector('meta[property=\"og:title\"]').content;"))
-          as String?;
+          "document.querySelector('meta[property=\"og:title\"]').content;"))
+      as String?;
 
       // JavaScript에서 반환된 JSON 문자열에서 실제 문자열 값을 추출합니다.
       title = jsonDecode(ogTitle!);
@@ -324,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? title = await controller.getTitle();
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =
-        HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
+    HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
     await historyBox.add(historyItem);
   }
 
@@ -369,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
     Map<String, String> newQueryParameters =
-        Map.from(currentUri.queryParameters);
+    Map.from(currentUri.queryParameters);
     newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
 
     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
