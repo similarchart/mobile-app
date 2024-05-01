@@ -15,6 +15,9 @@ import '../model/recent_item.dart';
 import 'drawing_board.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
+const String naverHomeUrl = 'https://m.stock.naver.com/';
+const String naverDomesticUrl = 'https://m.stock.naver.com/domestic/stock/';
+const String naverWorldUrl = 'https://m.stock.naver.com/worldstock/stock/';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,40 +40,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadInitialUrl() async {
     String lang =
-    await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
+        await LanguagePreference.getLanguageSetting(); // 현재 설정된 언어를 불러옵니다.
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
-    //..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
             // URL 변경을 감지하여 FAB 표시 여부를 결정
-
+            bool isNaverHome = (request.url == naverHomeUrl);
             bool startsWithDomestic = request.url
-                .startsWith('https://m.stock.naver.com/domestic/stock/');
+                .startsWith(naverDomesticUrl);
             bool startsWithWorld = request.url
-                .startsWith('https://m.stock.naver.com/worldstock/stock/');
+                .startsWith(naverWorldUrl);
             setState(() {
-              _showFloatingActionButton = startsWithDomestic || startsWithWorld;
+              _showFloatingActionButton =
+                  startsWithDomestic || startsWithWorld || isNaverHome;
               _isLoading = true;
             });
 
             return NavigationDecision.navigate; // 네비게이션을 계속 진행
           },
-          onPageStarted: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
           onPageFinished: (String url) async {
             // 현재 URL에 따라 플로팅 버튼의 표시 여부를 결정
+            bool isNaverHome = (url == 'https://m.stock.naver.com/');
             bool startsWithDomestic =
-            url.startsWith('https://m.stock.naver.com/domestic/stock/');
+                url.startsWith('https://m.stock.naver.com/domestic/stock/');
             bool startsWithWorld =
-            url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+                url.startsWith('https://m.stock.naver.com/worldstock/stock/');
             setState(() {
-              _showFloatingActionButton = startsWithDomestic || startsWithWorld;
+              _showFloatingActionButton =
+                  startsWithDomestic || startsWithWorld || isNaverHome;
+              _isLoading = false;
             });
 
             if (_isFirstLoad) {
@@ -124,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SystemNavigator.pop();
                   },
                   child:
-                  Text('예', style: TextStyle(color: AppColors.textColor)),
+                      Text('예', style: TextStyle(color: AppColors.textColor)),
                 ),
               ],
             ),
@@ -150,11 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         buildBottomIcon(
                             Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
                         buildBottomIcon(Icons.trending_up, '패턴 검색',
-                                () => onRealTimeSearchTap()),
+                            () => onRealTimeSearchTap()),
                         buildBottomIcon(
                             Icons.home, '홈', () => onHomeTap(controller)),
-                        buildBottomIcon(
-                            Icons.history, '최근본종목', () => onFavoriteTap(context)),
+                        buildBottomIcon(Icons.history, '최근본종목',
+                            () => onFavoriteTap(context)),
                         buildBottomIcon(
                             Icons.settings, '설정', () => onSettingsTap(context)),
                       ],
@@ -173,40 +175,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
             child: _showFloatingActionButton
                 ? FloatingActionButton(
-              onPressed: () {
-                // FAB 클릭 시 실행될 동작
-                _goStockInfoPage();
-              },
-              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
-              backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
-              elevation: 0, // 그림자 제거
-            )
+                    onPressed: () async {
+                      // FAB 클릭 시 실행될 동작
+                      String currentUrl = await controller.currentUrl() ?? '';
+                      if (currentUrl.startsWith(naverDomesticUrl) || currentUrl.startsWith(naverWorldUrl)) { // 네이버증권 홈 화면일 경우
+                        _goStockInfoPage();
+                      } else { // 특정 종목 페이지 외에는 메세지 출력
+                        ToastService().showToastMessage("특정 종목 정보 페이지에서 터치해 보세요!");
+                      }
+                    },
+                    child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지를 사용
+                    backgroundColor: Colors.transparent, // 배경색을 투명하게 설정
+                    elevation: 0, // 그림자 제거
+                  )
                 : Container(),
           ),
           _isLoading
               ? Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.5), // 반투명 오버레이
-              child: Center(
-                child: FutureBuilder<String>(
-                  future: LanguagePreference.getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
-                  builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
-                    } else if (snapshot.hasData) {
-                      String lang = snapshot.data!;
-                      // 언어 설정에 따라 다른 GIF 이미지 로드
-                      return Image.asset(lang == 'ko'
-                          ? 'assets/loading_image.gif'
-                          : 'assets/loading_image_en.gif');
-                    } else {
-                      return Text('로딩 이미지를 불러올 수 없습니다.');
-                    }
-                  },
-                ),
-              ),
-            ),
-          )
+                  child: Container(
+                    color: Colors.black.withOpacity(0.5), // 반투명 오버레이
+                    child: Center(
+                      child: FutureBuilder<String>(
+                        future: LanguagePreference
+                            .getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
+                        builder: (BuildContext context,
+                            AsyncSnapshot<String> snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
+                          } else if (snapshot.hasData) {
+                            String lang = snapshot.data!;
+                            // 언어 설정에 따라 다른 GIF 이미지 로드
+                            return Image.asset(lang == 'ko'
+                                ? 'assets/loading_image.gif'
+                                : 'assets/loading_image_en.gif');
+                          } else {
+                            return Text('로딩 이미지를 불러올 수 없습니다.');
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                )
               : Container(),
         ],
       ),
@@ -227,8 +237,14 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(icon, color: Colors.white, size: 25,), // 아이콘 색상 및 크기 설정
-                Text(label, style: TextStyle(fontSize: 12, color: Colors.white)), // 텍스트 스타일 설정
+                Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 25,
+                ), // 아이콘 색상 및 크기 설정
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.white)), // 텍스트 스타일 설정
               ],
             ),
           ),
@@ -237,9 +253,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
   Future<void> _goStockInfoPage() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     // 현재 웹뷰의 URL을 가져옵니다.
     String currentUrl = await controller.currentUrl() ?? '';
 
@@ -269,9 +287,9 @@ class _HomeScreenState extends State<HomeScreen> {
   _addCurrentUrlToRecent(String url) async {
     Uri uri = Uri.parse(url);
     bool startsWithDomestic =
-    url.startsWith('https://m.stock.naver.com/domestic/stock/');
+        url.startsWith(naverDomesticUrl);
     bool startsWithWorld =
-    url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+        url.startsWith(naverWorldUrl);
 
     String codeValue;
     String? title;
@@ -280,8 +298,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title = await controller.getTitle();
     } else if (startsWithWorld || startsWithDomestic) {
       String? ogTitle = (await controller.runJavaScriptReturningResult(
-          "document.querySelector('meta[property=\"og:title\"]').content;"))
-      as String?;
+              "document.querySelector('meta[property=\"og:title\"]').content;"))
+          as String?;
 
       // JavaScript에서 반환된 JSON 문자열에서 실제 문자열 값을 추출합니다.
       title = jsonDecode(ogTitle!);
@@ -333,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? title = await controller.getTitle();
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =
-    HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
+        HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
     await historyBox.add(historyItem);
   }
 
@@ -397,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
     Map<String, String> newQueryParameters =
-    Map.from(currentUri.queryParameters);
+        Map.from(currentUri.queryParameters);
     newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
 
     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
