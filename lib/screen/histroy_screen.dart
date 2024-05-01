@@ -33,15 +33,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       TextButton(
                         child: const Text('No'),
                         onPressed: () {
-                          Navigator.of(context).pop(); // 대화상자 닫기
+                          Navigator.of(context).pop();
                         },
                       ),
                       TextButton(
                         child: const Text('Yes'),
                         onPressed: () async {
-                          // Hive Box에서 해당 항목 삭제
-                          historyBox.clear();
-                          Navigator.of(context).pop(); // 대화상자 닫기
+                          await historyBox.clear();
+                          Navigator.of(context).pop();
                         },
                       ),
                     ],
@@ -56,38 +55,52 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: ValueListenableBuilder(
         valueListenable: historyBox.listenable(),
         builder: (context, Box<HistoryItem> box, _) {
-          final reversedList = box.values.toList().reversed; // 여기서 순서를 뒤집습니다.
-          return ListView.separated(
-            itemCount:
-                reversedList.length, // itemCount를 reversedList의 길이로 설정합니다.
+          final reversedList = box.values.toList().reversed.take(100).toList();
+          return ListView.builder(
+            itemCount: reversedList.length,
             itemBuilder: (context, index) {
-              final historyItem = reversedList.elementAt(index); // 인덱스로 아이템에 접근합니다.
-              return ListTile(
-                horizontalTitleGap: 10,
-                title: Text(historyItem.title,
-                    style: const TextStyle(color: AppColors.textColor)),
-                subtitle: Text(
-                    DateFormat('yyyy-MM-dd HH:mm:ss')
-                        .format(historyItem.dateVisited),
-                    style: const TextStyle(color: AppColors.textColor)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.secondaryColor),
-                  onPressed: () async {
-                    // reversedList에서의 실제 인덱스를 계산합니다.
-                    final realIndex = box.values.length - 1 - index;
-                    await box.deleteAt(realIndex); // 실제 인덱스를 사용하여 삭제합니다.
-                    setState(() {});
-                  },
+              final historyItem = reversedList.elementAt(index);
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor,
+                  border: Border(bottom: BorderSide(color: AppColors.secondaryColor, width: 1)),
                 ),
-                onTap: () {
-                  Navigator.pop(context, historyItem.url);
-                },
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pop(context, historyItem.url);
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 3, horizontal: 10),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(historyItem.title,
+                                  style: TextStyle(fontSize: 14, color: AppColors.textColor)),
+                              Text(
+                                  DateFormat('yyyy-MM-dd HH:mm:ss').format(historyItem.dateVisited),
+                                  style: TextStyle(fontSize: 11, color: AppColors.textColor)
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          iconSize: 20,
+                          icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                          onPressed: () async {
+                            final realIndex = box.values.length - 1 - index;
+                            await box.deleteAt(realIndex);
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
-            separatorBuilder: (context, index) => const Divider(
-              color: AppColors.secondaryColor,
-              height: 1,
-            ),
           );
         },
       ),
