@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:web_view/screen/drawing_result.dart';
+
 
 class DrawingBoard extends StatefulWidget {
+  final double screenHeight;
+
+  DrawingBoard({Key? key, required this.screenHeight}) : super(key: key);
+
   @override
   _DrawingBoardState createState() => _DrawingBoardState();
 }
@@ -10,7 +18,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
   List<Offset> points = [];
   bool drawingEnabled = true;
   String selectedSize = '128';
-  String selectedCountry = '한국';
+  String selectedMarket = '한국';
   final List<String> sizes = ['128', '64', '32', '16', '8'];
   final List<String> countries = ['미국', '한국'];
 
@@ -36,10 +44,10 @@ class _DrawingBoardState extends State<DrawingBoard> {
             }).toList(),
           ),
           DropdownButton<String>(
-            value: selectedCountry,
+            value: selectedMarket,
             onChanged: (String? newValue) {
               setState(() {
-                selectedCountry = newValue!;
+                selectedMarket = newValue!;
               });
             },
             items: countries.map<DropdownMenuItem<String>>((String value) {
@@ -55,7 +63,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
           ),
           IconButton(
             icon: Icon(Icons.send),
-            onPressed: sendDrawing,
+            onPressed: () => sendDrawing(widget.screenHeight),
           ),
         ],
       ),
@@ -121,10 +129,58 @@ class _DrawingBoardState extends State<DrawingBoard> {
     });
   }
 
-  void sendDrawing() {
-    List<double> data = points.map((point) => point.dy).toList();
-    print(data);
+  void sendDrawing(double screenHeight) async {
+    List<double> numbers = points.map((point) => 1 - point.dy / screenHeight).toList();
+
+    // selectedSize 문자열을 정수로 변환
+    int dayNum = int.tryParse(selectedSize) ?? 0;  // 변환 실패 시 기본값으로 0을 사용
+
+    // API URL 설정
+    String url = 'https://similarchart.com/api/drawing_search';
+
+    String market;
+    if(selectedSize=='한국'){
+      market='kospi_daq';
+    }
+    else{
+      market='nyse_naq';
+    }
+    // POST 요청 본문 구성
+    Map<String, dynamic> body = {
+      'numbers': numbers,
+      'day_num': dayNum,
+      'market': market,
+    };
+
+    // HTTP POST 요청 실행
+    try {
+      http.Response response = await http.post(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(body),
+      );
+
+      // 응답 처리
+      if (response.statusCode == 200) {
+        print('Data successfully sent to the API');
+        print('Response body: ${response.body}');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => DrawingResult(data: response.body, selectedMarket: market, selectedSize: selectedSize,)),
+        );
+      } else {
+        print('Failed to send data. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+    } catch (e) {
+      print('Error sending data to the API: $e');
+    }
   }
+
+
+
 
 
   void interpolatePoints() {

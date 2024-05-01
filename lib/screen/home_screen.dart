@@ -259,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SizedBox(
             width: width,
             height: height,
-            child: DrawingBoard(),
+            child: DrawingBoard(screenHeight: height - appBarHeight,),
           ),
         );
       },
