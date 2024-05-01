@@ -430,7 +430,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void onDrawingSearchTap() {
     double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height * 2 / 3;
+    double appBarHeight = AppBar().preferredSize.height; // AppBar의 기본 높이를 가져옴
+    double height = MediaQuery.of(context).size.width + appBarHeight; // 여기에 AppBar 높이를 추가
 
     showDialog(
       context: context,

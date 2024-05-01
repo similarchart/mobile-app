@@ -65,11 +65,9 @@ class _DrawingBoardState extends State<DrawingBoard> {
               ? (details) => onPanUpdate(details, innerContext)
               : null,
           onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
-          child: ClipRect(
-            child: CustomPaint(
-              painter: DrawingPainter(points, drawingEnabled),
-              child: Container(),
-            ),
+          child: CustomPaint(
+            painter: DrawingPainter(points, drawingEnabled),
+            child: Container(),
           ),
         );
       }),
@@ -78,10 +76,18 @@ class _DrawingBoardState extends State<DrawingBoard> {
 
   void onPanUpdate(DragUpdateDetails details, BuildContext context) {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
-    setState(() {
-      points.add(renderBox.globalToLocal(details.globalPosition));
-    });
+    Offset localPosition = renderBox.globalToLocal(details.globalPosition);
+    Size size = renderBox.size;
+
+    // 위젯 범위 내에서만 포인트를 추가
+    if (localPosition.dx >= 0 && localPosition.dx <= size.width &&
+        localPosition.dy >= 0 && localPosition.dy <= size.height) {
+      setState(() {
+        points.add(localPosition);
+      });
+    }
   }
+
 
   void onPanEnd(DragEndDetails details) {
     setState(() {
@@ -99,7 +105,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
 
     for (int i = 0; i < points.length; i++) {
       double currentX = points[i].dx;
-      if (prevX == null || currentX >= prevX) {
+      if (prevX == null || currentX > prevX) {
         result.add(points[i]);
         prevX = currentX;
       }
@@ -116,9 +122,10 @@ class _DrawingBoardState extends State<DrawingBoard> {
   }
 
   void sendDrawing() {
-    // 서버 전송 로직 구현: selectedSize와 selectedCountry 변수도 함께 전송
-    print("Drawing sent with size $selectedSize and country $selectedCountry!");
+    List<double> data = points.map((point) => point.dy).toList();
+    print(data);
   }
+
 
   void interpolatePoints() {
     // 최소와 최대 x 좌표값 찾기
