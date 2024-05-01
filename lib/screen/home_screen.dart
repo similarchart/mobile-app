@@ -64,11 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onPageFinished: (String url) async {
             // 현재 URL에 따라 플로팅 버튼의 표시 여부를 결정
-            bool isNaverHome = (url == 'https://m.stock.naver.com/');
+            bool isNaverHome = (url == naverHomeUrl);
             bool startsWithDomestic =
-                url.startsWith('https://m.stock.naver.com/domestic/stock/');
+                url.startsWith(naverDomesticUrl);
             bool startsWithWorld =
-                url.startsWith('https://m.stock.naver.com/worldstock/stock/');
+                url.startsWith(naverWorldUrl);
             setState(() {
               _showFloatingActionButton =
                   startsWithDomestic || startsWithWorld || isNaverHome;
@@ -151,10 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         buildBottomIcon(
                             Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                        buildBottomIcon(Icons.trending_up, '패턴 검색',
-                            () => onRealTimeSearchTap()),
+                        buildBottomIcon(Icons.trending_up, '네이버증권',
+                            () => onNaverHomeTap()),
                         buildBottomIcon(
-                            Icons.home, '홈', () => onHomeTap(controller)),
+                            Icons.home, '홈', () => onHomeTap()),
                         buildBottomIcon(Icons.history, '최근본종목',
                             () => onFavoriteTap(context)),
                         buildBottomIcon(
@@ -368,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void onHomeTap(WebViewController controller) async {
+  void onHomeTap() async {
     // 현재 웹뷰의 URL을 가져옵니다.
     String? currentUrl = await controller.currentUrl();
     Uri uri = Uri.parse(currentUrl ?? "");
@@ -448,7 +448,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  onRealTimeSearchTap() {
-    ToastService().showToastMessage("곧 공개됩니다");
+  onNaverHomeTap() {
+    setState(() {
+      _isLoading = true;
+    });
+
+    controller.loadRequest(Uri.parse(naverHomeUrl));
   }
 }
