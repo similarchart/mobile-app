@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/services/language_preference.dart';
 import 'package:web_view/model/history_item.dart';
 import 'package:web_view/model/recent_item.dart';
@@ -14,6 +15,36 @@ class WebViewManager {
 
   WebViewManager(this.controller, this.updateFABVisibility, this.updateLoadingStatus, this.updateFirstLoad);
 
+  Future<void> saveCookies() async {
+    final Object? result = await controller.runJavaScriptReturningResult("document.cookie");
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (result != null) {
+      // Since the expected result is a string, cast it safely
+      final String cookies = result.toString();
+      // Save the raw cookie string
+      await prefs.setString('cookies', cookies);
+    }
+  }
+
+  Future<void> loadCookies() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cookiesString = prefs.getString('cookies');
+    if (cookiesString != null) {
+      // Split the cookie string and reconstruct each cookie
+      List<String> allCookies = cookiesString.split('; ');
+      for (var cookie in allCookies) {
+        // Assuming each cookie string is in 'key=value' format
+        List<String> cookieParts = cookie.split('=');
+        if (cookieParts.length >= 2) {
+          String name = cookieParts[0];
+          String value = cookieParts.sublist(1).join('=');
+          // JavaScript to set the cookie back in the WebView
+          await controller.runJavaScript("document.cookie = '${name}=${value}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT';");
+        }
+      }
+    }
+  }
+
   void updateFloatingActionButtonVisibility(String url) {
     bool isNaverHome = (url == Urls.naverHomeUrl);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
@@ -22,6 +53,7 @@ class WebViewManager {
   }
 
   Future<void> loadInitialUrl() async {
+    await loadCookies();  // 앱 시작 시 쿠키 로드
     String lang = await LanguagePreference.getLanguageSetting();
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
@@ -40,6 +72,7 @@ class WebViewManager {
             updateFirstLoad(false);
             addCurrentUrlToHistory(url);
             addCurrentUrlToRecent(url);
+            saveCookies();  // 페이지 로드 완료 후 쿠키 저장
           },
         ),
       )
