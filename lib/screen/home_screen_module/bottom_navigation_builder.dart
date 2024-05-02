@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 
 class BottomNavigationBuilder {
-  static Widget buildBottomIcon(IconData icon, String label, VoidCallback onTap) {
+  static Widget buildBottomIcon(
+      IconData icon, String label, VoidCallback onTap) {
     return Expanded(
       child: Material(
         color: AppColors.primaryColor,
@@ -21,7 +22,8 @@ class BottomNavigationBuilder {
                   color: Colors.white,
                   size: 25,
                 ),
-                Text(label, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                Text(label,
+                    style: const TextStyle(fontSize: 12, color: Colors.white)),
               ],
             ),
           ),

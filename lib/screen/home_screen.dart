@@ -1,17 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:web_view/screen/favorite_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/services/language_preference.dart';
-import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/screen/splash_screen.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dart';
 import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
 import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
-import 'package:web_view/constants/urls.dart';
-import 'package:web_view/screen/drawing_board.dart';
+import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
 
 final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
 
@@ -26,19 +23,23 @@ class _HomeScreenState extends State<HomeScreen> {
   final WebViewController controller = WebViewController();
   late WebViewManager webViewManager;
   late FloatingActionButtonManager fabManager;
-  bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true
+  late BottomNavigationTap bottomNavigationTap;
+  bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
-  bool _isLoading = false;
+  bool _isLoading = false; // 로딩바 표시 여부
+  bool _isBottomBarVisible = true; // 하단 바의 초기 상태
+  double startY = 0.0; // 드래그 시작 지점의 Y 좌표
+  bool isDragging = false; // 드래그 중인지 여부
 
   @override
   void initState() {
     super.initState();
     webViewManager = WebViewManager(
         controller,
-            (bool isVisible) => setState(() => _showFloatingActionButton = isVisible),
-            (bool isLoading) => setState(() => _isLoading = isLoading),
-            (bool isFirstLoad) => setState(() => _isFirstLoad = isFirstLoad)
-    );
+        (bool isVisible) =>
+            setState(() => _showFloatingActionButton = isVisible),
+        (bool isLoading) => setState(() => _isLoading = isLoading),
+        (bool isFirstLoad) => setState(() => _isFirstLoad = isFirstLoad));
     fabManager = FloatingActionButtonManager(
       controller: controller,
       updateLoadingStatus: (bool isLoading) {
@@ -47,6 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
     );
+    bottomNavigationTap = BottomNavigationTap((isLoading) {
+      setState(() {
+        _isLoading = isLoading;
+      });
+    });
     webViewManager.loadInitialUrl();
   }
 
@@ -67,7 +73,8 @@ class _HomeScreenState extends State<HomeScreen> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('앱 종료', style: TextStyle(color: AppColors.textColor)),
+              title: const Text('앱 종료',
+                  style: TextStyle(color: AppColors.textColor)),
               content: const Text('앱을 종료하시겠습니까?',
                   style: TextStyle(color: AppColors.textColor)),
               backgroundColor: AppColors.primaryColor,
@@ -87,8 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     SystemNavigator.pop();
                   },
-                  child:
-                      const Text('예', style: TextStyle(color: AppColors.textColor)),
+                  child: const Text('예',
+                      style: TextStyle(color: AppColors.textColor)),
                 ),
               ],
             ),
@@ -100,28 +107,76 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           SafeArea(
             child: Scaffold(
-              body: Column(
+              resizeToAvoidBottomInset: false,
+              body: Stack(
                 children: [
-                  Expanded(
-                    child: WebViewWidget(
-                      controller: controller,
+                  // 웹뷰를 Stack의 바닥에 위치시키기
+                  Positioned.fill(
+                    child: Listener(
+                      onPointerDown: (PointerDownEvent event) {
+                        startY = event.position.dy; // 시작 지점 저장
+                        isDragging = true; // 드래그 시작
+                      },
+                      onPointerMove: (PointerMoveEvent event) {
+                        if (isDragging) {
+                          double distance =
+                              startY - event.position.dy; // 이동 거리 계산
+                          if (distance > 70) {
+                            // 50픽셀 이상 위로 드래그
+                            setState(() {
+                              _isBottomBarVisible = false;
+                            });
+                            isDragging = false; // 드래그 중지
+                          } else if (distance < -70) {
+                            // 50픽셀 이상 아래로 드래그
+                            setState(() {
+                              _isBottomBarVisible = true;
+                            });
+                            isDragging = false; // 드래그 중지
+                          }
+                        }
+                      },
+                      onPointerUp: (PointerUpEvent event) {
+                        isDragging = false; // 드래그 종료
+                      },
+                      child: WebViewWidget(
+                        controller: controller,
+                      ),
                     ),
                   ),
-                  SizedBox(
-                    height: 60,
-                    child: Row(
-                      children: [
-                        BottomNavigationBuilder.buildBottomIcon(
-                            Icons.brush, '드로잉검색', () => onDrawingSearchTap()),
-                        BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, '네이버증권',
-                            () => onNaverHomeTap()),
-                        BottomNavigationBuilder.buildBottomIcon(
-                            Icons.home, '홈', () => onHomeTap()),
-                        BottomNavigationBuilder.buildBottomIcon(Icons.history, '최근본종목',
-                            () => onFavoriteTap(context)),
-                        BottomNavigationBuilder.buildBottomIcon(
-                            Icons.settings, '설정', () => onSettingsTap(context)),
-                      ],
+                  // 하단바를 웹뷰 위에 배치하기
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      height: 60,
+                      transform: Matrix4.translationValues(
+                          0.0, _isBottomBarVisible ? 0.0 : 60, 0.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          BottomNavigationBuilder.buildBottomIcon(
+                              Icons.brush,
+                              '드로잉검색',
+                              () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
+                          BottomNavigationBuilder.buildBottomIcon(
+                              Icons.trending_up,
+                              '네이버증권',
+                              () => bottomNavigationTap.onNaverHomeTap(context, controller)),
+                          BottomNavigationBuilder.buildBottomIcon(Icons.home,
+                              '홈', () => bottomNavigationTap.onHomeTap(context, controller)),
+                          BottomNavigationBuilder.buildBottomIcon(
+                              Icons.history,
+                              '최근본종목',
+                              () => bottomNavigationTap.onFavoriteTap(context, controller)),
+                          BottomNavigationBuilder.buildBottomIcon(
+                              Icons.settings,
+                              '설정',
+                              () => bottomNavigationTap.onSettingsTap(context, controller)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -131,6 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _isFirstLoad
               ? const SplashScreen()
               : Container(), // 첫 로드면 스플래시 화면 띄우기
+
           Positioned(
             right: 16,
             bottom: bottomNavigationBarHeight +
@@ -170,107 +226,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  onFavoriteTap(BuildContext context) async {
-    String? url = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => FavoriteScreen()),
-    );
-    if (url != null) {
-      setState(() {
-        _isLoading = true;
-      });
-      controller.loadRequest(Uri.parse(url));
-    }
-  }
-
-  void onHomeTap() async {
-    // 현재 웹뷰의 URL을 가져옵니다.
-    String? currentUrl = await controller.currentUrl();
-    Uri uri = Uri.parse(currentUrl ?? "");
-
-    String prefer_lang = await LanguagePreference.getLanguageSetting();
-    // 현재 URL에서 언어 쿼리 매개변수(lang)를 확인합니다.
-    String lang = uri.queryParameters['lang'] ?? prefer_lang; // 기본값은 'ko'
-
-    // 새로운 홈 URL을 만들되, 현재 언어 설정을 유지합니다.
-    Uri newHomeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
-
-    // 새로운 홈 URL로 페이지를 로드합니다.
-    setState(() {
-      _isLoading = true;
-    });
-    controller.loadRequest(newHomeUrl);
-  }
-
-  // '설정' 버튼 탭 처리를 위한 별도의 함수
-  onSettingsTap(BuildContext context) async {
-    // 원래 설정된 언어를 저장
-    String originalLang = await LanguagePreference.getLanguageSetting();
-
-    // 설정 화면으로 이동
-    final url = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => SettingsScreen()),
-    );
-
-    // 설정에서 돌아온 후 언어 설정이 변경되었는지 확인
-    String currentLang = await LanguagePreference.getLanguageSetting();
-    if (url == null && originalLang == currentLang) {
-      return;
-    }
-
-    Uri currentUri;
-    if (url == null) {
-      String? currentUrl = await controller.currentUrl();
-      currentUri = Uri.parse(currentUrl ?? "");
-    } else {
-      // 방문기록을 눌렀으면 url문자열 반환
-      currentUri = Uri.parse(url);
-    }
-
-    // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
-    Map<String, String> newQueryParameters =
-        Map.from(currentUri.queryParameters);
-    newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
-
-    // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
-    Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
-
-    // 새로운 URI로 웹뷰를 로드합니다.
-    setState(() {
-      _isLoading = true;
-    });
-    controller.loadRequest(newUri);
-  }
-
-  void onDrawingSearchTap() {
-    double width = MediaQuery.of(context).size.width;
-    double appBarHeight = AppBar().preferredSize.height; // AppBar의 기본 높이를 가져옴
-    double height = MediaQuery.of(context).size.width + appBarHeight; // 여기에 AppBar 높이를 추가
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(0),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: DrawingBoard(screenHeight: height - appBarHeight,),
-          ),
-        );
-      },
-    );
-  }
-
-  onNaverHomeTap() {
-    setState(() {
-      _isLoading = true;
-    });
-
-    controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
   }
 }
