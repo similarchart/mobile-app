@@ -81,7 +81,9 @@ class WebViewManager {
     }
 
     String stockName = title.split(' - ').first.trimRight();
-
+    if(RegExp(r'^\d+$').hasMatch(stockName) || stockName.contains('/') || stockName.contains('?') || stockName.contains('&')){
+      return;
+    }
     final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
 // 똑같은 code를 가진 element의 키를 찾기
