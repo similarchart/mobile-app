@@ -62,14 +62,14 @@ class WebViewManager {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            updateFloatingActionButtonVisibility(request.url);
-            updateLoadingStatus(true);
             return NavigationDecision.navigate;
+          },
+          onPageStarted: (String url) {
+            updateFirstLoad(false);
           },
           onPageFinished: (String url) {
             updateFloatingActionButtonVisibility(url);
             updateLoadingStatus(false);
-            updateFirstLoad(false);
             addCurrentUrlToHistory(url);
             addCurrentUrlToRecent(url);
             saveCookies();  // 페이지 로드 완료 후 쿠키 저장

@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          '사이트 언어',
+                          '비슷한 차트 페이지 언어',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
