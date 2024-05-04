@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/services/preferences.dart';
 import 'package:web_view/screen/splash_screen.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dart';
@@ -10,7 +10,7 @@ import 'package:web_view/screen/home_screen_module/floating_action_button_manage
 import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
 
-final homeUrl = Uri.parse('https://www.similarchart.com?lang=ko');
+import '../main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +19,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final WebViewController controller = WebViewController();
   late WebViewManager webViewManager;
   late FloatingActionButtonManager fabManager;
@@ -27,13 +27,37 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
-  bool _isBottomBarVisible = true; // 하단 바의 초기 상태
+  bool didScrollDown = true; // 하단 바의 초기 상태
+  bool bottomBarFixedPref = true;
   double startY = 0.0; // 드래그 시작 지점의 Y 좌표
   bool isDragging = false; // 드래그 중인지 여부
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  Future<void> didPopNext() async {
+    bottomBarFixedPref = await BottomBarPreference.getIsBottomBarFixed();
+    setState(() {});
+  }
+
+  @override
   void initState() {
     super.initState();
+    _loadPreferences();
+    setState(() {});
     webViewManager = WebViewManager(
         controller,
         (bool isVisible) =>
@@ -54,6 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     });
     webViewManager.loadInitialUrl();
+  }
+
+  Future<void> _loadPreferences() async {
+    bottomBarFixedPref = await BottomBarPreference
+        .getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
   }
 
   @override
@@ -108,81 +137,71 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Scaffold(
               resizeToAvoidBottomInset: false,
-              body: Stack(
-                children: [
-                  // 웹뷰를 Stack의 바닥에 위치시키기
-                  Positioned.fill(
-                    child: Listener(
-                      onPointerDown: (PointerDownEvent event) {
-                        startY = event.position.dy; // 시작 지점 저장
-                        isDragging = true; // 드래그 시작
-                      },
-                      onPointerMove: (PointerMoveEvent event) {
-                        if (isDragging) {
-                          double distance =
-                              startY - event.position.dy; // 이동 거리 계산
-                          if (distance > 70) {
-                            // 50픽셀 이상 위로 드래그
-                            setState(() {
-                              _isBottomBarVisible = false;
-                            });
-                            isDragging = false; // 드래그 중지
-                          } else if (distance < -70) {
-                            // 50픽셀 이상 아래로 드래그
-                            setState(() {
-                              _isBottomBarVisible = true;
-                            });
-                            isDragging = false; // 드래그 중지
-                          }
-                        }
-                      },
-                      onPointerUp: (PointerUpEvent event) {
-                        isDragging = false; // 드래그 종료
-                      },
-                      child: WebViewWidget(
-                        controller: controller,
-                      ),
+              body: bottomBarFixedPref
+                  ? Column(
+                      children: [
+                        Expanded(
+                          child: WebViewWidget(
+                            controller: controller,
+                          ),
+                        ),
+                        SizedBox(height: 60, child: _buildBottomNavigationBar())
+                      ],
+                    )
+                  : Stack(
+                      children: [
+                        // 웹뷰를 Stack의 바닥에 위치시키기
+                        Positioned.fill(
+                          child: Listener(
+                            onPointerDown: (PointerDownEvent event) {
+                              startY = event.position.dy; // 시작 지점 저장
+                              isDragging = true; // 드래그 시작
+                            },
+                            onPointerMove: (PointerMoveEvent event) {
+                              if (isDragging) {
+                                double distance =
+                                    startY - event.position.dy; // 이동 거리 계산
+                                if (distance > 70) {
+                                  // 50픽셀 이상 위로 드래그
+                                  setState(() {
+                                    didScrollDown = false;
+                                  });
+                                  isDragging = false; // 드래그 중지
+                                } else if (distance < -70) {
+                                  // 50픽셀 이상 아래로 드래그
+                                  setState(() {
+                                    didScrollDown = true;
+                                  });
+                                  isDragging = false; // 드래그 중지
+                                }
+                              }
+                            },
+                            onPointerUp: (PointerUpEvent event) {
+                              isDragging = false; // 드래그 종료
+                            },
+                            child: WebViewWidget(
+                              controller: controller,
+                            ),
+                          ),
+                        ),
+                        // 하단바를 웹뷰 위에 배치하기
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            height: 60,
+                            transform: Matrix4.translationValues(
+                                0.0, didScrollDown ? 0.0 : 60, 0.0),
+                            child: _buildBottomNavigationBar(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  // 하단바를 웹뷰 위에 배치하기
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      height: 60,
-                      transform: Matrix4.translationValues(
-                          0.0, _isBottomBarVisible ? 0.0 : 60, 0.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          BottomNavigationBuilder.buildBottomIcon(
-                              Icons.brush,
-                              '드로잉검색',
-                              () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
-                          BottomNavigationBuilder.buildBottomIcon(
-                              Icons.trending_up,
-                              '네이버증권',
-                              () => bottomNavigationTap.onNaverHomeTap(context, controller)),
-                          BottomNavigationBuilder.buildBottomIcon(Icons.home,
-                              '홈', () => bottomNavigationTap.onHomeTap(context, controller)),
-                          BottomNavigationBuilder.buildBottomIcon(
-                              Icons.history,
-                              '최근본종목',
-                              () => bottomNavigationTap.onFavoriteTap(context, controller)),
-                          BottomNavigationBuilder.buildBottomIcon(
-                              Icons.settings,
-                              '설정',
-                              () => bottomNavigationTap.onSettingsTap(context, controller)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
+
           _isFirstLoad
               ? const SplashScreen()
               : Container(), // 첫 로드면 스플래시 화면 띄우기
@@ -225,6 +244,24 @@ class _HomeScreenState extends State<HomeScreen> {
               : Container(),
         ],
       ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        BottomNavigationBuilder.buildBottomIcon(Icons.brush, '드로잉검색',
+            () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, '네이버증권',
+            () => bottomNavigationTap.onNaverHomeTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(Icons.home, '홈',
+            () => bottomNavigationTap.onHomeTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(Icons.history, '최근본종목',
+            () => bottomNavigationTap.onFavoriteTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(Icons.settings, '설정',
+            () => bottomNavigationTap.onSettingsTap(context, controller)),
+      ],
     );
   }
 }

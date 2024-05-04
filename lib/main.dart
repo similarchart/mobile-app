@@ -5,6 +5,9 @@ import 'package:web_view/screen/home_screen.dart';
 import 'model/history_item.dart';
 import 'package:web_view/services/background_tasks.dart';
 
+// RouteObserver 객체 생성
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureBackgroundFetch();
@@ -17,8 +20,9 @@ void main() async {
   await Hive.openBox<RecentItem>('recent');
 
   // 앱 실행
-  runApp(const MaterialApp(
+  runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     home: HomeScreen(),
+    navigatorObservers: [routeObserver], // RouteObserver 추가
   ));
 }

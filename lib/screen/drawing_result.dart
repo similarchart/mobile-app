@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 import 'package:html/dom.dart' as dom;
 
-import '../services/language_preference.dart'; // 언어 설정을 가져오는 서비스
+import '../services/preferences.dart'; // 언어 설정을 가져오는 서비스
 
 class DrawingResult extends StatefulWidget {
   final String data;

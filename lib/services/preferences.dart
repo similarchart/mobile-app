@@ -13,3 +13,17 @@ class LanguagePreference {
     await prefs.setString(_keyLang, lang);
   }
 }
+
+class BottomBarPreference {
+  static const _keyLang = 'isBottomBarFix';
+
+  static Future<void> setIsBottomBarFixed(bool isVisible) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyLang, isVisible);
+  }
+
+  static Future<bool> getIsBottomBarFixed() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyLang) ?? false;
+  }
+}

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/services/preferences.dart';
 import 'package:web_view/model/history_item.dart';
 import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/constants/urls.dart';

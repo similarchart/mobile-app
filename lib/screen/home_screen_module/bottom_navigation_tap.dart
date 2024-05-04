@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/services/preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';

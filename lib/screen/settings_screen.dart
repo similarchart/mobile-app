@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:web_view/screen/histroy_screen.dart';
-import 'package:web_view/services/language_preference.dart';
-import 'package:web_view/services/push_notifications_preference.dart';
+import 'package:web_view/services/preferences.dart'; // 필요에 따라 수정하세요
+import 'package:web_view/services/push_notifications_preference.dart'; // 필요에 따라 수정하세요
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/services/toast_service.dart';
+import 'package:web_view/services/toast_service.dart'; // 필요에 따라 수정하세요
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -14,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedLanguage;
   late bool _selectedPushNotification;
+  late bool _isBottomBarVisible;
 
   @override
   void initState() {
@@ -23,8 +24,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     _selectedLanguage = await LanguagePreference.getLanguageSetting();
-    _selectedPushNotification =
-        await PushNotificationPreference.getPushNotificationSetting();
+    _selectedPushNotification = await PushNotificationPreference.getPushNotificationSetting();
+    _isBottomBarVisible = await BottomBarPreference.getIsBottomBarFixed();
     setState(() {});
   }
 
@@ -42,101 +43,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Expanded(
               child: ListView.separated(
-                itemCount: 3, // '언어' 설정과 '방문기록'을 포함한 항목 수
+                itemCount: 4, // 설정 옵션의 수
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // '언어' 설정 항목
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '비슷한 차트 페이지 언어',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textColor),
-                        ),
-                        DropdownButton<String>(
-                          value: _selectedLanguage,
-                          dropdownColor: AppColors.secondaryColor,
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'ko',
-                                child: Text('한국어',
-                                    style:
-                                        TextStyle(color: AppColors.textColor))),
-                            DropdownMenuItem(
-                                value: 'en',
-                                child: Text('English',
-                                    style:
-                                        TextStyle(color: AppColors.textColor))),
-                          ],
-                          onChanged: (value) {
-                            setState(
-                              () {
-                                _selectedLanguage = value;
-                                LanguagePreference.setLanguageSetting(value!);
-                                ToastService().showToastMessage("적용되었습니다");
-                              },
-                            );
-                          },
-                          style: const TextStyle(color: AppColors.textColor),
-                          underline:
-                              Container(height: 2, color: AppColors.textColor),
-                        ),
-                      ],
-                    );
-                  } else if (index == 1) {
-                    // '방문기록' 항목
-                    return InkWell(
-                      onTap: () => onHistoryTap(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: const Text(
-                          '방문 기록',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textColor),
-                        ),
-                      ),
-                    );
-                  } else if (index == 2) {
-                    // '푸시 알림 허용' 설정 항목
-                    return SwitchListTile(
-                      title: const Text(
-                        '푸시 알림 허용',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textColor,
-                        ),
-                      ),
-                      value: _selectedPushNotification,
-                      onChanged: (bool value) {
-                        setState(() {
-                          _selectedPushNotification = value;
-                          PushNotificationPreference.setPushNotificationSetting(
-                              _selectedPushNotification);
-                          // 여기에 푸시 알림 설정을 저장하는 코드를 넣으세요.
-                          if (value == true) {
-                            ToastService().showToastMessage("푸시 알림 허용\n\n절전 모드시 푸시 알림이\n 제데로 동작하지 않습니다");
-                          } else {
-                            ToastService().showToastMessage("푸시 알림 비허용");
-                          }
-                        });
-                      },
-                      activeColor: Colors.green,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 0), // 좌우 패딩을 0으로 조정
-                      // 다른 항목들과 패딩을 맞추기 위해 필요하다면 위 값을 조정하세요.
-                    );
-                  } else {
-                    return Container(); // 확장을 위한 여분의 공간
+                  switch (index) {
+                    case 0:
+                      return _buildLanguageSetting();
+                    case 1:
+                      return _buildBottomBarVisibilitySetting();
+                    case 2:
+                      return _buildPushNotificationSetting();
+                    case 3:
+                      return _buildHistoryAccess(context);
+                    default:
+                      return Container();
                   }
                 },
-                separatorBuilder: (context, index) =>
-                    const Divider(color: AppColors.tertiaryColor, height: 1),
+                separatorBuilder: (context, index) => const Divider(color: AppColors.tertiaryColor, height: 1),
               ),
             ),
           ],
@@ -144,11 +66,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Widget _buildLanguageSetting() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          '비슷한 차트 페이지 언어',
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textColor),
+        ),
+        DropdownButton<String>(
+          value: _selectedLanguage,
+          dropdownColor: AppColors.secondaryColor,
+          items: const [
+            DropdownMenuItem(
+                value: 'ko',
+                child: Text('한국어', style: TextStyle(color: AppColors.textColor))),
+            DropdownMenuItem(
+                value: 'en',
+                child: Text('English', style: TextStyle(color: AppColors.textColor))),
+          ],
+          onChanged: (value) {
+            setState(() {
+              _selectedLanguage = value;
+              LanguagePreference.setLanguageSetting(value!);
+              ToastService().showToastMessage("언어 설정이 적용되었습니다");
+            });
+          },
+          style: const TextStyle(color: AppColors.textColor),
+          underline: Container(height: 2, color: AppColors.textColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryAccess(BuildContext context) {
+    return InkWell(
+      onTap: () => onHistoryTap(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: const Text(
+          '방문 기록',
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPushNotificationSetting() {
+    return SwitchListTile(
+      title: const Text(
+        '푸시 알림 허용',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textColor,
+        ),
+      ),
+      value: _selectedPushNotification,
+      onChanged: (bool value) {
+        setState(() {
+          _selectedPushNotification = value;
+          PushNotificationPreference.setPushNotificationSetting(value);
+          ToastService().showToastMessage(value ? "푸시 알림 허용됨" : "푸시 알림 비활성화됨");
+        });
+      },
+      activeColor: Colors.green,
+      contentPadding: EdgeInsets.symmetric(horizontal: 0),
+    );
+  }
+
+  Widget _buildBottomBarVisibilitySetting() {
+    return SwitchListTile(
+      title: const Text(
+        '하단 바 고정',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textColor,
+        ),
+      ),
+      value: _isBottomBarVisible,
+      onChanged: (bool value) {
+        setState(() {
+          _isBottomBarVisible = value;
+          BottomBarPreference.setIsBottomBarFixed(value);
+          ToastService().showToastMessage(value ? "하단 바 고정" : "하단 바 고정 해제");
+        });
+      },
+      activeColor: Colors.green,
+      contentPadding: EdgeInsets.symmetric(horizontal: 0),
+    );
+  }
 }
 
 onHistoryTap(BuildContext context) async {
   String? url = await Navigator.push(
-    // 설정에서 들어간 방문기록에서 기록을 누르면 url를 받음
     context,
     MaterialPageRoute(builder: (context) => HistoryScreen()),
   );

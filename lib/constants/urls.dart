@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Urls {
   static const String naverHomeUrl = 'https://m.stock.naver.com/';
   static const String naverDomesticUrl = 'https://m.stock.naver.com/domestic/stock/';

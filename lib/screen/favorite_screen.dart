@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/recent_item.dart';
-import 'package:web_view/services/language_preference.dart';
+import 'package:web_view/services/preferences.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
