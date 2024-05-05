@@ -1,97 +1,82 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' as parser;
-import 'package:html/dom.dart' as dom;
+import 'package:flutter/material.dart';
 
-import '../services/preferences.dart'; // 언어 설정을 가져오는 서비스
+class DrawingResult extends StatelessWidget {
+  final List<dynamic> results;
+  final String userDrawing;
+  final String market;
+  final String size;
+  final String lang;
 
-class DrawingResult extends StatefulWidget {
-  final String data;
-  final String selectedMarket;
-  final String selectedSize;
+  DrawingResult({Key? key, required this.results, required this.userDrawing, required this.market, required this.size, required this.lang}) : super(key: key);
 
-  const DrawingResult({
-    super.key,
-    required this.data,
-    required this.selectedMarket,
-    required this.selectedSize,
-  });
-
-  @override
-  State<DrawingResult> createState() => _DrawingResultState();
-}
-
-class _DrawingResultState extends State<DrawingResult> {
-  late List<dynamic> results;
-  late String currentLang; // 현재 언어 설정을 저장할 변수
-  Map<String, String> imageUrls = {}; // URL과 해당 URL의 이미지 링크 매핑
-
-  @override
-  void initState() {
-    super.initState();
-    initialize();
-  }
-
-  // 초기화 함수
-  Future<void> initialize() async {
-    currentLang = await LanguagePreference.getLanguageSetting(); // 언어 설정 불러오기
-    parseData(); // 데이터 파싱 진행
-  }
-
-  void parseData() {
-    results = jsonDecode(widget.data);
-    fetchImages();
-  }
-
-  // 각 URL에서 이미지 URL을 가져오는 함수
-  void fetchImages() async {
-    for (var result in results) {
-      String url = createResultUrl(result['code'], result['date'], widget.selectedMarket, widget.selectedSize);
-      http.get(Uri.parse(url)).then((response) {
-        dom.Document document = parser.parse(response.body);
-        dom.Element? ogImage = document.querySelector('meta[property="og:image"]');
-        if (ogImage != null && ogImage.attributes['content'] != null) {
-          setState(() {
-            imageUrls[url] = "https://www.similarchart.com"+ogImage.attributes['content']!;
-            print("imageUrls :::${imageUrls[url]}");
-          });
-        }
-      }).catchError((e) {
-        print('Error fetching image URL: $e');
-      });
-    }
+  String createResultUrl(String code, String date) {
+    return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$lang';
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Drawing URLs'),
-        ),
-        body: ListView.builder(
-          itemCount: imageUrls.length,
-          itemBuilder: (context, index) {
-            String url = imageUrls.keys.elementAt(index);
-            String imageUrl = imageUrls[url]!;
-            return ListTile(
-              title: Image.network(imageUrl),
-              onTap: () {
-                // 이미지를 클릭했을 때의 동작을 여기에 정의
-                print('url: $url');
-                print('imageUrl: $imageUrl');
-              },
-            );
-          },
+    var userImage = base64Decode(userDrawing);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('드로잉검색 결과'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
+      body: Column(
+        children: <Widget>[
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Image.memory(
+                userImage,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: Text(
+              "이미지를 클릭하시면 URL로 이동됩니다",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 4.0,
+                mainAxisSpacing: 4.0,
+              ),
+              itemCount: results.length,
+              itemBuilder: (BuildContext context, int index) {
+                var result = results[index];
+                var image = base64Decode(result['img']);
+                return InkWell(
+                  onTap: () {
+                    String url = createResultUrl(result['code'], result['date']);
+                    Navigator.pop(context, url);
+                  },
+                  child: Ink.image(
+                    image: MemoryImage(image),
+                    fit: BoxFit.cover,
+                    height: double.infinity,
+                    width: double.infinity,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
-  }
-
-  // URL 생성 함수
-  String createResultUrl(String code, String date, String market, String size) {
-
-    return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$currentLang';
   }
 }

@@ -98,7 +98,12 @@ class BottomNavigationTap {
           ),
         );
       },
-    );
+    ).then((url) {
+      if (url != null) {
+        updateLoadingStatus(true);
+        controller.loadRequest(Uri.parse(url));
+      }
+    });
   }
 
   onNaverHomeTap(BuildContext context, WebViewController controller) {

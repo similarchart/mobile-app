@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:web_view/screen/drawing_result.dart';
-
+import 'package:web_view/services/preferences.dart';
 
 class DrawingBoard extends StatefulWidget {
   final double screenHeight;
@@ -15,12 +18,14 @@ class DrawingBoard extends StatefulWidget {
 }
 
 class _DrawingBoardState extends State<DrawingBoard> {
+  bool isLoading = false;
   List<Offset> points = [];
   bool drawingEnabled = true;
   String selectedSize = '128';
   String selectedMarket = '한국';
   final List<String> sizes = ['128', '64', '32', '16', '8'];
   final List<String> countries = ['미국', '한국'];
+  GlobalKey repaintBoundaryKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -67,18 +72,46 @@ class _DrawingBoardState extends State<DrawingBoard> {
           ),
         ],
       ),
-      body: Builder(builder: (BuildContext innerContext) {
-        return GestureDetector(
-          onPanUpdate: drawingEnabled
-              ? (details) => onPanUpdate(details, innerContext)
-              : null,
-          onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
-          child: CustomPaint(
-            painter: DrawingPainter(points, drawingEnabled),
-            child: Container(),
+      body: Stack(
+        children: [
+          Builder(builder: (BuildContext innerContext) {
+            return GestureDetector(
+              onPanUpdate: drawingEnabled
+                  ? (details) => onPanUpdate(details, innerContext)
+                  : null,
+              onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
+              child: RepaintBoundary(
+                key: repaintBoundaryKey,
+                child: CustomPaint(
+                  painter: DrawingPainter(points, drawingEnabled),
+                  child: Container(),
+                ),
+              ),
+            );
+          }),
+          if(isLoading)Center(
+            child: FutureBuilder<String>(
+              future: LanguagePreference
+                  .getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
+              builder: (BuildContext context,
+                  AsyncSnapshot<String> snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
+                } else if (snapshot.hasData) {
+                  String lang = snapshot.data!;
+                  // 언어 설정에 따라 다른 GIF 이미지 로드
+                  return Image.asset(lang == 'ko'
+                      ? 'assets/loading_image.gif'
+                      : 'assets/loading_image_en.gif');
+                } else {
+                  return const Text('로딩 이미지를 불러올 수 없습니다.');
+                }
+              },
+            ),
           ),
-        );
-      }),
+        ],
+      ),
     );
   }
 
@@ -87,7 +120,6 @@ class _DrawingBoardState extends State<DrawingBoard> {
     Offset localPosition = renderBox.globalToLocal(details.globalPosition);
     Size size = renderBox.size;
 
-    // 위젯 범위 내에서만 포인트를 추가
     if (localPosition.dx >= 0 && localPosition.dx <= size.width &&
         localPosition.dy >= 0 && localPosition.dy <= size.height) {
       setState(() {
@@ -96,30 +128,65 @@ class _DrawingBoardState extends State<DrawingBoard> {
     }
   }
 
-
   void onPanEnd(DragEndDetails details) {
     setState(() {
       validatePoints();
-      if (points.length > 1) {
+      stretchGraphToFullWidth();
+      if (points.isNotEmpty) {
         interpolatePoints();
         drawingEnabled = false;
       }
     });
   }
 
+  void stretchGraphToFullWidth() {
+    if (points.isEmpty) return;
+
+    double minX = points.reduce((a, b) => a.dx < b.dx ? a : b).dx;
+    double maxX = points.reduce((a, b) => a.dx > b.dx ? a : b).dx;
+    double width = context.size!.width;
+
+    for (var i = 0; i < points.length; i++) {
+      double normalizedX = (points[i].dx - minX) / (maxX - minX);
+      points[i] = Offset(normalizedX * width, points[i].dy);
+    }
+  }
+
+
   void validatePoints() {
     List<Offset> result = [];
     double? prevX;
 
-    for (int i = 0; i < points.length; i++) {
-      double currentX = points[i].dx;
+    for (Offset point in points) {
+      double currentX = point.dx;
       if (prevX == null || currentX > prevX) {
-        result.add(points[i]);
+        result.add(point);
         prevX = currentX;
       }
     }
 
     points = result;
+  }
+
+  void interpolatePoints() {
+    double minX = points.map((p) => p.dx).reduce(min);
+    double maxX = points.map((p) => p.dx).reduce(max);
+    int numPoints = int.parse(selectedSize);
+    double interval = (maxX - minX) / (numPoints - 1);
+
+    List<Offset> newPoints = [points.first];
+    for (int i = 1; i < numPoints - 1; i++) {
+      double newX = minX + i * interval;
+      Offset p1 = points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+      Offset p2 = points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+
+      double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
+      double newY = p1.dy + slope * (newX - p1.dx);
+      newPoints.add(Offset(newX, newY));
+    }
+    newPoints.add(points.last);
+
+    points = newPoints;
   }
 
   void resetDrawing() {
@@ -130,29 +197,30 @@ class _DrawingBoardState extends State<DrawingBoard> {
   }
 
   void sendDrawing(double screenHeight) async {
+    setState(() {
+      isLoading = true;  // 로딩 시작
+    });
+
+    RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    Uint8List pngBytes = byteData!.buffer.asUint8List();
+    String encodedDrawing = base64Encode(pngBytes);
+
     List<double> numbers = points.map((point) => 1 - point.dy / screenHeight).toList();
+    int dayNum = int.tryParse(selectedSize) ?? 0;
 
-    // selectedSize 문자열을 정수로 변환
-    int dayNum = int.tryParse(selectedSize) ?? 0;  // 변환 실패 시 기본값으로 0을 사용
-
-    // API URL 설정
     String url = 'https://similarchart.com/api/drawing_search';
+    String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
+    String lang = await LanguagePreference.getLanguageSetting();
 
-    String market;
-    if(selectedSize=='한국'){
-      market='kospi_daq';
-    }
-    else{
-      market='nyse_naq';
-    }
-    // POST 요청 본문 구성
     Map<String, dynamic> body = {
       'numbers': numbers,
       'day_num': dayNum,
       'market': market,
+      'lang': lang,
     };
 
-    // HTTP POST 요청 실행
     try {
       http.Response response = await http.post(
         Uri.parse(url),
@@ -162,54 +230,30 @@ class _DrawingBoardState extends State<DrawingBoard> {
         body: jsonEncode(body),
       );
 
-      // 응답 처리
       if (response.statusCode == 200) {
-        print('Data successfully sent to the API');
-        print('Response body: ${response.body}');
-        Navigator.push(
+        List<dynamic> results = jsonDecode(response.body);
+        String? url = await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => DrawingResult(data: response.body, selectedMarket: market, selectedSize: selectedSize,)),
+          MaterialPageRoute(
+            builder: (context) => DrawingResult(results: results, userDrawing: encodedDrawing, market: market, size: selectedSize, lang: lang),
+          ),
         );
+
+        if (url != null) {
+          Navigator.pop(context, url);
+        }
+
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
       }
     } catch (e) {
       print('Error sending data to the API: $e');
+    }finally {
+      setState(() {
+        isLoading = false; // 로딩 종료
+      });
     }
-  }
-
-
-
-
-
-  void interpolatePoints() {
-    // 최소와 최대 x 좌표값 찾기
-    double minX = points.map((p) => p.dx).reduce(min);
-    double maxX = points.map((p) => p.dx).reduce(max);
-    int numPoints = int.parse(selectedSize); // selectedSize를 정수로 변환
-    double interval = (maxX - minX) / (numPoints - 1);
-
-    List<Offset> newPoints = [];
-    newPoints.add(points.first); // 첫 번째 점 추가
-
-    // 마지막 점을 제외하고 newPoints 리스트 생성
-    for (int i = 1; i < numPoints - 1; i++) {
-      double newX = minX + i * interval;
-      // 보간을 위해 가장 가까운 두 점 찾기
-      Offset p1 =
-      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
-      Offset p2 =
-      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
-
-      // 선형 보간 계산
-      double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
-      double newY = p1.dy + slope * (newX - p1.dx);
-      newPoints.add(Offset(newX, newY));
-    }
-
-    newPoints.add(points.last); // 마지막 점 추가
-    points = newPoints; // points 리스트 업데이트
   }
 }
 
@@ -239,7 +283,7 @@ class DrawingPainter extends CustomPainter {
         Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
     canvas.drawLine(
         Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
-    paint..color = Colors.grey.withOpacity(0.2);
+    paint..color = Colors.grey.withOpacity(0.1);
     // 화면 테두리에 반투명 회색 네모 그리기
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
