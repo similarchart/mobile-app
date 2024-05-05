@@ -44,15 +44,12 @@ class FloatingActionButtonManager {
     String currentUrl = await controller.currentUrl() ?? '';
 
     // CodeValue를 추출하기 위한 정규 표현식입니다.
-    RegExp regExp = RegExp(r'stock/([A-Z0-9.]+)/total');
+    RegExp regExp = RegExp(r'/stock/([^/]+)/');
     final matches = regExp.firstMatch(currentUrl);
 
     if (matches != null && matches.groupCount >= 1) {
       String codeValue = matches.group(1)!; // 'stock'과 'total' 사이의 값입니다.
-
-      if (codeValue.contains('.')) {
-        codeValue = codeValue.split('.')[0]; // '.'을 기준으로 분할하여 첫 번째 값을 사용합니다.
-      }
+      codeValue = codeValue.split('.')[0];
 
       // 사용자의 언어 설정을 가져옵니다.
       String currentLang = await LanguagePreference.getLanguageSetting();

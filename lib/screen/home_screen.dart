@@ -9,6 +9,7 @@ import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dar
 import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
 import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
+import 'dart:async';
 
 import '../main.dart';
 
@@ -31,6 +32,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool bottomBarFixedPref = true;
   double startY = 0.0; // 드래그 시작 지점의 Y 좌표
   bool isDragging = false; // 드래그 중인지 여부
+
+  void startTimer()  {
+    Timer.periodic(Duration(seconds: 1), (Timer timer) async {
+      // 여기에 반복 실행하고 싶은 함수를 호출합니다.
+      String? currentUrl = await controller.currentUrl(); // URL을 비동기적으로 받아옵니다.
+      if (currentUrl != null) {
+        webViewManager.addCurrentUrlToRecent(currentUrl);
+        webViewManager.updateFloatingActionButtonVisibility(currentUrl);
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -78,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       });
     });
     webViewManager.loadInitialUrl();
+    startTimer();
   }
 
   Future<void> _loadPreferences() async {
