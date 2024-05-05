@@ -13,10 +13,12 @@ class WebViewManager {
   Function(bool) updateLoadingStatus;
   Function(bool) updateFirstLoad;
 
-  WebViewManager(this.controller, this.updateFABVisibility, this.updateLoadingStatus, this.updateFirstLoad);
+  WebViewManager(this.controller, this.updateFABVisibility,
+      this.updateLoadingStatus, this.updateFirstLoad);
 
   Future<void> saveCookies() async {
-    final Object? result = await controller.runJavaScriptReturningResult("document.cookie");
+    final Object? result =
+        await controller.runJavaScriptReturningResult("document.cookie");
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (result != null) {
       // Since the expected result is a string, cast it safely
@@ -39,7 +41,8 @@ class WebViewManager {
           String name = cookieParts[0];
           String value = cookieParts.sublist(1).join('=');
           // JavaScript to set the cookie back in the WebView
-          await controller.runJavaScript("document.cookie = '${name}=${value}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT';");
+          await controller.runJavaScript(
+              "document.cookie = '${name}=${value}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT';");
         }
       }
     }
@@ -53,7 +56,7 @@ class WebViewManager {
   }
 
   Future<void> loadInitialUrl() async {
-    await loadCookies();  // 앱 시작 시 쿠키 로드
+    await loadCookies(); // 앱 시작 시 쿠키 로드
     String lang = await LanguagePreference.getLanguageSetting();
     Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
     controller
@@ -72,7 +75,7 @@ class WebViewManager {
             updateFirstLoad(false);
             addCurrentUrlToHistory(url);
             addCurrentUrlToRecent(url);
-            saveCookies();  // 페이지 로드 완료 후 쿠키 저장
+            saveCookies(); // 페이지 로드 완료 후 쿠키 저장
           },
         ),
       )
@@ -81,42 +84,70 @@ class WebViewManager {
 
   addCurrentUrlToRecent(String url) async {
     Uri uri = Uri.parse(url);
-    bool startsWithDomestic =
-    url.startsWith(Urls.naverDomesticUrl);
-    bool startsWithWorld =
-    url.startsWith(Urls.naverWorldUrl);
+    bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
+    bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
 
     String codeValue;
-    String? title;
+    String stockName = '';
     if (uri.queryParameters.containsKey('code')) {
       codeValue = uri.queryParameters['code']!;
-      title = await controller.getTitle();
+      String? title = await controller.getTitle();
+
+      stockName = title!.split(' - 비슷한').first.trimRight();
+      stockName = stockName.split(' - 네이버').first.trimRight();
+      stockName = stockName.split(' - 미지원').first.trimRight();
+      if (RegExp(r'^\d+$').hasMatch(stockName) ||
+          stockName.contains('http') ||
+          stockName.contains('?') ||
+          stockName.contains('=')) {
+        return;
+      }
     } else if (startsWithWorld || startsWithDomestic) {
       String? ogTitle = (await controller.runJavaScriptReturningResult(
-          "document.querySelector('meta[property=\"og:title\"]').content;"))
-      as String?;
+              "document.querySelector('meta[property=\"og:title\"]').content;"))
+          as String?;
+      if(ogTitle == null){
+        return;
+      }
 
-      // JavaScript에서 반환된 JSON 문자열에서 실제 문자열 값을 추출합니다.
-      title = jsonDecode(ogTitle!);
+      String jsCode = """
+      var element = document.querySelector('[class^="GraphMain_name"]');
+      if (element) {
+          var textContent = '';
+          // Loop through child nodes
+          for (var node of element.childNodes) {
+              // Check if the node is a text node
+              if (node.nodeType === Node.TEXT_NODE) {
+                  textContent += node.nodeValue.trim(); // Add text content, trim for removing whitespace
+              }
+          }
+          textContent; // This will be the direct text content of the element
+      } else {
+          'Element not found';
+      }
+      """;
+
+      try {
+        stockName = await controller.runJavaScriptReturningResult(jsCode) as String;
+        stockName = stockName.substring(1, stockName.length - 1);
+        print("Text content of the element: $stockName");
+      } catch (e) {
+        print("JavaScript execution failed: $e");
+      }
+
       // 정규 표현식을 사용하여 'stock'과 'total' 사이의 값을 추출
-      RegExp regExp = RegExp(r'stock/(\d+)/total');
+      RegExp regExp = RegExp(r'/stock/([^/]+)/');
       final matches = regExp.firstMatch(url);
       if (matches != null && matches.groupCount >= 1) {
         codeValue = matches.group(1)!; // 1번 그룹이 'stock'과 'total' 사이의 값
+        codeValue = codeValue.split('.').first.trimRight();
       } else {
         return;
       }
     } else {
       return;
     }
-    if (title == null) {
-      return;
-    }
 
-    String stockName = title.split(' - ').first.trimRight();
-    if(RegExp(r'^\d+$').hasMatch(stockName) || stockName.contains('/') || stockName.contains('?') || stockName.contains('&')){
-      return;
-    }
     final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
 
 // 똑같은 code를 가진 element의 키를 찾기
@@ -148,7 +179,7 @@ class WebViewManager {
     String? title = await controller.getTitle();
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =
-    HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
+        HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
     await historyBox.add(historyItem);
   }
 }
