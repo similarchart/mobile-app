@@ -20,11 +20,12 @@ class DrawingBoard extends StatefulWidget {
 class _DrawingBoardState extends State<DrawingBoard> {
   bool isLoading = false;
   List<Offset> points = [];
+  List<Offset> originalPoints = [];
   bool drawingEnabled = true;
-  String selectedSize = '128';
-  String selectedMarket = '한국';
-  final List<String> sizes = ['128', '64', '32', '16', '8'];
-  final List<String> countries = ['미국', '한국'];
+  String selectedSize = '비교일수';
+  String selectedMarket = '시장';
+  final List<String> sizes = ['비교일수','128', '64', '32', '16', '8'];
+  final List<String> countries = ['시장','미국', '한국'];
   GlobalKey repaintBoundaryKey = GlobalKey();
 
   @override
@@ -40,6 +41,8 @@ class _DrawingBoardState extends State<DrawingBoard> {
               setState(() {
                 selectedSize = newValue!;
               });
+              points = originalPoints;
+              makeReadyToSend();
             },
             items: sizes.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
@@ -68,8 +71,9 @@ class _DrawingBoardState extends State<DrawingBoard> {
           ),
           IconButton(
             icon: Icon(Icons.send),
-            onPressed: () => sendDrawing(widget.screenHeight),
+            onPressed: selectedSize!="비교일수" && selectedMarket != "시장" ? () => sendDrawing(widget.screenHeight) : null,
           ),
+
         ],
       ),
       body: Stack(
@@ -129,6 +133,11 @@ class _DrawingBoardState extends State<DrawingBoard> {
   }
 
   void onPanEnd(DragEndDetails details) {
+    originalPoints = points.toList();
+    makeReadyToSend();
+  }
+
+  void makeReadyToSend(){
     setState(() {
       validatePoints();
       stretchGraphToFullWidth();
@@ -138,7 +147,6 @@ class _DrawingBoardState extends State<DrawingBoard> {
       }
     });
   }
-
   void stretchGraphToFullWidth() {
     if (points.isEmpty) return;
 
@@ -157,7 +165,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
     List<Offset> result = [];
     double? prevX;
 
-    for (Offset point in points) {
+    for (Offset point in originalPoints) {
       double currentX = point.dx;
       if (prevX == null || currentX > prevX) {
         result.add(point);
@@ -171,7 +179,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
   void interpolatePoints() {
     double minX = points.map((p) => p.dx).reduce(min);
     double maxX = points.map((p) => p.dx).reduce(max);
-    int numPoints = int.parse(selectedSize);
+    int numPoints = int.tryParse(selectedSize) ?? 128;
     double interval = (maxX - minX) / (numPoints - 1);
 
     List<Offset> newPoints = [points.first];
