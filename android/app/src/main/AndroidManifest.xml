@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="비슷한 차트 검색기"
+        android:label="차트 검색기 - 증권뷰어"
         android:name="${applicationName}"
-        android:icon="@mipmap/icon"
+        android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
