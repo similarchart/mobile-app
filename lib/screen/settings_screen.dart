@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:web_view/screen/histroy_screen.dart';
 import 'package:web_view/services/preferences.dart'; // 필요에 따라 수정하세요
 import 'package:web_view/services/push_notifications_preference.dart'; // 필요에 따라 수정하세요

@@ -5,8 +5,12 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/drawing_result.dart';
 import 'package:web_view/services/preferences.dart';
+
+import '../services/toast_service.dart';
 
 class DrawingBoard extends StatefulWidget {
   final double screenHeight;
@@ -17,22 +21,62 @@ class DrawingBoard extends StatefulWidget {
   _DrawingBoardState createState() => _DrawingBoardState();
 }
 
-class _DrawingBoardState extends State<DrawingBoard> {
+class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderStateMixin {
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
   bool drawingEnabled = true;
   String selectedSize = '비교일수';
   String selectedMarket = '시장';
-  final List<String> sizes = ['비교일수','128', '64', '32', '16', '8'];
-  final List<String> countries = ['시장','미국', '한국'];
+  final List<String> sizes = ['비교일수', '128', '64', '32', '16', '8'];
+  final List<String> countries = ['시장', '미국', '한국'];
   GlobalKey repaintBoundaryKey = GlobalKey();
+
+  late AnimationController _controller;
+  late Animation<Color?> _colorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _colorAnimation = ColorTween(
+      begin: AppColors.textColor,
+      end: AppColors.secondaryColor,
+    ).animate(_controller)
+      ..addListener(() {
+        setState(() {});
+      });
+    loadPreferences();
+  }
+
+  void loadPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedSize = prefs.getString('selectedSize') ?? '비교일수';
+      selectedMarket = prefs.getString('selectedMarket') ?? '시장';
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('드로잉검색'),
+        backgroundColor: AppColors.primaryColor,
+        title: Text(
+          '드로잉검색',
+          style: TextStyle(
+            color: AppColors.textColor,
+          ),
+        ),
         automaticallyImplyLeading: false,
         actions: [
           DropdownButton<String>(
@@ -44,6 +88,8 @@ class _DrawingBoardState extends State<DrawingBoard> {
               points = originalPoints;
               makeReadyToSend();
             },
+            style: TextStyle(color: AppColors.textColor),
+            dropdownColor: AppColors.primaryColor,
             items: sizes.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -51,6 +97,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
               );
             }).toList(),
           ),
+          SizedBox(width: 10.0),
           DropdownButton<String>(
             value: selectedMarket,
             onChanged: (String? newValue) {
@@ -58,6 +105,8 @@ class _DrawingBoardState extends State<DrawingBoard> {
                 selectedMarket = newValue!;
               });
             },
+            style: TextStyle(color: AppColors.textColor),
+            dropdownColor: AppColors.primaryColor,
             items: countries.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -66,23 +115,42 @@ class _DrawingBoardState extends State<DrawingBoard> {
             }).toList(),
           ),
           IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: resetDrawing,
+            icon: Icon(Icons.refresh,
+                color: _colorAnimation.value ?? AppColors.textColor),
+            onPressed: () => setState(() {
+              points.clear();
+              drawingEnabled = true;
+            }),
           ),
           IconButton(
-            icon: Icon(Icons.send),
-            onPressed: selectedSize!="비교일수" && selectedMarket != "시장" ? () => sendDrawing(widget.screenHeight) : null,
+            icon: Icon(
+              Icons.send,
+              color: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled) ? AppColors.textColor : AppColors.secondaryColor,
+            ),
+            onPressed: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled) ? () {
+              sendDrawing(widget.screenHeight);
+            } : () {
+              // 조건에 따른 메시지 분기
+              if (selectedSize == "비교일수") {
+                ToastService().showToastMessage("비교 일수를 선택해주세요.");
+              } else if (selectedMarket == "시장") {
+                ToastService().showToastMessage("시장을 선택해주세요.");
+              } else if (drawingEnabled) {
+                ToastService().showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
+              } else {
+                ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+              }
+            },
           ),
-
         ],
       ),
       body: Stack(
         children: [
           Builder(builder: (BuildContext innerContext) {
             return GestureDetector(
-              onPanUpdate: drawingEnabled
-                  ? (details) => onPanUpdate(details, innerContext)
-                  : null,
+              onPanStart: (details) => onPanStart(details, innerContext),
+              onPanUpdate: drawingEnabled ? (details) =>
+                  onPanUpdate(details, innerContext) : null,
               onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
               child: RepaintBoundary(
                 key: repaintBoundaryKey,
@@ -93,30 +161,36 @@ class _DrawingBoardState extends State<DrawingBoard> {
               ),
             );
           }),
-          if(isLoading)Center(
-            child: FutureBuilder<String>(
-              future: LanguagePreference
-                  .getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
-              builder: (BuildContext context,
-                  AsyncSnapshot<String> snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
-                } else if (snapshot.hasData) {
-                  String lang = snapshot.data!;
-                  // 언어 설정에 따라 다른 GIF 이미지 로드
-                  return Image.asset(lang == 'ko'
-                      ? 'assets/loading_image.gif'
-                      : 'assets/loading_image_en.gif');
-                } else {
-                  return const Text('로딩 이미지를 불러올 수 없습니다.');
-                }
-              },
+          if (isLoading)
+            Center(
+              child: FutureBuilder<String>(
+                future: LanguagePreference.getLanguageSetting(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<String> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasData) {
+                    String lang = snapshot.data!;
+                    return Image.asset(lang == 'ko'
+                        ? 'assets/loading_image.gif'
+                        : 'assets/loading_image_en.gif');
+                  } else {
+                    return const Text('로딩 이미지를 불러올 수 없습니다.');
+                  }
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
+  }
+
+  void onPanStart(DragStartDetails details, BuildContext context) {
+    if (!drawingEnabled) {
+      _controller.forward().whenComplete(() {
+        _controller.reverse();
+      });
+    }
   }
 
   void onPanUpdate(DragUpdateDetails details, BuildContext context) {
@@ -124,8 +198,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
     Offset localPosition = renderBox.globalToLocal(details.globalPosition);
     Size size = renderBox.size;
 
-    if (localPosition.dx >= 0 && localPosition.dx <= size.width &&
-        localPosition.dy >= 0 && localPosition.dy <= size.height) {
+    if (localPosition.dx >= 0 && localPosition.dx <= size.width && localPosition.dy >= 0 && localPosition.dy <= size.height) {
       setState(() {
         points.add(localPosition);
       });
@@ -137,29 +210,20 @@ class _DrawingBoardState extends State<DrawingBoard> {
     makeReadyToSend();
   }
 
-  void makeReadyToSend(){
+  void makeReadyToSend() {
     setState(() {
       validatePoints();
-      stretchGraphToFullWidth();
       if (points.isNotEmpty) {
+        stretchGraphToFullWidth();
         interpolatePoints();
         drawingEnabled = false;
       }
+      if (points.any((point) => point.dx.isNaN || point.dy.isNaN)) {
+        points = [];
+        drawingEnabled = true;
+      }
     });
   }
-  void stretchGraphToFullWidth() {
-    if (points.isEmpty) return;
-
-    double minX = points.reduce((a, b) => a.dx < b.dx ? a : b).dx;
-    double maxX = points.reduce((a, b) => a.dx > b.dx ? a : b).dx;
-    double width = context.size!.width;
-
-    for (var i = 0; i < points.length; i++) {
-      double normalizedX = (points[i].dx - minX) / (maxX - minX);
-      points[i] = Offset(normalizedX * width, points[i].dy);
-    }
-  }
-
 
   void validatePoints() {
     List<Offset> result = [];
@@ -174,6 +238,17 @@ class _DrawingBoardState extends State<DrawingBoard> {
     }
 
     points = result;
+  }
+
+  void stretchGraphToFullWidth() {
+    double minX = points.reduce((a, b) => a.dx < b.dx ? a : b).dx;
+    double maxX = points.reduce((a, b) => a.dx > b.dx ? a : b).dx;
+    double width = context.size!.width;
+
+    for (var i = 0; i < points.length; i++) {
+      double normalizedX = (points[i].dx - minX) / (maxX - minX);
+      points[i] = Offset(normalizedX * width, points[i].dy);
+    }
   }
 
   void interpolatePoints() {
@@ -197,17 +272,19 @@ class _DrawingBoardState extends State<DrawingBoard> {
     points = newPoints;
   }
 
-  void resetDrawing() {
-    setState(() {
-      points.clear();
-      drawingEnabled = true;
-    });
-  }
-
   void sendDrawing(double screenHeight) async {
     setState(() {
-      isLoading = true;  // 로딩 시작
+      isLoading = true; // 로딩 시작
     });
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedSize', selectedSize);
+    await prefs.setString('selectedMarket', selectedMarket);
+
+    setState(() {
+      isLoading = false;
+    });
+
 
     RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     ui.Image image = await boundary.toImage(pixelRatio: 3.0);
@@ -243,21 +320,25 @@ class _DrawingBoardState extends State<DrawingBoard> {
         String? url = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => DrawingResult(results: results, userDrawing: encodedDrawing, market: market, size: selectedSize, lang: lang),
+            builder: (context) => DrawingResult(
+                results: results,
+                userDrawing: encodedDrawing,
+                market: market,
+                size: selectedSize,
+                lang: lang),
           ),
         );
 
         if (url != null) {
           Navigator.pop(context, url);
         }
-
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
       }
     } catch (e) {
       print('Error sending data to the API: $e');
-    }finally {
+    } finally {
       setState(() {
         isLoading = false; // 로딩 종료
       });
@@ -272,7 +353,7 @@ class DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 그림 그리기 설정
+    // 기존 그리기 설정
     Paint paint = Paint()
       ..color = drawingEnabled ? Colors.black : Colors.grey
       ..strokeCap = StrokeCap.round
@@ -283,23 +364,24 @@ class DrawingPainter extends CustomPainter {
       canvas.drawLine(points[i], points[i + 1], paint);
     }
 
-    // 반투명 회색 십자가 그리기
+    // 반투명 회색으로 화면 전체를 채우는 네모를 추가
+    paint
+      ..color = Colors.grey.withOpacity(0.1)  // 색상과 투명도 설정
+      ..style = PaintingStyle.fill;  // 채우기 스타일로 변경
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    // 가이드 라인 추가
     paint
       ..color = Colors.grey.withOpacity(0.4)
       ..strokeWidth = 2.0;
-    canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
-    canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
-    paint..color = Colors.grey.withOpacity(0.1);
-    // 화면 테두리에 반투명 회색 네모 그리기
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
 
-    // 화면 테두리에 반투명 회색 네모 그리기
-    // Style을 Stroke로 변경하여 내부를 투명하게 만듭니다.
+    // 화면 테두리 그리기
     paint
+      ..color = Colors.grey.withOpacity(0.1)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0; // 테두리의 두께 설정
+      ..strokeWidth = 4.0;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
   }
 
@@ -308,3 +390,4 @@ class DrawingPainter extends CustomPainter {
     return true;
   }
 }
+
