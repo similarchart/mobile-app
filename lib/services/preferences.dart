@@ -27,3 +27,17 @@ class BottomBarPreference {
     return prefs.getBool(_keyLang) ?? false;
   }
 }
+
+class MainPagePreference {
+  static const _key = 'mainPageSetting';
+
+  static Future<String> getMainPageSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_key) ?? 'naver';
+  }
+
+  static Future<void> setMainPageSetting(String page) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, page);
+  }
+}

@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   late WebViewManager webViewManager;
   late FloatingActionButtonManager fabManager;
   late BottomNavigationTap bottomNavigationTap;
+  String subPageLabel = ''; // 하단바 홈 버튼 왼쪽의 서브 페이지 버튼 이름
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
@@ -32,12 +33,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool bottomBarFixedPref = true;
   double startY = 0.0; // 드래그 시작 지점의 Y 좌표
   bool isDragging = false; // 드래그 중인지 여부
+  bool _isOnHomeScreen = true; // 현재 화면이 HomeScreen인지 여부
 
-  void startTimer()  {
+  void startTimer() {
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
       // 여기에 반복 실행하고 싶은 함수를 호출합니다.
       String? currentUrl = await controller.currentUrl(); // URL을 비동기적으로 받아옵니다.
-      if (currentUrl != null) {
+      if (currentUrl != null && !_isFirstLoad && _isOnHomeScreen) {
         webViewManager.addCurrentUrlToRecent(currentUrl);
         webViewManager.updateFloatingActionButtonVisibility(currentUrl);
       }
@@ -59,10 +61,34 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     super.dispose();
   }
 
-  @override
+  @override // 현재 화면(라우트)이 다른 화면에서 팝(pop)되어 다시 활성화되었을 때 호출
   Future<void> didPopNext() async {
-    bottomBarFixedPref = await BottomBarPreference.getIsBottomBarFixed();
-    setState(() {});
+    _loadPreferences();
+    setState(() {
+      _isOnHomeScreen = true;
+    });
+  }
+
+  @override // 다른 화면으로 넘어갈 때 실행되는 로직
+  void didPushNext() {
+    setState(() {
+      _isOnHomeScreen = false;
+    });
+  }
+
+  Future<void> _loadPreferences() async {
+    bottomBarFixedPref = await BottomBarPreference
+        .getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
+    String preferPage = await MainPagePreference.getMainPageSetting();
+    if (preferPage == 'naver') {
+      setState(() {
+        subPageLabel = '비슷한차트';
+      });
+    } else if (preferPage == 'chart') {
+      setState(() {
+        subPageLabel = '네이버증권';
+      });
+    }
   }
 
   @override
@@ -91,11 +117,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
     webViewManager.loadInitialUrl();
     startTimer();
-  }
-
-  Future<void> _loadPreferences() async {
-    bottomBarFixedPref = await BottomBarPreference
-        .getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
   }
 
   @override
@@ -266,8 +287,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       children: [
         BottomNavigationBuilder.buildBottomIcon(Icons.brush, '드로잉검색',
             () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, '네이버증권',
-            () => bottomNavigationTap.onNaverHomeTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, subPageLabel,
+            () => bottomNavigationTap.onSubPageTap(context, controller)),
         BottomNavigationBuilder.buildBottomIcon(Icons.home, '홈',
             () => bottomNavigationTap.onHomeTap(context, controller)),
         BottomNavigationBuilder.buildBottomIcon(Icons.history, '최근본종목',

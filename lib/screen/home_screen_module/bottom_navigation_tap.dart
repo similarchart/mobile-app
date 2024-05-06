@@ -22,20 +22,15 @@ class BottomNavigationTap {
   }
 
   void onHomeTap(BuildContext context, WebViewController controller) async {
-    // 현재 웹뷰의 URL을 가져옵니다.
-    String? currentUrl = await controller.currentUrl();
-    Uri uri = Uri.parse(currentUrl ?? "");
-
-    String prefer_lang = await LanguagePreference.getLanguageSetting();
-    // 현재 URL에서 언어 쿼리 매개변수(lang)를 확인합니다.
-    String lang = uri.queryParameters['lang'] ?? prefer_lang; // 기본값은 'ko'
-
-    // 새로운 홈 URL을 만들되, 현재 언어 설정을 유지합니다.
-    Uri newHomeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
-
-    // 새로운 홈 URL로 페이지를 로드합니다.
     updateLoadingStatus(true);
-    controller.loadRequest(newHomeUrl);
+    String page = await MainPagePreference.getMainPageSetting();
+    if (page == 'chart') {
+      String lang = await LanguagePreference.getLanguageSetting();
+      controller
+          .loadRequest(Uri.parse('https://www.similarchart.com?lang=$lang'));
+    } else if (page == 'naver') {
+      controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
+    }
   }
 
   // '설정' 버튼 탭 처리를 위한 별도의 함수
@@ -66,7 +61,7 @@ class BottomNavigationTap {
 
     // 현재 URI의 쿼리 매개변수를 변경하되, lang 매개변수만 새로운 값으로 설정합니다.
     Map<String, String> newQueryParameters =
-    Map.from(currentUri.queryParameters);
+        Map.from(currentUri.queryParameters);
     newQueryParameters['lang'] = currentLang; // lang 매개변수 업데이트
 
     // 변경된 쿼리 매개변수를 포함하여 새로운 URI 생성
@@ -106,8 +101,15 @@ class BottomNavigationTap {
     });
   }
 
-  onNaverHomeTap(BuildContext context, WebViewController controller) {
+  onSubPageTap(BuildContext context, WebViewController controller) async {
     updateLoadingStatus(true);
-    controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
+    String page = await MainPagePreference.getMainPageSetting();
+    if (page == 'chart') {
+      controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
+    } else if (page == 'naver') {
+      String lang = await LanguagePreference.getLanguageSetting();
+      controller
+          .loadRequest(Uri.parse('https://www.similarchart.com?lang=$lang'));
+    }
   }
 }

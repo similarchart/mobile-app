@@ -58,7 +58,13 @@ class WebViewManager {
   Future<void> loadInitialUrl() async {
     await loadCookies(); // 앱 시작 시 쿠키 로드
     String lang = await LanguagePreference.getLanguageSetting();
-    Uri homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
+    String page = await MainPagePreference.getMainPageSetting();
+    Uri homeUrl;
+    if (page == 'chart') {
+      homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
+    } else {
+      homeUrl = Uri.parse(Urls.naverHomeUrl);
+    }
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent("SimilarChartFinder/1.0/dev")
@@ -83,9 +89,11 @@ class WebViewManager {
   }
 
   addCurrentUrlToRecent(String url) async {
+    final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
     Uri uri = Uri.parse(url);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
+    bool startsWithWorldEtf = url.startsWith(Urls.naverWorldEtfUrl);
 
     String codeValue;
     String stockName = '';
@@ -94,22 +102,24 @@ class WebViewManager {
       String? title = await controller.getTitle();
 
       stockName = title!.split(' - 비슷한').first.trimRight();
+      stockName = stockName.split(' - Stock').first.trimRight();
+      stockName = stockName.split(' - Similar').first.trimRight();
       stockName = stockName.split(' - 네이버').first.trimRight();
       stockName = stockName.split(' - 미지원').first.trimRight();
       if (RegExp(r'^\d+$').hasMatch(stockName) ||
           stockName.contains('http') ||
           stockName.contains('?') ||
-          stockName.contains('=')) {
-        return;
-      }
-    } else if (startsWithWorld || startsWithDomestic) {
-      String? ogTitle = (await controller.runJavaScriptReturningResult(
-              "document.querySelector('meta[property=\"og:title\"]').content;"))
-          as String?;
-      if(ogTitle == null){
+          stockName.contains('=') ||
+          stockName.contains('비슷한') ||
+          stockName.contains('네이버')) {
         return;
       }
 
+      // 항상 종합 비교 결과 페이지로 설정 (N일치 결과 페이지로 올 경우)
+      String lang = await LanguagePreference.getLanguageSetting();
+      url =
+          'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$lang';
+    } else if (startsWithWorld || startsWithDomestic || startsWithWorldEtf) {
       String jsCode = """
       var element = document.querySelector('[class^="GraphMain_name"]');
       if (element) {
@@ -128,27 +138,41 @@ class WebViewManager {
       """;
 
       try {
-        stockName = await controller.runJavaScriptReturningResult(jsCode) as String;
+        stockName =
+            await controller.runJavaScriptReturningResult(jsCode) as String;
         stockName = stockName.substring(1, stockName.length - 1);
         print("Text content of the element: $stockName");
       } catch (e) {
         print("JavaScript execution failed: $e");
       }
 
+      if (stockName == 'Element not found') {
+        return;
+      }
+
       // 정규 표현식을 사용하여 'stock'과 'total' 사이의 값을 추출
       RegExp regExp = RegExp(r'/stock/([^/]+)/');
+      RegExp regExpEtf = RegExp(r'/etf/([^/]+)/');
       final matches = regExp.firstMatch(url);
+      final matchesEtf = regExpEtf.firstMatch(url);
       if (matches != null && matches.groupCount >= 1) {
         codeValue = matches.group(1)!; // 1번 그룹이 'stock'과 'total' 사이의 값
-        codeValue = codeValue.split('.').first.trimRight();
+      } else if (matchesEtf != null && matchesEtf.groupCount >= 1) {
+        codeValue = matchesEtf.group(1)!;
       } else {
         return;
       }
+      codeValue = codeValue.split('.').first.trimRight();
     } else {
       return;
     }
 
-    final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
+    // Check if the first item is the one you're looking for
+    if (recentBox.isNotEmpty &&
+        recentBox.getAt(recentBox.length - 1)?.url == url) {
+      // If the first item is the desired item, simply return
+      return;
+    }
 
 // 똑같은 code를 가진 element의 키를 찾기
     dynamic existingItemKey;
@@ -158,8 +182,10 @@ class WebViewManager {
       }
     });
 
+    bool isFav = false;
 // 만약 존재한다면, 기존 아이템 삭제
     if (existingItemKey != null) {
+      isFav = recentBox.get(existingItemKey)!.isFav;
       await recentBox.delete(existingItemKey);
     }
 
@@ -168,7 +194,8 @@ class WebViewManager {
       dateVisited: DateTime.now(),
       code: codeValue,
       name: stockName,
-      isFav: false,
+      url: url,
+      isFav: isFav,
     );
 
 // 새 아이템 추가
@@ -176,7 +203,11 @@ class WebViewManager {
   }
 
   addCurrentUrlToHistory(String url) async {
-    String? title = await controller.getTitle();
+    String? title = (await controller.runJavaScriptReturningResult(
+            "document.querySelector('meta[property=\"og:title\"]').content;"))
+        as String?;
+    title = title?.substring(1, title.length - 1);
+
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =
         HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());

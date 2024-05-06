@@ -20,14 +20,15 @@ class RecentItemAdapter extends TypeAdapter<RecentItem> {
       code: fields[0] as String,
       name: fields[1] as String,
       dateVisited: fields[2] as DateTime,
-      isFav: fields[3] as bool,
+      url: fields[3] as String,
+      isFav: fields[4] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, RecentItem obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.code)
       ..writeByte(1)
@@ -35,6 +36,8 @@ class RecentItemAdapter extends TypeAdapter<RecentItem> {
       ..writeByte(2)
       ..write(obj.dateVisited)
       ..writeByte(3)
+      ..write(obj.url)
+      ..writeByte(4)
       ..write(obj.isFav);
   }
 

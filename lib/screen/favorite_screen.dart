@@ -40,20 +40,30 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
               return Container(
                 decoration: BoxDecoration(
                   color: AppColors.primaryColor,
-                  border: Border(bottom: BorderSide(color: AppColors.secondaryColor, width: 1)),
+                  border: Border(
+                      bottom: BorderSide(
+                          color: AppColors.secondaryColor, width: 1)),
                 ),
                 child: InkWell(
                   onTap: () async {
                     String lang = await LanguagePreference.getLanguageSetting();
-                    String nextUrl = "https://www.similarchart.com/stock_info/?code=${recentItem.code}&lang=${lang}";
-                    Navigator.pop(context, nextUrl);
+                    Uri url = Uri.parse(recentItem.url);
+                    // 쿼리 파라미터 중 'lang' 파라미터 확인
+                    Map<String, dynamic> newQueryParameters =
+                        Map.from(url.queryParameters);
+                    newQueryParameters['lang'] = lang; // 'lang' 파라미터 업데이트
+                    Uri updatedUrl =
+                        url.replace(queryParameters: newQueryParameters);
+
+                    Navigator.pop(context, updatedUrl.toString());
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 3, horizontal: 5),
                     child: Row(
                       children: <Widget>[
                         IconButton(
-                          icon: Icon(recentItem.isFav ? Icons.star : Icons.star_border,
+                          icon: Icon(
+                              recentItem.isFav ? Icons.star : Icons.star_border,
                               color: AppColors.tertiaryColor),
                           onPressed: () async {
                             recentItem.isFav = !recentItem.isFav;
@@ -65,14 +75,19 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(recentItem.name,
-                                  style: TextStyle(fontSize: 14, color: AppColors.textColor)),
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textColor)),
                               Text(recentItem.code,
-                                  style: TextStyle(fontSize: 11, color: AppColors.textColor)),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textColor)),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                          icon: Icon(Icons.close,
+                              color: AppColors.secondaryColor),
                           onPressed: () async {
                             await box.delete(recentItem.key);
                             setState(() {});
