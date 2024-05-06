@@ -19,6 +19,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
         title: const Text('방문기록', style: TextStyle(color: AppColors.textColor)),
+        backgroundColor: AppColors.secondaryColor,
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.delete),
@@ -50,7 +51,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             },
           ),
         ],
-        backgroundColor: AppColors.secondaryColor,
       ),
       body: ValueListenableBuilder(
         valueListenable: historyBox.listenable(),
@@ -63,7 +63,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               return Container(
                 decoration: BoxDecoration(
                   color: AppColors.primaryColor,
-                  border: Border(bottom: BorderSide(color: AppColors.secondaryColor, width: 1)),
+                  border: Border(
+                      bottom: BorderSide(
+                          color: AppColors.secondaryColor, width: 1)),
                 ),
                 child: InkWell(
                   onTap: () {
@@ -78,17 +80,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(historyItem.title,
-                                  style: TextStyle(fontSize: 14, color: AppColors.textColor)),
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textColor)),
                               Text(
-                                  DateFormat('yyyy-MM-dd HH:mm:ss').format(historyItem.dateVisited),
-                                  style: TextStyle(fontSize: 11, color: AppColors.textColor)
-                              ),
+                                  DateFormat('yyyy-MM-dd HH:mm:ss')
+                                      .format(historyItem.dateVisited),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textColor)),
                             ],
                           ),
                         ),
                         IconButton(
                           iconSize: 20,
-                          icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                          icon: Icon(Icons.close,
+                              color: AppColors.secondaryColor),
                           onPressed: () async {
                             final realIndex = box.values.length - 1 - index;
                             await box.deleteAt(realIndex);
