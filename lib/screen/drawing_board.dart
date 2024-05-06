@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/drawing_result.dart';
+import 'package:web_view/screen/home_screen_module/drawing_timer.dart';
 import 'package:web_view/services/preferences.dart';
 
 import '../services/toast_service.dart';
@@ -152,8 +153,10 @@ class _DrawingBoardState extends State<DrawingBoard>
             onPressed: (selectedSize != "비교일수" &&
                     selectedMarket != "시장" &&
                     !drawingEnabled &&
-                    !isLoading)
+                    !isLoading &&
+                    !DrawingTimer().isCooldownActive)
                 ? () {
+                    DrawingTimer().startTimer(); // 1분 쿨타입
                     sendDrawing(widget.screenHeight);
                   }
                 : () {
@@ -167,6 +170,8 @@ class _DrawingBoardState extends State<DrawingBoard>
                           .showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
                     } else if (isLoading) {
                       ToastService().showToastMessage("잠시만 기다려주세요.");
+                    } else if (DrawingTimer().isCooldownActive) {
+                      ToastService().showToastMessage("재검색은 1분 후 가능합니다.");
                     } else {
                       ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                     }
