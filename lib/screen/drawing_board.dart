@@ -21,7 +21,8 @@ class DrawingBoard extends StatefulWidget {
   _DrawingBoardState createState() => _DrawingBoardState();
 }
 
-class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderStateMixin {
+class _DrawingBoardState extends State<DrawingBoard>
+    with SingleTickerProviderStateMixin {
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
@@ -81,68 +82,95 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
         actions: [
           DropdownButton<String>(
             value: selectedSize,
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedSize = newValue!;
-              });
-              points = originalPoints;
-              makeReadyToSend();
-            },
+            onChanged: isLoading
+                ? null
+                : (String? newValue) {
+                    setState(() {
+                      selectedSize = newValue!;
+                    });
+                    points = originalPoints;
+                    makeReadyToSend();
+                  },
             style: TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: sizes.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
-                child: Text(value),
+                child: Text(value,
+                    style: TextStyle(
+                        color: isLoading
+                            ? AppColors.secondaryColor
+                            : AppColors.textColor)),
               );
             }).toList(),
           ),
           SizedBox(width: 10.0),
           DropdownButton<String>(
             value: selectedMarket,
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedMarket = newValue!;
-              });
-            },
+            onChanged: isLoading
+                ? null
+                : (String? newValue) {
+                    setState(() {
+                      selectedMarket = newValue!;
+                    });
+                  },
             style: TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: countries.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
-                child: Text(value),
+                child: Text(value,
+                    style: TextStyle(
+                        color: isLoading
+                            ? AppColors.secondaryColor
+                            : AppColors.textColor)),
               );
             }).toList(),
           ),
           IconButton(
             icon: Icon(Icons.refresh,
-                color: _colorAnimation.value ?? AppColors.textColor),
-            onPressed: () => setState(() {
-              points.clear();
-              drawingEnabled = true;
-            }),
+                color: isLoading
+                    ? AppColors.secondaryColor
+                    : _colorAnimation.value ?? AppColors.textColor),
+            onPressed: isLoading
+                ? null
+                : () => setState(() {
+                      points.clear();
+                      drawingEnabled = true;
+                    }),
           ),
           IconButton(
             icon: Icon(
               Icons.send,
-              color: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled && !isLoading) ? AppColors.textColor : AppColors.secondaryColor,
+              color: (selectedSize != "비교일수" &&
+                      selectedMarket != "시장" &&
+                      !drawingEnabled &&
+                      !isLoading)
+                  ? AppColors.textColor
+                  : AppColors.secondaryColor,
             ),
-            onPressed: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled && !isLoading) ? () {
-              sendDrawing(widget.screenHeight);
-            } : () {
-              // 조건에 따른 메시지 분기
-              if (selectedSize == "비교일수") {
-                ToastService().showToastMessage("비교 일수를 선택해주세요.");
-              } else if (selectedMarket == "시장") {
-                ToastService().showToastMessage("시장을 선택해주세요.");
-              } else if (drawingEnabled) {
-                ToastService().showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
-              } else if (isLoading) {
-                ToastService().showToastMessage("잠시만 기다려주세요.");
-              }else {
-                ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-              }
-            },
+            onPressed: (selectedSize != "비교일수" &&
+                    selectedMarket != "시장" &&
+                    !drawingEnabled &&
+                    !isLoading)
+                ? () {
+                    sendDrawing(widget.screenHeight);
+                  }
+                : () {
+                    // 조건에 따른 메시지 분기
+                    if (selectedSize == "비교일수") {
+                      ToastService().showToastMessage("비교 일수를 선택해주세요.");
+                    } else if (selectedMarket == "시장") {
+                      ToastService().showToastMessage("시장을 선택해주세요.");
+                    } else if (drawingEnabled) {
+                      ToastService()
+                          .showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
+                    } else if (isLoading) {
+                      ToastService().showToastMessage("잠시만 기다려주세요.");
+                    } else {
+                      ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                    }
+                  },
           ),
         ],
       ),
@@ -151,8 +179,9 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
           Builder(builder: (BuildContext innerContext) {
             return GestureDetector(
               onPanStart: (details) => onPanStart(details, innerContext),
-              onPanUpdate: drawingEnabled ? (details) =>
-                  onPanUpdate(details, innerContext) : null,
+              onPanUpdate: drawingEnabled
+                  ? (details) => onPanUpdate(details, innerContext)
+                  : null,
               onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
               child: RepaintBoundary(
                 key: repaintBoundaryKey,
@@ -164,25 +193,27 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
             );
           }),
           if (isLoading)
-            Center(
-              child: FutureBuilder<String>(
-                future: LanguagePreference.getLanguageSetting(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<String> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    print('hello');
-                    return const CircularProgressIndicator();
-                  } else if (snapshot.hasData) {
-                    print('hi');
-                    String lang = snapshot.data!;
-                    return Image.asset(lang == 'ko'
-                        ? 'assets/loading_image.gif'
-                        : 'assets/loading_image_en.gif');
-                  } else {
-                    print('hmm');
-                    return const Text('로딩 이미지를 불러올 수 없습니다.');
-                  }
-                },
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.0),
+                child: Center(
+                  child: FutureBuilder<String>(
+                    future: LanguagePreference.getLanguageSetting(),
+                    builder:
+                        (BuildContext context, AsyncSnapshot<String> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      } else if (snapshot.hasData) {
+                        String lang = snapshot.data!;
+                        return Image.asset(lang == 'ko'
+                            ? 'assets/loading_image.gif'
+                            : 'assets/loading_image_en.gif');
+                      } else {
+                        return const Text('로딩 이미지를 불러올 수 없습니다.');
+                      }
+                    },
+                  ),
+                ),
               ),
             ),
         ],
@@ -203,7 +234,10 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
     Offset localPosition = renderBox.globalToLocal(details.globalPosition);
     Size size = renderBox.size;
 
-    if (localPosition.dx >= 0 && localPosition.dx <= size.width && localPosition.dy >= 0 && localPosition.dy <= size.height) {
+    if (localPosition.dx >= 0 &&
+        localPosition.dx <= size.width &&
+        localPosition.dy >= 0 &&
+        localPosition.dy <= size.height) {
       setState(() {
         points.add(localPosition);
       });
@@ -265,8 +299,10 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
     List<Offset> newPoints = [points.first];
     for (int i = 1; i < numPoints - 1; i++) {
       double newX = minX + i * interval;
-      Offset p1 = points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
-      Offset p2 = points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+      Offset p1 =
+          points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+      Offset p2 =
+          points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
 
       double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
       double newY = p1.dy + slope * (newX - p1.dx);
@@ -286,13 +322,15 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
     await prefs.setString('selectedSize', selectedSize);
     await prefs.setString('selectedMarket', selectedMarket);
 
-    RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
+        .findRenderObject() as RenderRepaintBoundary;
     ui.Image image = await boundary.toImage(pixelRatio: 3.0);
     ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     Uint8List pngBytes = byteData!.buffer.asUint8List();
     String encodedDrawing = base64Encode(pngBytes);
 
-    List<double> numbers = points.map((point) => 1 - point.dy / screenHeight).toList();
+    List<double> numbers =
+        points.map((point) => 1 - point.dy / screenHeight).toList();
     int dayNum = int.tryParse(selectedSize) ?? 0;
 
     String url = 'https://similarchart.com/api/drawing_search';
@@ -355,7 +393,7 @@ class DrawingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // 기존 그리기 설정
     Paint paint = Paint()
-      ..color = drawingEnabled ? Colors.black : Colors.grey
+      ..color = drawingEnabled ? Colors.black : AppColors.secondaryColor
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 5.0;
 
@@ -366,16 +404,18 @@ class DrawingPainter extends CustomPainter {
 
     // 반투명 회색으로 화면 전체를 채우는 네모를 추가
     paint
-      ..color = Colors.grey.withOpacity(0.1)  // 색상과 투명도 설정
-      ..style = PaintingStyle.fill;  // 채우기 스타일로 변경
+      ..color = Colors.grey.withOpacity(0.15) // 색상과 투명도 설정
+      ..style = PaintingStyle.fill; // 채우기 스타일로 변경
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
     // 가이드 라인 추가
     paint
       ..color = Colors.grey.withOpacity(0.4)
       ..strokeWidth = 2.0;
-    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
-    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
+    canvas.drawLine(
+        Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+    canvas.drawLine(
+        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
 
     // 화면 테두리 그리기
     paint
@@ -390,4 +430,3 @@ class DrawingPainter extends CustomPainter {
     return true;
   }
 }
-
