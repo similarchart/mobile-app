@@ -4,6 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/recent_item.dart';
 
+import '../services/preferences.dart';
+
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
 
@@ -19,7 +21,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('최근 본 종목', style: TextStyle(color: AppColors.textColor)),
+        title: const Text('최근 본 종목', style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         actions: <Widget>[
           IconButton(
@@ -83,7 +85,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
             itemBuilder: (context, index) {
               if (index == favItemsCount) {
                 // Return a custom Divider with no bottom border
-                return Divider(
+                return const Divider(
                     thickness: 2, color: AppColors.textColor, height: 1);
               } else if (index > favItemsCount) {
                 // Adjust index for notFavItems
@@ -103,7 +105,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     );
   }
 
-  Widget buildItem(RecentItem item, Box<RecentItem> box, bool isLastItem) {
+  Widget buildItem(RecentItem item, Box<RecentItem> box, bool isLastItem, ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.primaryColor,
@@ -115,10 +117,19 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       ),
       child: InkWell(
         onTap: () async {
-          // Your existing onTap logic here
+          String lang = await LanguagePreference.getLanguageSetting();
+          Uri url = Uri.parse(item.url);
+          // 쿼리 파라미터 중 'lang' 파라미터 확인
+          Map<String, dynamic> newQueryParameters =
+          Map.from(url.queryParameters);
+          newQueryParameters['lang'] = lang; // 'lang' 파라미터 업데이트
+          Uri updatedUrl =
+          url.replace(queryParameters: newQueryParameters);
+
+          Navigator.pop(context, updatedUrl.toString());
         },
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+          padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
           child: Row(
             children: <Widget>[
               IconButton(
@@ -134,16 +145,16 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(item.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 14, color: AppColors.textColor)),
                     Text(item.code,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 11, color: AppColors.textColor)),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.close, color: AppColors.secondaryColor),
+                icon: const Icon(Icons.close, color: AppColors.secondaryColor),
                 onPressed: () async {
                   await box.delete(item.key);
                   setState(() {});
