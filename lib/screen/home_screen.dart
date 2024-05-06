@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   late FloatingActionButtonManager fabManager;
   late BottomNavigationTap bottomNavigationTap;
   String subPageLabel = ''; // 하단바 홈 버튼 왼쪽의 서브 페이지 버튼 이름
+  String homePageLabel = ''; // 하단바 홈 버튼 이름
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
@@ -83,10 +84,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (preferPage == 'naver') {
       setState(() {
         subPageLabel = '비슷한차트';
+        homePageLabel = '네이버증권';
       });
     } else if (preferPage == 'chart') {
       setState(() {
         subPageLabel = '네이버증권';
+        homePageLabel = '비슷한차트';
       });
     }
   }
@@ -289,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
         BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, subPageLabel,
             () => bottomNavigationTap.onSubPageTap(context, controller)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.home, '홈',
+        BottomNavigationBuilder.buildBottomIcon(Icons.home, homePageLabel,
             () => bottomNavigationTap.onHomeTap(context, controller)),
         BottomNavigationBuilder.buildBottomIcon(Icons.history, '최근본종목',
             () => bottomNavigationTap.onFavoriteTap(context, controller)),
