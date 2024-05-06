@@ -125,9 +125,9 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
           IconButton(
             icon: Icon(
               Icons.send,
-              color: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled) ? AppColors.textColor : AppColors.secondaryColor,
+              color: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled && !isLoading) ? AppColors.textColor : AppColors.secondaryColor,
             ),
-            onPressed: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled) ? () {
+            onPressed: (selectedSize != "비교일수" && selectedMarket != "시장" && !drawingEnabled && !isLoading) ? () {
               sendDrawing(widget.screenHeight);
             } : () {
               // 조건에 따른 메시지 분기
@@ -137,7 +137,9 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
                 ToastService().showToastMessage("시장을 선택해주세요.");
               } else if (drawingEnabled) {
                 ToastService().showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
-              } else {
+              } else if (isLoading) {
+                ToastService().showToastMessage("잠시만 기다려주세요.");
+              }else {
                 ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
               }
             },
@@ -168,13 +170,16 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
                 builder: (BuildContext context,
                     AsyncSnapshot<String> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
+                    print('hello');
                     return const CircularProgressIndicator();
                   } else if (snapshot.hasData) {
+                    print('hi');
                     String lang = snapshot.data!;
                     return Image.asset(lang == 'ko'
                         ? 'assets/loading_image.gif'
                         : 'assets/loading_image_en.gif');
                   } else {
+                    print('hmm');
                     return const Text('로딩 이미지를 불러올 수 없습니다.');
                   }
                 },
@@ -280,11 +285,6 @@ class _DrawingBoardState extends State<DrawingBoard> with SingleTickerProviderSt
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);
     await prefs.setString('selectedMarket', selectedMarket);
-
-    setState(() {
-      isLoading = false;
-    });
-
 
     RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     ui.Image image = await boundary.toImage(pixelRatio: 3.0);
