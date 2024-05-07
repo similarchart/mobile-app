@@ -146,7 +146,8 @@ class _DrawingBoardState extends State<DrawingBoard>
               color: (selectedSize != "비교일수" &&
                       selectedMarket != "시장" &&
                       !drawingEnabled &&
-                      !isLoading)
+                      !isLoading &&
+                      !DrawingTimer().isCooldownActive)
                   ? AppColors.textColor
                   : AppColors.secondaryColor,
             ),
@@ -156,7 +157,9 @@ class _DrawingBoardState extends State<DrawingBoard>
                     !isLoading &&
                     !DrawingTimer().isCooldownActive)
                 ? () {
-                    DrawingTimer().startTimer(); // 1분 쿨타입
+                    DrawingTimer().startTimer(10, onComplete: () {
+                      setState(() {});  // 타이머 완료시 UI 업데이트
+                    });
                     sendDrawing(widget.screenHeight);
                   }
                 : () {
@@ -171,7 +174,7 @@ class _DrawingBoardState extends State<DrawingBoard>
                     } else if (isLoading) {
                       ToastService().showToastMessage("잠시만 기다려주세요.");
                     } else if (DrawingTimer().isCooldownActive) {
-                      ToastService().showToastMessage("재검색은 1분 후 가능합니다.");
+                      ToastService().showToastMessage("검색 1분 후 재검색이 가능합니다.");
                     } else {
                       ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                     }
@@ -367,6 +370,11 @@ class _DrawingBoardState extends State<DrawingBoard>
             sz: selectedSize,
             language: lang);
         DrawingResultManager.showDrawingResult(context);
+        setState(() {
+          points.clear();
+          drawingEnabled = true;
+          isLoading = false;
+        });
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');

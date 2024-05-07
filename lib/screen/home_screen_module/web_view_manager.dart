@@ -169,7 +169,8 @@ class WebViewManager {
 
     // Check if the first item is the one you're looking for
     if (recentBox.isNotEmpty &&
-        recentBox.getAt(recentBox.length - 1)?.url == url) {
+        recentBox.getAt(recentBox.length - 1)?.url == url &&
+        recentBox.getAt(recentBox.length - 1)?.name == stockName) {
       // If the first item is the desired item, simply return
       return;
     }
