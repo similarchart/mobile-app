@@ -360,21 +360,13 @@ class _DrawingBoardState extends State<DrawingBoard>
 
       if (response.statusCode == 200) {
         List<dynamic> results = jsonDecode(response.body);
-        String? url = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DrawingResult(
-                results: results,
-                userDrawing: encodedDrawing,
-                market: market,
-                size: selectedSize,
-                lang: lang),
-          ),
-        );
-
-        if (url != null) {
-          Navigator.pop(context, url);
-        }
+        DrawingResultManager.initializeDrawingResult(
+            res: results,
+            drawing: encodedDrawing,
+            mkt: market,
+            sz: selectedSize,
+            language: lang);
+        DrawingResultManager.showDrawingResult(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');

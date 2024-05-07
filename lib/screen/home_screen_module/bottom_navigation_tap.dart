@@ -5,6 +5,7 @@ import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/screen/drawing_board.dart';
+import 'package:web_view/screen/drawing_result.dart';
 
 class BottomNavigationTap {
   final Function(bool) updateLoadingStatus;
@@ -99,6 +100,10 @@ class BottomNavigationTap {
         controller.loadRequest(Uri.parse(url));
       }
     });
+
+    if (DrawingResultManager.isResultExist()) { // 드로잉 화면 위에 결과 화면 띄우기
+      DrawingResultManager.showDrawingResult(context);
+    }
   }
 
   onSubPageTap(BuildContext context, WebViewController controller) async {
