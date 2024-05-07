@@ -372,6 +372,7 @@ class _DrawingBoardState extends State<DrawingBoard>
         DrawingResultManager.showDrawingResult(context);
         setState(() {
           points.clear();
+          originalPoints.clear();
           drawingEnabled = true;
           isLoading = false;
         });

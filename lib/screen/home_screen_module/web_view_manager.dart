@@ -111,6 +111,7 @@ class WebViewManager {
           stockName.contains('?') ||
           stockName.contains('=') ||
           stockName.contains('비슷한') ||
+          stockName.contains('없음') ||
           stockName.contains('네이버')) {
         return;
       }
@@ -164,6 +165,10 @@ class WebViewManager {
       }
       codeValue = codeValue.split('.').first.trimRight();
     } else {
+      return;
+    }
+
+    if (stockName.contains('없음') || stockName == '') {
       return;
     }
 
