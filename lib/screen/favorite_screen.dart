@@ -85,8 +85,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
             itemBuilder: (context, index) {
               if (index == favItemsCount) {
                 // Return a custom Divider with no bottom border
-                return const Divider(
-                    thickness: 2, color: AppColors.textColor, height: 1);
+                return Divider(
+                    thickness: 2, color: favItemsCount > 0 ? AppColors.textColor:AppColors.primaryColor, height: 1);
               } else if (index > favItemsCount) {
                 // Adjust index for notFavItems
                 final recentItem = notFavItems[index - favItemsCount - 1];
