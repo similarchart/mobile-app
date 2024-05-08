@@ -28,9 +28,9 @@ class _DrawingBoardState extends State<DrawingBoard>
   List<Offset> points = [];
   List<Offset> originalPoints = [];
   bool drawingEnabled = true;
-  String selectedSize = '비교일수';
+  String selectedSize = '비교일';
   String selectedMarket = '시장';
-  final List<String> sizes = ['비교일수', '128', '64', '32', '16', '8'];
+  final List<String> sizes = ['비교일', '128', '64', '32', '16', '8'];
   final List<String> countries = ['시장', '미국', '한국'];
   GlobalKey repaintBoundaryKey = GlobalKey();
 
@@ -57,7 +57,7 @@ class _DrawingBoardState extends State<DrawingBoard>
   void loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedSize = prefs.getString('selectedSize') ?? '비교일수';
+      selectedSize = prefs.getString('selectedSize') ?? '비교일';
       selectedMarket = prefs.getString('selectedMarket') ?? '시장';
     });
   }
@@ -143,7 +143,7 @@ class _DrawingBoardState extends State<DrawingBoard>
           IconButton(
             icon: Icon(
               Icons.send,
-              color: (selectedSize != "비교일수" &&
+              color: (selectedSize != "비교일" &&
                       selectedMarket != "시장" &&
                       !drawingEnabled &&
                       !isLoading &&
@@ -151,30 +151,31 @@ class _DrawingBoardState extends State<DrawingBoard>
                   ? AppColors.textColor
                   : AppColors.secondaryColor,
             ),
-            onPressed: (selectedSize != "비교일수" &&
+            onPressed: (selectedSize != "비교일" &&
                     selectedMarket != "시장" &&
                     !drawingEnabled &&
                     !isLoading &&
                     !DrawingTimer().isCooldownActive)
                 ? () {
-                    DrawingTimer().startTimer(10, onComplete: () {
+                    DrawingTimer().startTimer(60, onComplete: () {
                       setState(() {});  // 타이머 완료시 UI 업데이트
                     });
                     sendDrawing(widget.screenHeight);
                   }
                 : () {
                     // 조건에 따른 메시지 분기
-                    if (selectedSize == "비교일수") {
-                      ToastService().showToastMessage("비교 일수를 선택해주세요.");
+                    if (selectedSize == "비교일") {
+                      ToastService().showToastMessage("비교 일수를 선택해 주세요.");
                     } else if (selectedMarket == "시장") {
-                      ToastService().showToastMessage("시장을 선택해주세요.");
+                      ToastService().showToastMessage("시장을 선택해 주세요.");
                     } else if (drawingEnabled) {
                       ToastService()
-                          .showToastMessage("비슷한차트 검색을 위해 그림을 그려주세요.");
+                          .showToastMessage("검색을 위해 그림을 그려주세요.");
                     } else if (isLoading) {
                       ToastService().showToastMessage("잠시만 기다려주세요.");
                     } else if (DrawingTimer().isCooldownActive) {
-                      ToastService().showToastMessage("검색 1분 후 재검색이 가능합니다.");
+                      int remain = DrawingTimer().remainingTimeInSeconds;
+                      ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
                     } else {
                       ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                     }

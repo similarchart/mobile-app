@@ -27,6 +27,12 @@ class DrawingTimer {
     return DateTime.now().difference(_lastDrawingTime!) < _cooldown;
   }
 
+  int get remainingTimeInSeconds {
+    if (_lastDrawingTime == null) return 0; // 타이머가 시작되지 않았다면 0 반환
+    Duration timeLeft = _cooldown - DateTime.now().difference(_lastDrawingTime!);
+    return timeLeft.isNegative ? 0 : timeLeft.inSeconds; // 남은 시간이 음수가 아니라면 초 단위로 반환, 그렇지 않으면 0 반환
+  }
+
   void resetTimer() {
     _lastDrawingTime = null;
   }

@@ -11,10 +11,11 @@ class WebViewManager {
   WebViewController controller;
   Function(bool) updateFABVisibility;
   Function(bool) updateLoadingStatus;
+  Function(bool) updatePageLoadingStatus;
   Function(bool) updateFirstLoad;
 
   WebViewManager(this.controller, this.updateFABVisibility,
-      this.updateLoadingStatus, this.updateFirstLoad);
+      this.updateLoadingStatus, this.updatePageLoadingStatus, this.updateFirstLoad);
 
   Future<void> saveCookies() async {
     final Object? result =
@@ -71,14 +72,17 @@ class WebViewManager {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
+            updatePageLoadingStatus(true);
             return NavigationDecision.navigate;
           },
           onPageStarted: (String url) {
-            updateLoadingStatus(false);
+
           },
           onPageFinished: (String url) {
             updateFloatingActionButtonVisibility(url);
             updateFirstLoad(false);
+            updateLoadingStatus(false);
+            updatePageLoadingStatus(false);
             addCurrentUrlToHistory(url);
             addCurrentUrlToRecent(url);
             saveCookies(); // 페이지 로드 완료 후 쿠키 저장

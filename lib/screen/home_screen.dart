@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
+  bool _isPageLoading = false; // 로딩바 표시 여부
   bool didScrollDown = true; // 하단 바의 초기 상태
   bool bottomBarFixedPref = true;
   double startY = 0.0; // 드래그 시작 지점의 Y 좌표
@@ -40,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
       // 여기에 반복 실행하고 싶은 함수를 호출합니다.
       String? currentUrl = await controller.currentUrl(); // URL을 비동기적으로 받아옵니다.
-      if (currentUrl != null && !_isFirstLoad && _isOnHomeScreen) {
+      if (currentUrl != null && !_isFirstLoad && _isOnHomeScreen && !_isLoading && !_isPageLoading) {
         webViewManager.addCurrentUrlToRecent(currentUrl);
         webViewManager.updateFloatingActionButtonVisibility(currentUrl);
       }
@@ -104,6 +105,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         (bool isVisible) =>
             setState(() => _showFloatingActionButton = isVisible),
         (bool isLoading) => setState(() => _isLoading = isLoading),
+          (bool isPageLoading) => setState(() => _isPageLoading = isPageLoading),
         (bool isFirstLoad) => setState(() => _isFirstLoad = isFirstLoad));
     fabManager = FloatingActionButtonManager(
       controller: controller,
