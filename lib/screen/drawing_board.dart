@@ -296,6 +296,21 @@ class _DrawingBoardState extends State<DrawingBoard>
       double normalizedX = (points[i].dx - minX) / (maxX - minX);
       points[i] = Offset(normalizedX * width, points[i].dy);
     }
+
+    double minY = points.reduce((a, b) => a.dy < b.dy ? a : b).dy;
+    double maxY = points.reduce((a, b) => a.dy > b.dy ? a : b).dy;
+    double height = width;
+
+    // 여백이 height * 0.2 보다 크면 0.2로 설정
+    double marginTop = height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
+    double marginBottom = minY > 0.2 * height ? 0.2 * height : minY;
+
+    for (var i = 0; i < points.length; i++) {
+      double normalizedY = (points[i].dy - minY) / (maxY - minY);
+
+      // 상하단 여백을 뺀 높이로 정규화 후, 하단 여백을 더하면 항상 여백 0.2 이하를 보장 가능
+      points[i] = Offset(points[i].dx, (normalizedY * (height - marginTop - marginBottom) + marginBottom));
+    }
   }
 
   void interpolatePoints() {
@@ -419,9 +434,9 @@ class DrawingPainter extends CustomPainter {
       ..color = Colors.grey.withOpacity(0.4)
       ..strokeWidth = 2.0;
     canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+        Offset(0, size.height * 0.2), Offset(size.width, size.height * 0.2), paint);
     canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
+        Offset(0, size.height * 0.8), Offset(size.width, size.height * 0.8), paint);
 
     // 화면 테두리 그리기
     paint
