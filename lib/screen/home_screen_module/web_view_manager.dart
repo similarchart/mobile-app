@@ -168,7 +168,7 @@ class WebViewManager {
       return;
     }
 
-    if (stockName.contains('없음') || stockName == '') {
+    if (stockName.contains('없음')) {
       return;
     }
 
