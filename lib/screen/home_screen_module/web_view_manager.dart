@@ -167,6 +167,16 @@ class WebViewManager {
       } else {
         return;
       }
+      if(startsWithWorldEtf){
+        url = Urls.naverWorldEtfUrl + codeValue;
+      }
+      else if(startsWithWorld){
+        url = Urls.naverWorldUrl + codeValue;
+      }
+      else if(startsWithDomestic){
+        url = Urls.naverDomesticUrl + codeValue;
+      }
+
       codeValue = codeValue.split('.').first.trimRight();
     } else {
       return;
