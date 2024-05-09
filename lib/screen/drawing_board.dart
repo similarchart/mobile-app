@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
@@ -55,6 +55,12 @@ class _DrawingBoardState extends State<DrawingBoard>
         setState(() {});
       });
     loadPreferences();
+
+    // 페이지가 초기화될 때 세로 모드로 설정
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
   }
 
   void loadPreferences() async {
@@ -69,6 +75,13 @@ class _DrawingBoardState extends State<DrawingBoard>
   void dispose() {
     _controller.dispose();
     _adManager.dispose();
+    // 페이지를 벗어날 때 화면 방향 제한을 해제 (다른 페이지에서는 원하는 방향으로 설정 가능)
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -347,8 +360,6 @@ class _DrawingBoardState extends State<DrawingBoard>
       isLoading = true; // 로딩 시작
     });
 
-    _adManager.showInterstitialAd();
-
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);
     await prefs.setString('selectedMarket', selectedMarket);
@@ -399,6 +410,7 @@ class _DrawingBoardState extends State<DrawingBoard>
           drawingEnabled = true;
           isLoading = false;
         });
+        _adManager.showInterstitialAd(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
