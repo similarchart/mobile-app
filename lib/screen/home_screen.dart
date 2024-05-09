@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       String? currentUrl = await controller.currentUrl(); // URL을 비동기적으로 받아옵니다.
       if (currentUrl != null && !_isFirstLoad && _isOnHomeScreen && !_isLoading && !_isPageLoading) {
         webViewManager.addCurrentUrlToRecent(currentUrl);
+        webViewManager.removeDuplicateRecentItem();
         webViewManager.updateFloatingActionButtonVisibility(currentUrl);
       }
     });

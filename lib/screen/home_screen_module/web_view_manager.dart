@@ -212,6 +212,32 @@ class WebViewManager {
     await recentBox.add(recentItem);
   }
 
+  Future<void> removeDuplicateRecentItem() async {
+    final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
+
+    Map<String, List<dynamic>> codeToKeys = {};
+
+    // 모든 항목을 반복하여 code와 해당하는 키를 매핑
+    recentBox.keys.forEach((key) {
+      String code = recentBox.get(key)!.code;
+      if (codeToKeys.containsKey(code)) {
+        codeToKeys[code]!.add(key);
+      } else {
+        codeToKeys[code] = [key];
+      }
+    });
+
+    // 중복된 code를 가진 키들을 찾아 첫 번째를 제외하고 삭제
+    for (var entry in codeToKeys.entries) {
+      if (entry.value.length > 1) {
+        // 첫 번째 요소를 제외한 모든 키를 삭제
+        for (var key in entry.value.sublist(1)) {
+          await recentBox.delete(key);
+        }
+      }
+    }
+  }
+
   addCurrentUrlToHistory(String url) async {
     String? title = (await controller.runJavaScriptReturningResult(
             "document.querySelector('meta[property=\"og:title\"]').content;"))

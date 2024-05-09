@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/recent_item.dart';
+import 'package:web_view/component/bottom_banner_ad.dart';
 
 import '../services/preferences.dart';
 
@@ -21,7 +21,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: const Text('최근 본 종목', style: TextStyle(color: AppColors.textColor)),
+        title:
+            const Text('최근 본 종목', style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         actions: <Widget>[
           IconButton(
@@ -67,45 +68,62 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           ),
         ],
       ),
-      body: ValueListenableBuilder(
-        valueListenable: recentBox.listenable(),
-        builder: (context, Box<RecentItem> box, _) {
-          final items = box.values.toList();
-          final favItems = items.where((item) => item.isFav).toList()
-            ..sort((a, b) => b.dateVisited.compareTo(a.dateVisited));
-          final notFavItems = items.where((item) => !item.isFav).toList()
-            ..sort((a, b) => b.dateVisited.compareTo(a.dateVisited));
+      body: Column(
+        children: <Widget>[
+          Expanded(
+            child: ValueListenableBuilder(
+              valueListenable: recentBox.listenable(),
+              builder: (context, Box<RecentItem> box, _) {
+                final items = box.values.toList();
+                final favItems = items.where((item) => item.isFav).toList()
+                  ..sort((a, b) => b.dateVisited.compareTo(a.dateVisited));
+                final notFavItems = items.where((item) => !item.isFav).toList()
+                  ..sort((a, b) => b.dateVisited.compareTo(a.dateVisited));
 
-          final int favItemsCount = favItems.length;
-          final int totalItems =
-              favItemsCount + notFavItems.length + 1; // +1 for the divider
+                final int favItemsCount = favItems.length;
+                final int totalItems = favItemsCount +
+                    notFavItems.length +
+                    1; // +1 for the divider
 
-          return ListView.builder(
-            itemCount: totalItems,
-            itemBuilder: (context, index) {
-              if (index == favItemsCount) {
-                // Return a custom Divider with no bottom border
-                return Divider(
-                    thickness: 2, color: favItemsCount > 0 ? AppColors.textColor:AppColors.primaryColor, height: 1);
-              } else if (index > favItemsCount) {
-                // Adjust index for notFavItems
-                final recentItem = notFavItems[index - favItemsCount - 1];
-                return buildItem(recentItem, box, false);
-              } else {
-                // Render favItems normally
-                final recentItem = favItems[index];
-                bool isLastFavItem = (index ==
-                    favItemsCount - 1); // Check if it's the last favorite item
-                return buildItem(recentItem, box, isLastFavItem);
-              }
-            },
-          );
-        },
+                return ListView.builder(
+                  itemCount: totalItems,
+                  itemBuilder: (context, index) {
+                    if (index == favItemsCount) {
+                      // Return a custom Divider with no bottom border
+                      return Divider(
+                          thickness: 2,
+                          color: favItemsCount > 0
+                              ? AppColors.textColor
+                              : AppColors.primaryColor,
+                          height: 1);
+                    } else if (index > favItemsCount) {
+                      // Adjust index for notFavItems
+                      final recentItem = notFavItems[index - favItemsCount - 1];
+                      return buildItem(recentItem, box, false);
+                    } else {
+                      // Render favItems normally
+                      final recentItem = favItems[index];
+                      bool isLastFavItem = (index ==
+                          favItemsCount -
+                              1); // Check if it's the last favorite item
+                      return buildItem(recentItem, box, isLastFavItem);
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+          const BottomBannerAd(),
+        ],
       ),
     );
   }
 
-  Widget buildItem(RecentItem item, Box<RecentItem> box, bool isLastItem, ) {
+  Widget buildItem(
+    RecentItem item,
+    Box<RecentItem> box,
+    bool isLastItem,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.primaryColor,
@@ -121,10 +139,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           Uri url = Uri.parse(item.url);
           // 쿼리 파라미터 중 'lang' 파라미터 확인
           Map<String, dynamic> newQueryParameters =
-          Map.from(url.queryParameters);
+              Map.from(url.queryParameters);
           newQueryParameters['lang'] = lang; // 'lang' 파라미터 업데이트
-          Uri updatedUrl =
-          url.replace(queryParameters: newQueryParameters);
+          Uri updatedUrl = url.replace(queryParameters: newQueryParameters);
 
           Navigator.pop(context, updatedUrl.toString());
         },

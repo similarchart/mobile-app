@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
+import 'package:web_view/component/bottom_banner_ad.dart';
 
 class DrawingResult extends StatelessWidget {
   final List<dynamic> results;
@@ -109,6 +110,7 @@ class DrawingResult extends StatelessWidget {
               ),
             ),
           ),
+          const BottomBannerAd(),
         ],
       ),
     );

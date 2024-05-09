@@ -10,6 +10,8 @@ import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/drawing_result.dart';
 import 'package:web_view/screen/home_screen_module/drawing_timer.dart';
 import 'package:web_view/services/preferences.dart';
+import 'package:web_view/component/bottom_banner_ad.dart';
+import 'package:web_view/component/interstitial_ad_manager.dart';
 
 import '../services/toast_service.dart';
 
@@ -24,6 +26,7 @@ class DrawingBoard extends StatefulWidget {
 
 class _DrawingBoardState extends State<DrawingBoard>
     with SingleTickerProviderStateMixin {
+  final InterstitialAdManager _adManager = InterstitialAdManager();
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
@@ -65,6 +68,7 @@ class _DrawingBoardState extends State<DrawingBoard>
   @override
   void dispose() {
     _controller.dispose();
+    _adManager.dispose();
     super.dispose();
   }
 
@@ -227,6 +231,7 @@ class _DrawingBoardState extends State<DrawingBoard>
             ),
         ],
       ),
+      bottomNavigationBar: const BottomBannerAd(),
     );
   }
 
@@ -341,6 +346,8 @@ class _DrawingBoardState extends State<DrawingBoard>
     setState(() {
       isLoading = true; // 로딩 시작
     });
+
+    _adManager.showInterstitialAd();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);

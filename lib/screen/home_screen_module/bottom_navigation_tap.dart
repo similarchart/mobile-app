@@ -76,8 +76,9 @@ class BottomNavigationTap {
   void onDrawingSearchTap(BuildContext context, WebViewController controller) {
     double width = MediaQuery.of(context).size.width;
     double appBarHeight = AppBar().preferredSize.height; // AppBar의 기본 높이를 가져옴
+    double adHeight = 60; // 하단 광고 배너 높이
     double height =
-        MediaQuery.of(context).size.width + appBarHeight; // 여기에 AppBar 높이를 추가
+        MediaQuery.of(context).size.width + appBarHeight + adHeight; // 여기에 AppBar 높이를 추가
 
     showDialog(
       context: context,
