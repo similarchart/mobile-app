@@ -102,10 +102,12 @@ class _DrawingBoardState extends State<DrawingBoard>
             value: selectedSize,
             onChanged: isLoading
                 ? null
-                : (String? newValue) {
+                : (String? newValue) async {
                     setState(() {
                       selectedSize = newValue!;
                     });
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('selectedSize', selectedSize);
                     points = originalPoints;
                     makeReadyToSend();
                   },
@@ -127,10 +129,12 @@ class _DrawingBoardState extends State<DrawingBoard>
             value: selectedMarket,
             onChanged: isLoading
                 ? null
-                : (String? newValue) {
+                : (String? newValue) async {
                     setState(() {
                       selectedMarket = newValue!;
                     });
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('selectedSize', selectedMarket);
                   },
             style: TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
