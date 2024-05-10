@@ -41,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.secondaryColor,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           children: [
             Expanded(
@@ -137,25 +137,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildPushNotificationSetting() {
     return Container(
       height: height,
-      child: SwitchListTile(
-        title: const Text(
-          '푸시 알림 허용',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textColor,
+      child: Align(
+        alignment: Alignment.center,
+        child: SwitchListTile(
+          title: const Text(
+            '푸시 알림 허용',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textColor,
+            ),
           ),
+          value: _selectedPushNotification,
+          onChanged: (bool value) {
+            setState(() {
+              _selectedPushNotification = value;
+              PushNotificationPreference.setPushNotificationSetting(value);
+              ToastService().showToastMessage(value ? "푸시 알림 활성화" : "푸시 알림 비활성화");
+            });
+          },
+          activeColor: Colors.green,
+          contentPadding: EdgeInsets.symmetric(horizontal: 0),
         ),
-        value: _selectedPushNotification,
-        onChanged: (bool value) {
-          setState(() {
-            _selectedPushNotification = value;
-            PushNotificationPreference.setPushNotificationSetting(value);
-            ToastService().showToastMessage(value ? "푸시 알림 활성화" : "푸시 알림 비활성화");
-          });
-        },
-        activeColor: Colors.green,
-        contentPadding: EdgeInsets.symmetric(horizontal: 0),
       ),
     );
   }
@@ -163,25 +166,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildBottomBarVisibilitySetting() {
     return Container(
       height: height,
-      child: SwitchListTile(
-        title: const Text(
-          '하단 바 고정',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textColor,
+      child: Align(
+        alignment: Alignment.center,
+        child: SwitchListTile(
+          title: const Text(
+            '하단 바 고정',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textColor,
+            ),
           ),
+          value: _isBottomBarVisible,
+          onChanged: (bool value) {
+            setState(() {
+              _isBottomBarVisible = value;
+              BottomBarPreference.setIsBottomBarFixed(value);
+              ToastService().showToastMessage(value ? "하단 바 고정" : "하단 바 고정 해제");
+            });
+          },
+          activeColor: Colors.green,
+          contentPadding: EdgeInsets.symmetric(horizontal: 0),
         ),
-        value: _isBottomBarVisible,
-        onChanged: (bool value) {
-          setState(() {
-            _isBottomBarVisible = value;
-            BottomBarPreference.setIsBottomBarFixed(value);
-            ToastService().showToastMessage(value ? "하단 바 고정" : "하단 바 고정 해제");
-          });
-        },
-        activeColor: Colors.green,
-        contentPadding: EdgeInsets.symmetric(horizontal: 0),
       ),
     );
   }
