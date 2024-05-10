@@ -13,7 +13,7 @@ void _onBackgroundFetch(String taskId) async {
 
   DateTime now = DateTime.now().toUtc();
   // 특정 시간대(한국시간 오전 8~9(utc로는 23~24)시 사이)에만 서버에 요청을 보냄
-  if (now.hour == 23 && now.minute >= 20 && now.minute <= 35) {
+  if (now.hour == 23 && now.minute >= 20 && now.minute <= 34) {
     // 서버에 요청을 보내는 부분
     // 현재 날짜를 yyyy-MM-dd 형식으로 포맷
     now = now.add(const Duration(days: 1)); // uct는 하루가 늦으니 하루 +
