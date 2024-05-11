@@ -13,10 +13,10 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-    flutterVersionCode = '12'
+    flutterVersionCode = '1'
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
-    flutterVersionName = '12.0'
+    flutterVersionName = '1.0'
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -25,7 +25,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.similarchart.similarchartfinder"
+    namespace "com.similarchart.chartfinder"
     compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.similarchart.similarchartfinder"
+        applicationId "com.similarchart.chartfinder"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion 21

@@ -68,7 +68,8 @@ class WebViewManager {
     }
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent("SimilarChartFinder/1.0/dev")
+      ..setUserAgent("SimilarChartFinder/1.0/dev") // 개발용
+      // ..setUserAgent("SimilarChartFinder/1.0") // 배포용
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {

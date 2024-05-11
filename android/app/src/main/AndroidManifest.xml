@@ -8,7 +8,7 @@
         android:usesCleartextTraffic="true">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-7879029685491158~5960788909" />
+            android:value="ca-app-pub-7879029685491158~6519810652" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -39,7 +39,7 @@
             android:value="2" />
     </application>
     <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package="com.similarchart.similarchartfinder">
+         https://developer.android.com/training/package="com.similarchart.chartfinder">
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
