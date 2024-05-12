@@ -26,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final GlobalKey webViewKey = GlobalKey();
   late String homeUrl;
+  Uri myUrl = Uri.parse(Urls.naverHomeUrl);
   late final InAppWebViewController? webViewController;
   late WebViewManager webViewManager;
   late BottomNavigationTap bottomNavigationTap;
@@ -139,6 +140,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _isLoading = isLoading;
       });
     });
+    
+    pullToRefreshController = PullToRefreshController(
+      settings: PullToRefreshSettings(color: Colors.blue),
+      // 플랫폼별 새로고침
+      onRefresh: () async {
+        if(webViewController != null) {
+          if (Platform.isAndroid) {
+            webViewController!.reload();
+          } else if (Platform.isIOS) {
+            WebUri uri = webViewController!.getUrl() as WebUri;
+            WebViewManager.loadUrl(webViewController!, uri.toString());
+          }
+        }
+      },
+    );
   }
 
   @override
@@ -301,20 +317,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget createWebView() {
 
-    pullToRefreshController = PullToRefreshController(
-      // 플랫폼별 새로고침
-      onRefresh: () async {
-        if(webViewController != null) {
-          if (Platform.isAndroid) {
-            webViewController!.reload();
-          } else if (Platform.isIOS) {
-            WebUri uri = webViewController!.getUrl() as WebUri;
-            WebViewManager.loadUrl(webViewController!, uri.toString());
-          }
-        }
-      },
-    );
-
     return InAppWebView(
       key: webViewKey,
       // 시작 페이지
@@ -340,8 +342,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
-        String uri = url.toString();
-        print("DDDDDDDDDDDDD: $uri");
         if (url.toString().contains("similarchart.com")) {
           await controller.setSettings(settings: InAppWebViewSettings(
             userAgent: "SimilarChartFinder/1.0/dev", // Use for development
@@ -353,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ));
         }
         setState(() {
+          myUrl = url!;
           _isPageLoading = true;
         });
       },
@@ -387,11 +388,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       // 페이지 로딩이 정지 시 메서드 정의
       onLoadStop: (InAppWebViewController controller, url) async {
         pullToRefreshController.endRefreshing();
-
         setState(() {
           _isFirstLoad = false;
           _isLoading = false;
           _isPageLoading = false;
+          myUrl = url!;
         });
         updateFloatingActionButtonVisibility(url.toString());
         webViewManager.addCurrentUrlToHistory(url.toString(), webViewController);
@@ -408,6 +409,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // 로딩이 완료되면 당겨서 새로고침 중단
         if (progress >= 100) {
           pullToRefreshController.endRefreshing();
+          setState(() {});
         }
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },
