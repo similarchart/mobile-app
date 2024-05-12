@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:web_view/services/toast_service.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/services/preferences.dart';
 
 class FloatingActionButtonManager {
-  WebViewController controller;
+  InAppWebViewController webViewcontroller;
   Function(bool) updateLoadingStatus;
 
   FloatingActionButtonManager({
-    required this.controller,
+    required this.webViewcontroller,
     required this.updateLoadingStatus,
   });
 
@@ -29,7 +29,9 @@ class FloatingActionButtonManager {
   }
 
   Future<void> onFloatingActionButtonPressed() async {
-    String currentUrl = await controller.currentUrl() ?? '';
+    WebUri? uri = await webViewcontroller.getUrl();
+    String currentUrl = uri.toString();
+    print("currentUrl = $currentUrl");
     if (currentUrl.startsWith(Urls.naverDomesticUrl) || currentUrl.startsWith(Urls.naverWorldUrl)) {
       await _goStockInfoPage();
     } else {
@@ -41,7 +43,8 @@ class FloatingActionButtonManager {
     updateLoadingStatus(true); // 콜백을 통해 로딩 상태 업데이트
 
     // 현재 웹뷰의 URL을 가져옵니다.
-    String currentUrl = await controller.currentUrl() ?? '';
+    WebUri? uri = await webViewcontroller.getUrl();
+    String currentUrl = uri.toString();
 
     // CodeValue를 추출하기 위한 정규 표현식입니다.
     RegExp regExp = RegExp(r'/stock/([^/]+)/');
@@ -59,7 +62,7 @@ class FloatingActionButtonManager {
           'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
 
       // 구성한 URL로 웹뷰를 이동시킵니다.
-      controller.loadRequest(Uri.parse(finalUrl));
+      webViewcontroller.loadUrl(urlRequest: URLRequest(url: WebUri(finalUrl)));
     }
   }
 }

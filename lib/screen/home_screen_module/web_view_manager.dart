@@ -1,25 +1,24 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:hive/hive.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/services/preferences.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
 import 'package:web_view/model/history_item.dart';
 import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/constants/urls.dart';
 
 class WebViewManager {
-  WebViewController controller;
-  Function(bool) updateFABVisibility;
-  Function(bool) updateLoadingStatus;
-  Function(bool) updatePageLoadingStatus;
-  Function(bool) updateFirstLoad;
+  late FloatingActionButtonManager fabManager;
+  late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
 
-  WebViewManager(this.controller, this.updateFABVisibility,
-      this.updateLoadingStatus, this.updatePageLoadingStatus, this.updateFirstLoad);
+  Future<void> saveCookies(webViewController) async {
+    if (webViewController == null) {
+      return;
+    }
 
-  Future<void> saveCookies() async {
     final Object? result =
-        await controller.runJavaScriptReturningResult("document.cookie");
+        await webViewController!.evaluateJavascript(source: "document.cookie");
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (result != null) {
       // Since the expected result is a string, cast it safely
@@ -29,7 +28,10 @@ class WebViewManager {
     }
   }
 
-  Future<void> loadCookies() async {
+  Future<void> loadCookies(webViewController) async {
+    if (webViewController == null) {
+      return;
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? cookiesString = prefs.getString('cookies');
     if (cookiesString != null) {
@@ -42,58 +44,19 @@ class WebViewManager {
           String name = cookieParts[0];
           String value = cookieParts.sublist(1).join('=');
           // JavaScript to set the cookie back in the WebView
-          await controller.runJavaScript(
-              "document.cookie = '${name}=${value}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT';");
+          await webViewController!.evaluateJavascript(
+              source:
+                  "document.cookie = '${name}=${value}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT';");
         }
       }
     }
   }
 
-  void updateFloatingActionButtonVisibility(String url) {
-    bool isNaverHome = (url == Urls.naverHomeUrl);
-    bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
-    bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
-    updateFABVisibility(startsWithDomestic || startsWithWorld || isNaverHome);
-  }
-
-  Future<void> loadInitialUrl() async {
-    await loadCookies(); // 앱 시작 시 쿠키 로드
-    String lang = await LanguagePreference.getLanguageSetting();
-    String page = await MainPagePreference.getMainPageSetting();
-    Uri homeUrl;
-    if (page == 'chart') {
-      homeUrl = Uri.parse('https://www.similarchart.com?lang=$lang');
-    } else {
-      homeUrl = Uri.parse(Urls.naverHomeUrl);
+  addCurrentUrlToRecent(String url, webViewController) async {
+    if (webViewController == null) {
+      return;
     }
-    controller
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent("SimilarChartFinder/1.0/dev") // 개발용
-      // ..setUserAgent("SimilarChartFinder/1.0") // 배포용
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (NavigationRequest request) {
-            updatePageLoadingStatus(true);
-            return NavigationDecision.navigate;
-          },
-          onPageStarted: (String url) {
 
-          },
-          onPageFinished: (String url) {
-            updateFloatingActionButtonVisibility(url);
-            updateFirstLoad(false);
-            updateLoadingStatus(false);
-            updatePageLoadingStatus(false);
-            addCurrentUrlToHistory(url);
-            addCurrentUrlToRecent(url);
-            saveCookies(); // 페이지 로드 완료 후 쿠키 저장
-          },
-        ),
-      )
-      ..loadRequest(homeUrl);
-  }
-
-  addCurrentUrlToRecent(String url) async {
     final Box<RecentItem> recentBox = Hive.box<RecentItem>('recent');
     Uri uri = Uri.parse(url);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
@@ -104,7 +67,7 @@ class WebViewManager {
     String stockName = '';
     if (uri.queryParameters.containsKey('code')) {
       codeValue = uri.queryParameters['code']!;
-      String? title = await controller.getTitle();
+      String? title = await webViewController.getTitle();
 
       stockName = title!.split(' - 비슷한').first.trimRight();
       stockName = stockName.split(' - Stock').first.trimRight();
@@ -144,9 +107,8 @@ class WebViewManager {
       """;
 
       try {
-        stockName =
-            await controller.runJavaScriptReturningResult(jsCode) as String;
-        stockName = stockName.substring(1, stockName.length - 1);
+        stockName = (await webViewController.evaluateJavascript(source: jsCode))
+            as String;
         print("Text content of the element: $stockName");
       } catch (e) {
         print("JavaScript execution failed: $e");
@@ -168,13 +130,11 @@ class WebViewManager {
       } else {
         return;
       }
-      if(startsWithWorldEtf){
+      if (startsWithWorldEtf) {
         url = Urls.naverWorldEtfUrl + codeValue;
-      }
-      else if(startsWithWorld){
+      } else if (startsWithWorld) {
         url = Urls.naverWorldUrl + codeValue;
-      }
-      else if(startsWithDomestic){
+      } else if (startsWithDomestic) {
         url = Urls.naverDomesticUrl + codeValue;
       }
 
@@ -249,11 +209,15 @@ class WebViewManager {
     }
   }
 
-  addCurrentUrlToHistory(String url) async {
-    String? title = (await controller.runJavaScriptReturningResult(
-            "document.querySelector('meta[property=\"og:title\"]').content;"))
+  addCurrentUrlToHistory(String url, webViewController) async {
+    if (webViewController == null) {
+      return;
+    }
+    
+    String? title = (await webViewController.evaluateJavascript(
+            source:
+                "document.querySelector('meta[property=\"og:title\"]').content;"))
         as String?;
-    title = title?.substring(1, title.length - 1);
 
     final Box<HistoryItem> historyBox = Hive.box<HistoryItem>('history');
     final historyItem =

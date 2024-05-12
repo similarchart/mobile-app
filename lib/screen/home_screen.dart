@@ -1,14 +1,17 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/screen/splash_screen.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dart';
-import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
 import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:web_view/constants/urls.dart';
 import 'dart:async';
 
 import '../main.dart';
@@ -21,33 +24,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
-  final WebViewController controller = WebViewController();
+  final GlobalKey webViewKey = GlobalKey();
+  late String homeUrl;
+  late final InAppWebViewController? webViewController;
   late WebViewManager webViewManager;
-  late FloatingActionButtonManager fabManager;
   late BottomNavigationTap bottomNavigationTap;
-  String subPageLabel = ''; // 하단바 홈 버튼 왼쪽의 서브 페이지 버튼 이름
-  String homePageLabel = ''; // 하단바 홈 버튼 이름
+  late FloatingActionButtonManager fabManager;
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
   bool _isPageLoading = false; // 로딩바 표시 여부
+  String subPageLabel = ''; // 하단바 홈 버튼 왼쪽의 서브 페이지 버튼 이름
+  String homePageLabel = ''; // 하단바 홈 버튼 이름
   bool didScrollDown = true; // 하단 바의 초기 상태
   bool bottomBarFixedPref = true;
   double startY = 0.0; // 드래그 시작 지점의 Y 좌표
   bool isDragging = false; // 드래그 중인지 여부
   bool _isOnHomeScreen = true; // 현재 화면이 HomeScreen인지 여부
 
-  void startTimer() {
-    Timer.periodic(Duration(seconds: 1), (Timer timer) async {
-      // 여기에 반복 실행하고 싶은 함수를 호출합니다.
-      String? currentUrl = await controller.currentUrl(); // URL을 비동기적으로 받아옵니다.
-      if (currentUrl != null && !_isFirstLoad && _isOnHomeScreen && !_isLoading && !_isPageLoading) {
-        webViewManager.addCurrentUrlToRecent(currentUrl);
-        webViewManager.removeDuplicateRecentItem();
-        webViewManager.updateFloatingActionButtonVisibility(currentUrl);
-      }
-    });
-  }
+  InAppWebViewSettings options = InAppWebViewSettings(
+    useShouldOverrideUrlLoading: true, // URL 로딩 제어
+    mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
+    javaScriptEnabled: true, // 자바스크립트 실행 여부
+    javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
+    useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
+    supportMultipleWindows: true, // 멀티 윈도우 허용
+    allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
+    userAgent: "SimilarChartFinder/1.0/dev", // Use for development
+    // userAgent: "SimilarChartFinder/1.0", // Use for production
+  );
+  late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
 
   @override
   void didChangeDependencies() {
@@ -94,35 +100,47 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         homePageLabel = '비슷한차트';
       });
     }
+    String lang = await LanguagePreference.getLanguageSetting();
+    String page = await MainPagePreference.getMainPageSetting();
+    if (page == 'chart') {
+      homeUrl = 'https://www.similarchart.com?lang=$lang';
+    } else {
+      homeUrl = Urls.naverHomeUrl;
+    }
+  }
+
+  void startTimer(webViewController) {
+    if(webViewController == null){
+      return;
+    }
+
+    Timer.periodic(Duration(seconds: 1), (Timer timer) async {
+      // 여기에 반복 실행하고 싶은 함수를 호출합니다.
+      WebUri? uri = await webViewController?.getUrl();
+      String currentUrl = uri.toString();
+      if (
+          ! _isFirstLoad &&
+          _isOnHomeScreen &&
+          !_isLoading &&
+          !_isPageLoading) {
+        webViewManager.addCurrentUrlToRecent(currentUrl, webViewController);
+        webViewManager.removeDuplicateRecentItem();
+        updateFloatingActionButtonVisibility(currentUrl);
+        await webViewManager.saveCookies(webViewController); // 앱 시작 시 쿠키 로드
+      }
+    });
   }
 
   @override
   void initState() {
     super.initState();
     _loadPreferences();
-    setState(() {});
-    webViewManager = WebViewManager(
-        controller,
-        (bool isVisible) =>
-            setState(() => _showFloatingActionButton = isVisible),
-        (bool isLoading) => setState(() => _isLoading = isLoading),
-          (bool isPageLoading) => setState(() => _isPageLoading = isPageLoading),
-        (bool isFirstLoad) => setState(() => _isFirstLoad = isFirstLoad));
-    fabManager = FloatingActionButtonManager(
-      controller: controller,
-      updateLoadingStatus: (bool isLoading) {
-        setState(() {
-          _isLoading = isLoading;
-        });
-      },
-    );
+    webViewManager = WebViewManager();
     bottomNavigationTap = BottomNavigationTap((isLoading) {
       setState(() {
         _isLoading = isLoading;
       });
     });
-    webViewManager.loadInitialUrl();
-    startTimer();
   }
 
   @override
@@ -135,8 +153,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
-        if (await controller.canGoBack()) {
-          controller.goBack();
+        if (webViewController != null && await webViewController!.canGoBack()) {
+          webViewController?.goBack();
           return;
         } else {
           showDialog(
@@ -181,9 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ? Column(
                       children: [
                         Expanded(
-                          child: WebViewWidget(
-                            controller: controller,
-                          ),
+                          child: createWebView(),
                         ),
                         SizedBox(height: 60, child: _buildBottomNavigationBar())
                       ],
@@ -219,9 +235,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             onPointerUp: (PointerUpEvent event) {
                               isDragging = false; // 드래그 종료
                             },
-                            child: WebViewWidget(
-                              controller: controller,
-                            ),
+                            child: createWebView(),
                           ),
                         ),
                         // 하단바를 웹뷰 위에 배치하기
@@ -287,20 +301,142 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  Widget createWebView() {
+
+    pullToRefreshController = PullToRefreshController(
+      // 플랫폼별 새로고침
+      onRefresh: () async {
+        if(webViewController != null) {
+          if (Platform.isAndroid) {
+            webViewController!.reload();
+          } else if (Platform.isIOS) {
+            webViewController!.loadUrl(
+                urlRequest: URLRequest(url: await webViewController!.getUrl()));
+          }
+        }
+      },
+    );
+
+    return InAppWebView(
+      key: webViewKey,
+      // 시작 페이지
+      initialUrlRequest:URLRequest(url: WebUri(homeUrl)),
+      initialSettings: options,
+      // 당겨서 새로고침 컨트롤러 정의
+      pullToRefreshController: pullToRefreshController,
+      // 인앱웹뷰 생성 시 컨트롤러 정의
+      onWebViewCreated: (InAppWebViewController controller) async {
+        print("CCCCCCCCCCCCCCCCCCCCC");
+        webViewController = controller;
+
+        fabManager = FloatingActionButtonManager(
+          webViewcontroller: webViewController!,
+          updateLoadingStatus: (bool isLoading) {
+            setState(() {
+              _isLoading = isLoading;
+            });
+          },
+        );
+        startTimer(webViewController);
+      },
+      // 페이지 로딩 시 수행 메서드 정의
+      onLoadStart: (InAppWebViewController controller, url) async {
+        setState(() {
+          _isPageLoading = true;
+        });
+      },
+
+      // URL 로딩 제어
+      shouldOverrideUrlLoading:
+          (controller, navigationAction) async {
+        var uri = navigationAction.request.url!;
+        // 아래의 키워드가 포함되면 페이지 로딩
+        if (![
+          "http",
+          "https",
+          "file",
+          "chrome",
+          "data",
+          "javascript",
+          "about"
+        ].contains(uri.scheme)) {
+          if (await canLaunchUrl(uri)) {
+            // Launch the App
+            await launchUrl(
+              uri,
+            );
+            // and cancel the request
+            return NavigationActionPolicy.CANCEL;
+          }
+        }
+
+        return NavigationActionPolicy.ALLOW;
+      },
+      // 페이지 로딩이 정지 시 메서드 정의
+      onLoadStop: (InAppWebViewController controller, url) async {
+        pullToRefreshController.endRefreshing();
+
+        setState(() {
+          _isFirstLoad = false;
+          _isLoading = false;
+          _isPageLoading = false;
+        });
+        updateFloatingActionButtonVisibility(url.toString());
+        webViewManager.addCurrentUrlToHistory(url.toString(), webViewController);
+        webViewManager.addCurrentUrlToRecent(url.toString(), webViewController);
+        await webViewManager.saveCookies(webViewController);
+      },
+      // 페이지 로딩 중 오류 발생 시 메서드 정의
+      onReceivedError: (InAppWebViewController controller, request, error) {
+        // 당겨서 새로고침 중단
+        pullToRefreshController.endRefreshing();
+      },
+      // 로딩 상태 변경 시 메서드 정의
+      onProgressChanged: (InAppWebViewController controller, progress) async {
+        // 로딩이 완료되면 당겨서 새로고침 중단
+        if (progress >= 100) {
+          pullToRefreshController.endRefreshing();
+        }
+        // 현재 페이지 로딩 상태 업데이트 (0~100%)
+      },
+    );
+  }
+
+  void updateFloatingActionButtonVisibility(String url) {
+    bool isNaverHome = (url == Urls.naverHomeUrl);
+    bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
+    bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
+    setState(() {
+      _showFloatingActionButton = startsWithDomestic || startsWithWorld || isNaverHome;
+    });
+  }
+
   Widget _buildBottomNavigationBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        BottomNavigationBuilder.buildBottomIcon(Icons.brush, '드로잉검색',
-            () => bottomNavigationTap.onDrawingSearchTap(context, controller)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.trending_up, subPageLabel,
-            () => bottomNavigationTap.onSubPageTap(context, controller)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.brush,
+            '드로잉검색',
+            () => bottomNavigationTap.onDrawingSearchTap(
+                context, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.trending_up,
+            subPageLabel,
+            () =>
+                bottomNavigationTap.onSubPageTap(context, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(Icons.home, homePageLabel,
-            () => bottomNavigationTap.onHomeTap(context, controller)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.history, '최근본종목',
-            () => bottomNavigationTap.onFavoriteTap(context, controller)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.settings, '설정',
-            () => bottomNavigationTap.onSettingsTap(context, controller)),
+            () => bottomNavigationTap.onHomeTap(context, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.history,
+            '최근본종목',
+            () =>
+                bottomNavigationTap.onFavoriteTap(context, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.settings,
+            '설정',
+            () =>
+                bottomNavigationTap.onSettingsTap(context, webViewController!)),
       ],
     );
   }

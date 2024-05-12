@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:math';
 import 'package:web_view/services/preferences.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/screen/settings_screen.dart';
@@ -12,31 +12,38 @@ class BottomNavigationTap {
   final Function(bool) updateLoadingStatus;
   BottomNavigationTap(this.updateLoadingStatus);
 
-  onFavoriteTap(BuildContext context, WebViewController controller) async {
+  onFavoriteTap(BuildContext context, InAppWebViewController webViewController) async {
     String? url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => FavoriteScreen()),
     );
     if (url != null) {
       updateLoadingStatus(true);
-      controller.loadRequest(Uri.parse(url));
+      webViewController.loadUrl(
+          urlRequest:
+              URLRequest(url: WebUri(url, forceToStringRawValue: true)));
     }
   }
 
-  void onHomeTap(BuildContext context, WebViewController controller) async {
+  void onHomeTap(
+      BuildContext context, InAppWebViewController webViewController) async {
     updateLoadingStatus(true);
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       String lang = await LanguagePreference.getLanguageSetting();
-      controller
-          .loadRequest(Uri.parse('https://www.similarchart.com?lang=$lang'));
+      webViewController.loadUrl(
+          urlRequest: URLRequest(
+              url: WebUri('https://www.similarchart.com?lang=$lang',
+                  forceToStringRawValue: true)));
     } else if (page == 'naver') {
-      controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
+      webViewController.loadUrl(
+          urlRequest: URLRequest(
+              url: WebUri(Urls.naverHomeUrl, forceToStringRawValue: true)));
     }
   }
 
   // '설정' 버튼 탭 처리를 위한 별도의 함수
-  onSettingsTap(BuildContext context, WebViewController controller) async {
+  onSettingsTap(BuildContext context, InAppWebViewController webViewController) async {
     // 원래 설정된 언어를 저장
     String originalLang = await LanguagePreference.getLanguageSetting();
 
@@ -54,7 +61,8 @@ class BottomNavigationTap {
 
     Uri currentUri;
     if (url == null) {
-      String? currentUrl = await controller.currentUrl();
+      WebUri? uri = await webViewController.getUrl();
+      String currentUrl = uri.toString();
       currentUri = Uri.parse(currentUrl ?? "");
     } else {
       // 방문기록을 눌렀으면 url문자열 반환
@@ -71,15 +79,18 @@ class BottomNavigationTap {
 
     // 새로운 URI로 웹뷰를 로드합니다.
     updateLoadingStatus(true);
-    controller.loadRequest(newUri);
+    webViewController.loadUrl(
+        urlRequest: URLRequest(
+            url: WebUri(newUri.toString(), forceToStringRawValue: true)));
   }
 
-  void onDrawingSearchTap(BuildContext context, WebViewController controller) {
-    double width = min(MediaQuery.of(context).size.height, MediaQuery.of(context).size.width);
+  void onDrawingSearchTap(
+      BuildContext context, InAppWebViewController webViewController) {
+    double width = min(
+        MediaQuery.of(context).size.height, MediaQuery.of(context).size.width);
     double appBarHeight = AppBar().preferredSize.height; // AppBar의 기본 높이를 가져옴
     double adHeight = 60; // 하단 광고 배너 높이
-    double height =
-        width + appBarHeight + adHeight; // 여기에 AppBar 높이를 추가
+    double height = width + appBarHeight + adHeight; // 여기에 AppBar 높이를 추가
 
     showDialog(
       context: context,
@@ -99,24 +110,31 @@ class BottomNavigationTap {
     ).then((url) {
       if (url != null) {
         updateLoadingStatus(true);
-        controller.loadRequest(Uri.parse(url));
+        webViewController.loadUrl(
+            urlRequest:
+                URLRequest(url: WebUri(url, forceToStringRawValue: true)));
       }
     });
 
-    if (DrawingResultManager.isResultExist()) { // 드로잉 화면 위에 결과 화면 띄우기
+    if (DrawingResultManager.isResultExist()) {
+      // 드로잉 화면 위에 결과 화면 띄우기
       DrawingResultManager.showDrawingResult(context);
     }
   }
 
-  onSubPageTap(BuildContext context, WebViewController controller) async {
+  onSubPageTap(BuildContext context, InAppWebViewController webViewController) async {
     updateLoadingStatus(true);
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
-      controller.loadRequest(Uri.parse(Urls.naverHomeUrl));
+      webViewController.loadUrl(
+          urlRequest: URLRequest(
+              url: WebUri(Urls.naverHomeUrl, forceToStringRawValue: true)));
     } else if (page == 'naver') {
       String lang = await LanguagePreference.getLanguageSetting();
-      controller
-          .loadRequest(Uri.parse('https://www.similarchart.com?lang=$lang'));
+      webViewController.loadUrl(
+          urlRequest: URLRequest(
+              url: WebUri('https://www.similarchart.com?lang=$lang',
+                  forceToStringRawValue: true)));
     }
   }
 }
