@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:math';
+import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';
@@ -19,9 +20,7 @@ class BottomNavigationTap {
     );
     if (url != null) {
       updateLoadingStatus(true);
-      webViewController.loadUrl(
-          urlRequest:
-              URLRequest(url: WebUri(url, forceToStringRawValue: true)));
+      WebViewManager.loadUrl(webViewController, url);
     }
   }
 
@@ -31,14 +30,9 @@ class BottomNavigationTap {
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       String lang = await LanguagePreference.getLanguageSetting();
-      webViewController.loadUrl(
-          urlRequest: URLRequest(
-              url: WebUri('https://www.similarchart.com?lang=$lang',
-                  forceToStringRawValue: true)));
+      WebViewManager.loadUrl(webViewController, 'https://www.similarchart.com?lang=$lang');
     } else if (page == 'naver') {
-      webViewController.loadUrl(
-          urlRequest: URLRequest(
-              url: WebUri(Urls.naverHomeUrl, forceToStringRawValue: true)));
+      WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
     }
   }
 
@@ -79,9 +73,7 @@ class BottomNavigationTap {
 
     // 새로운 URI로 웹뷰를 로드합니다.
     updateLoadingStatus(true);
-    webViewController.loadUrl(
-        urlRequest: URLRequest(
-            url: WebUri(newUri.toString(), forceToStringRawValue: true)));
+    WebViewManager.loadUrl(webViewController, newUri.toString());
   }
 
   void onDrawingSearchTap(
@@ -110,9 +102,7 @@ class BottomNavigationTap {
     ).then((url) {
       if (url != null) {
         updateLoadingStatus(true);
-        webViewController.loadUrl(
-            urlRequest:
-                URLRequest(url: WebUri(url, forceToStringRawValue: true)));
+        WebViewManager.loadUrl(webViewController, url);
       }
     });
 
@@ -126,15 +116,10 @@ class BottomNavigationTap {
     updateLoadingStatus(true);
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
-      webViewController.loadUrl(
-          urlRequest: URLRequest(
-              url: WebUri(Urls.naverHomeUrl, forceToStringRawValue: true)));
+      WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
     } else if (page == 'naver') {
       String lang = await LanguagePreference.getLanguageSetting();
-      webViewController.loadUrl(
-          urlRequest: URLRequest(
-              url: WebUri('https://www.similarchart.com?lang=$lang',
-                  forceToStringRawValue: true)));
+      WebViewManager.loadUrl(webViewController, 'https://www.similarchart.com?lang=$lang');
     }
   }
 }

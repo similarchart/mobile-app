@@ -50,8 +50,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
     supportMultipleWindows: true, // 멀티 윈도우 허용
     allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
-    userAgent: "SimilarChartFinder/1.0/dev", // Use for development
-    // userAgent: "SimilarChartFinder/1.0", // Use for production
   );
   late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
 
@@ -310,8 +308,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           if (Platform.isAndroid) {
             webViewController!.reload();
           } else if (Platform.isIOS) {
-            webViewController!.loadUrl(
-                urlRequest: URLRequest(url: await webViewController!.getUrl()));
+            WebUri uri = webViewController!.getUrl() as WebUri;
+            WebViewManager.loadUrl(webViewController!, uri.toString());
           }
         }
       },
@@ -326,11 +324,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       pullToRefreshController: pullToRefreshController,
       // 인앱웹뷰 생성 시 컨트롤러 정의
       onWebViewCreated: (InAppWebViewController controller) async {
-        print("CCCCCCCCCCCCCCCCCCCCC");
         webViewController = controller;
+        setUserAgent(webViewController!);
 
         fabManager = FloatingActionButtonManager(
-          webViewcontroller: webViewController!,
+          webViewController: webViewController!,
           updateLoadingStatus: (bool isLoading) {
             setState(() {
               _isLoading = isLoading;
@@ -339,8 +337,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         );
         startTimer(webViewController);
       },
+
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
+        String uri = url.toString();
+        print("DDDDDDDDDDDDD: $uri");
+        if (url.toString().contains("similarchart.com")) {
+          await controller.setSettings(settings: InAppWebViewSettings(
+            userAgent: "SimilarChartFinder/1.0/dev", // Use for development
+            // userAgent: "SimilarChartFinder/1.0", // Use for production
+          ));
+        } else {
+          await controller.setSettings(settings: InAppWebViewSettings(
+            userAgent: await UserAgentPreference.getUserAgent(),
+          ));
+        }
         setState(() {
           _isPageLoading = true;
         });
@@ -350,6 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       shouldOverrideUrlLoading:
           (controller, navigationAction) async {
         var uri = navigationAction.request.url!;
+
         // 아래의 키워드가 포함되면 페이지 로딩
         if (![
           "http",
@@ -400,6 +412,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },
     );
+  }
+
+  Future<void> setUserAgent(InAppWebViewController controller) async {
+    String userAgent = await controller.evaluateJavascript(source: "navigator.userAgent;");
+    UserAgentPreference.setUserAgent(userAgent);
   }
 
   void updateFloatingActionButtonVisibility(String url) {

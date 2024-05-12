@@ -213,7 +213,7 @@ class WebViewManager {
     if (webViewController == null) {
       return;
     }
-    
+
     String? title = (await webViewController.evaluateJavascript(
             source:
                 "document.querySelector('meta[property=\"og:title\"]').content;"))
@@ -223,5 +223,24 @@ class WebViewManager {
     final historyItem =
         HistoryItem(url: url, title: title ?? url, dateVisited: DateTime.now());
     await historyBox.add(historyItem);
+  }
+
+  static Future<void> loadUrl(
+      InAppWebViewController webViewController, String url) async {
+    if (url.contains("similarchart.com")) {
+      await webViewController.setSettings(
+          settings: InAppWebViewSettings(
+        userAgent: "SimilarChartFinder/1.0/dev", // 개발용 userAgent
+      ));
+    } else {
+      String defaultUserAgent =
+          await UserAgentPreference.getUserAgent(); // 기본 userAgent 로드
+      await webViewController.setSettings(
+          settings: InAppWebViewSettings(
+        userAgent: defaultUserAgent,
+      ));
+    }
+
+    await webViewController.loadUrl(urlRequest: URLRequest(url: WebUri(url, forceToStringRawValue: true)));
   }
 }

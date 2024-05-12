@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:web_view/services/toast_service.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/services/preferences.dart';
 
 class FloatingActionButtonManager {
-  InAppWebViewController webViewcontroller;
+  InAppWebViewController webViewController;
   Function(bool) updateLoadingStatus;
 
   FloatingActionButtonManager({
-    required this.webViewcontroller,
+    required this.webViewController,
     required this.updateLoadingStatus,
   });
 
@@ -29,7 +30,7 @@ class FloatingActionButtonManager {
   }
 
   Future<void> onFloatingActionButtonPressed() async {
-    WebUri? uri = await webViewcontroller.getUrl();
+    WebUri? uri = await webViewController.getUrl();
     String currentUrl = uri.toString();
     print("currentUrl = $currentUrl");
     if (currentUrl.startsWith(Urls.naverDomesticUrl) || currentUrl.startsWith(Urls.naverWorldUrl)) {
@@ -43,7 +44,7 @@ class FloatingActionButtonManager {
     updateLoadingStatus(true); // 콜백을 통해 로딩 상태 업데이트
 
     // 현재 웹뷰의 URL을 가져옵니다.
-    WebUri? uri = await webViewcontroller.getUrl();
+    WebUri? uri = await webViewController.getUrl();
     String currentUrl = uri.toString();
 
     // CodeValue를 추출하기 위한 정규 표현식입니다.
@@ -62,7 +63,7 @@ class FloatingActionButtonManager {
           'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
 
       // 구성한 URL로 웹뷰를 이동시킵니다.
-      webViewcontroller.loadUrl(urlRequest: URLRequest(url: WebUri(finalUrl)));
+      WebViewManager.loadUrl(webViewController, finalUrl);
     }
   }
 }

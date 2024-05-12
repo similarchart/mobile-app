@@ -41,3 +41,17 @@ class MainPagePreference {
     await prefs.setString(_key, page);
   }
 }
+
+class UserAgentPreference{
+  static const _key = 'UserAgentSetting';
+
+  static Future<String> getUserAgent() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_key) ?? '';
+  }
+
+  static Future<void> setUserAgent(String userAgent) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, userAgent);
+  }
+}
