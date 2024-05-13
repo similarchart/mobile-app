@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
@@ -31,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   late WebViewManager webViewManager;
   late BottomNavigationTap bottomNavigationTap;
   late FloatingActionButtonManager fabManager;
+  late InAppWebViewSettings options;
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
@@ -43,15 +43,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isDragging = false; // 드래그 중인지 여부
   bool _isOnHomeScreen = true; // 현재 화면이 HomeScreen인지 여부
 
-  InAppWebViewSettings options = InAppWebViewSettings(
-    useShouldOverrideUrlLoading: true, // URL 로딩 제어
-    mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
-    javaScriptEnabled: true, // 자바스크립트 실행 여부
-    javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
-    useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
-    supportMultipleWindows: true, // 멀티 윈도우 허용
-    allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
-  );
   late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
 
   @override
@@ -103,8 +94,28 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       homeUrl = 'https://www.similarchart.com?lang=$lang';
+      options = InAppWebViewSettings(
+        useShouldOverrideUrlLoading: true, // URL 로딩 제어
+        mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
+        javaScriptEnabled: true, // 자바스크립트 실행 여부
+        javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
+        useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
+        supportMultipleWindows: true, // 멀티 윈도우 허용
+        allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
+        userAgent: "SimilarChartFinder/1.0/dev", // Use for development
+        // userAgent: "SimilarChartFinder/1.0", // Use for production
+      );
     } else {
       homeUrl = Urls.naverHomeUrl;
+      options = InAppWebViewSettings(
+        useShouldOverrideUrlLoading: true, // URL 로딩 제어
+        mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
+        javaScriptEnabled: true, // 자바스크립트 실행 여부
+        javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
+        useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
+        supportMultipleWindows: true, // 멀티 윈도우 허용
+        allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
+      );
     }
   }
 
@@ -140,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         _isLoading = isLoading;
       });
     });
-    
+
     pullToRefreshController = PullToRefreshController(
       settings: PullToRefreshSettings(color: Colors.blue),
       // 플랫폼별 새로고침
@@ -316,7 +327,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget createWebView() {
-
     return InAppWebView(
       key: webViewKey,
       // 시작 페이지
@@ -409,7 +419,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // 로딩이 완료되면 당겨서 새로고침 중단
         if (progress >= 100) {
           pullToRefreshController.endRefreshing();
-          setState(() {});
+          setState(() {
+            _isFirstLoad = false;
+            _isLoading = false;
+            _isPageLoading = false;
+          });
         }
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },

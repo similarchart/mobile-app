@@ -51,6 +51,9 @@ class UserAgentPreference{
   }
 
   static Future<void> setUserAgent(String userAgent) async {
+    if(userAgent.startsWith('SimilarChartFinder')){
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, userAgent);
   }
