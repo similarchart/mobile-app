@@ -227,20 +227,9 @@ class WebViewManager {
 
   static Future<void> loadUrl(
       InAppWebViewController webViewController, String url) async {
-    if (url.contains("similarchart.com")) {
-      await webViewController.setSettings(
-          settings: InAppWebViewSettings(
-        userAgent: "SimilarChartFinder/1.0/dev", // 개발용 userAgent
-      ));
-    } else {
-      String defaultUserAgent =
-          await UserAgentPreference.getUserAgent(); // 기본 userAgent 로드
-      await webViewController.setSettings(
-          settings: InAppWebViewSettings(
-        userAgent: defaultUserAgent,
-      ));
-    }
-
-    await webViewController.loadUrl(urlRequest: URLRequest(url: WebUri(url, forceToStringRawValue: true)));
+    await webViewController.loadUrl(
+        urlRequest: URLRequest(
+            url: WebUri(url, forceToStringRawValue: true),
+            headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}));
   }
 }

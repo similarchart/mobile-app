@@ -102,8 +102,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
         supportMultipleWindows: true, // 멀티 윈도우 허용
         allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
-        userAgent: "SimilarChartFinder/1.0/dev", // Use for development
-        // userAgent: "SimilarChartFinder/1.0", // Use for production
       );
     } else {
       homeUrl = Urls.naverHomeUrl;
@@ -330,7 +328,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return InAppWebView(
       key: webViewKey,
       // 시작 페이지
-      initialUrlRequest:URLRequest(url: WebUri(homeUrl)),
+      initialUrlRequest:URLRequest(url: WebUri(homeUrl),
+          headers: {
+              "SimilarChart-App": "SimilarChartFinder/1.0/dev",
+          }),
       initialSettings: options,
       // 당겨서 새로고침 컨트롤러 정의
       pullToRefreshController: pullToRefreshController,
@@ -350,18 +351,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         startTimer(webViewController);
       },
 
+      onCreateWindow: (controller, createWindowRequest) async {
+        // 새 창 요청을 현재 웹뷰 컨트롤러를 사용하여 로드합니다.
+        controller.loadUrl(urlRequest: createWindowRequest.request);
+        return false;  // 새 창을 만들지 않고, 현재 창에서 처리했음을 나타냅니다.
+      },
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
-        if (url.toString().contains("similarchart.com")) {
-          await controller.setSettings(settings: InAppWebViewSettings(
-            userAgent: "SimilarChartFinder/1.0/dev", // Use for development
-            // userAgent: "SimilarChartFinder/1.0", // Use for production
-          ));
-        } else {
-          await controller.setSettings(settings: InAppWebViewSettings(
-            userAgent: await UserAgentPreference.getUserAgent(),
-          ));
-        }
         setState(() {
           myUrl = url!;
           _isPageLoading = true;
@@ -369,31 +365,27 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       },
 
       // URL 로딩 제어
-      shouldOverrideUrlLoading:
-          (controller, navigationAction) async {
-        var uri = navigationAction.request.url!;
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        Uri url = navigationAction.request.url!;
 
-        // 아래의 키워드가 포함되면 페이지 로딩
-        if (![
-          "http",
-          "https",
-          "file",
-          "chrome",
-          "data",
-          "javascript",
-          "about"
-        ].contains(uri.scheme)) {
-          if (await canLaunchUrl(uri)) {
-            // Launch the App
-            await launchUrl(
-              uri,
-            );
-            // and cancel the request
-            return NavigationActionPolicy.CANCEL;
+        // 외부 앱 실행 필요한 URL 스키마 처리
+        if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(url.scheme)) {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url);
+            return NavigationActionPolicy.CANCEL;  // 외부 앱 실행 후 원래 요청 취소
           }
         }
 
-        return NavigationActionPolicy.ALLOW;
+        // 모든 웹 페이지 로드 요청에 "X-Requested-With" 헤더 추가
+        if (url.scheme == "http" || url.scheme == "https") {
+          await controller.loadUrl(urlRequest: URLRequest(
+              url: WebUri(url.toString()),
+              headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}
+          ));
+          return NavigationActionPolicy.CANCEL; // 기존 요청 취소하고 새 요청 실행
+        }
+
+        return NavigationActionPolicy.ALLOW; // 요청 허용
       },
       // 페이지 로딩이 정지 시 메서드 정의
       onLoadStop: (InAppWebViewController controller, url) async {
