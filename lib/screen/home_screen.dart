@@ -338,7 +338,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       // 인앱웹뷰 생성 시 컨트롤러 정의
       onWebViewCreated: (InAppWebViewController controller) async {
         webViewController = controller;
-        setUserAgent(webViewController!);
 
         fabManager = FloatingActionButtonManager(
           webViewController: webViewController!,
@@ -420,11 +419,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },
     );
-  }
-
-  Future<void> setUserAgent(InAppWebViewController controller) async {
-    String userAgent = await controller.evaluateJavascript(source: "navigator.userAgent;");
-    UserAgentPreference.setUserAgent(userAgent);
   }
 
   void updateFloatingActionButtonVisibility(String url) {
