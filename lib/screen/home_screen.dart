@@ -23,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
-  static const double bottomNavigationBarHeight = 50;
+  static const double bottomNavigationBarHeight = 55;
   final GlobalKey webViewKey = GlobalKey();
   late String homeUrl;
   Uri myUrl = Uri.parse(Urls.naverHomeUrl);
