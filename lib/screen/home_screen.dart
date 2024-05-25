@@ -23,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
+  static const double bottomNavigationBarHeight = 50;
   final GlobalKey webViewKey = GlobalKey();
   late String homeUrl;
   Uri myUrl = Uri.parse(Urls.naverHomeUrl);
@@ -168,8 +169,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    // BottomNavigationBar의 높이를 정의합니다. 실제 높이에 따라 조정할 수 있습니다.
-    const double bottomNavigationBarHeight = 60;
     // FloatingActionButton의 반지름입니다. 실제 크기에 따라 조정할 수 있습니다.
     const double fabRadius = 18;
 
@@ -224,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         Expanded(
                           child: createWebView(),
                         ),
-                        SizedBox(height: 60, child: _buildBottomNavigationBar())
+                        SizedBox(height: bottomNavigationBarHeight, child: _buildBottomNavigationBar())
                       ],
                     )
                   : Stack(
@@ -268,9 +267,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           right: 0,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 500),
-                            height: 60,
+                            height: bottomNavigationBarHeight,
                             transform: Matrix4.translationValues(
-                                0.0, didScrollDown ? 0.0 : 60, 0.0),
+                                0.0, didScrollDown ? 0.0 : bottomNavigationBarHeight, 0.0),
                             child: _buildBottomNavigationBar(),
                           ),
                         ),

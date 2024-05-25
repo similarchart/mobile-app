@@ -178,7 +178,7 @@ class _DrawingBoardState extends State<DrawingBoard>
                     !isLoading &&
                     !DrawingTimer().isCooldownActive)
                 ? () {
-                    DrawingTimer().startTimer(60, onComplete: () {
+                    DrawingTimer().startTimer(10, onComplete: () {
                       setState(() {});  // 타이머 완료시 UI 업데이트
                     });
                     sendDrawing(widget.screenHeight);

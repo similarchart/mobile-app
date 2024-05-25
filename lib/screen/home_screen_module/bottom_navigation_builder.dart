@@ -20,10 +20,10 @@ class BottomNavigationBuilder {
                 Icon(
                   icon,
                   color: Colors.white,
-                  size: 25,
+                  size: 23,
                 ),
                 Text(label,
-                    style: const TextStyle(fontSize: 12, color: Colors.white)),
+                    style: const TextStyle(fontSize: 11, color: Colors.white)),
               ],
             ),
           ),
