@@ -158,6 +158,7 @@ class _DrawingBoardState extends State<DrawingBoard>
                 ? null
                 : () => setState(() {
                       points.clear();
+                      originalPoints.clear();
                       drawingEnabled = true;
                     }),
           ),
