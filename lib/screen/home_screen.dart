@@ -31,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   late WebViewManager webViewManager;
   late BottomNavigationTap bottomNavigationTap;
   late FloatingActionButtonManager fabManager;
-  late InAppWebViewSettings options;
   bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
   bool _showFloatingActionButton = false; // FAB 표시 여부
   bool _isLoading = false; // 로딩바 표시 여부
@@ -94,32 +93,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     String lang = await LanguagePreference.getLanguageSetting();
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
-      homeUrl = 'https://www.similarchart.com?lang=$lang';
-      options = InAppWebViewSettings(
-        useShouldOverrideUrlLoading: true, // URL 로딩 제어
-        mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
-        javaScriptEnabled: true, // 자바스크립트 실행 여부
-        javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
-        useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
-        supportMultipleWindows: true, // 멀티 윈도우 허용
-        allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
-      );
+      homeUrl = 'https://www.similarchart.com?lang=$lang&app=1';
     } else {
       homeUrl = Urls.naverHomeUrl;
-      options = InAppWebViewSettings(
-        useShouldOverrideUrlLoading: true, // URL 로딩 제어
-        mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
-        javaScriptEnabled: true, // 자바스크립트 실행 여부
-        javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
-        useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
-        supportMultipleWindows: true, // 멀티 윈도우 허용
-        allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
-      );
     }
   }
 
   void startTimer(webViewController) {
-    if(webViewController == null){
+    if (webViewController == null) {
       return;
     }
 
@@ -127,11 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       // 여기에 반복 실행하고 싶은 함수를 호출합니다.
       WebUri? uri = await webViewController?.getUrl();
       String currentUrl = uri.toString();
-      if (
-          ! _isFirstLoad &&
-          _isOnHomeScreen &&
-          !_isLoading &&
-          !_isPageLoading) {
+      if (!_isFirstLoad && _isOnHomeScreen && !_isLoading && !_isPageLoading) {
         webViewManager.addCurrentUrlToRecent(currentUrl, webViewController);
         webViewManager.removeDuplicateRecentItem();
         updateFloatingActionButtonVisibility(currentUrl);
@@ -155,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       settings: PullToRefreshSettings(color: Colors.blue),
       // 플랫폼별 새로고침
       onRefresh: () async {
-        if(webViewController != null) {
+        if (webViewController != null) {
           if (Platform.isAndroid) {
             webViewController!.reload();
           } else if (Platform.isIOS) {
@@ -223,7 +200,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         Expanded(
                           child: createWebView(),
                         ),
-                        SizedBox(height: bottomNavigationBarHeight, child: _buildBottomNavigationBar())
+                        SizedBox(
+                            height: bottomNavigationBarHeight,
+                            child: _buildBottomNavigationBar())
                       ],
                     )
                   : Stack(
@@ -269,7 +248,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             duration: const Duration(milliseconds: 500),
                             height: bottomNavigationBarHeight,
                             transform: Matrix4.translationValues(
-                                0.0, didScrollDown ? 0.0 : bottomNavigationBarHeight, 0.0),
+                                0.0,
+                                didScrollDown ? 0.0 : bottomNavigationBarHeight,
+                                0.0),
                             child: _buildBottomNavigationBar(),
                           ),
                         ),
@@ -327,11 +308,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return InAppWebView(
       key: webViewKey,
       // 시작 페이지
-      initialUrlRequest:URLRequest(url: WebUri(homeUrl),
-          headers: {
-              "SimilarChart-App": "SimilarChartFinder/1.0/dev",
-          }),
-      initialSettings: options,
+      initialUrlRequest: URLRequest(url: WebUri(homeUrl), headers: {
+        "SimilarChart-App": "SimilarChartFinder/1.0/dev",
+      }),
+      initialSettings: InAppWebViewSettings(
+        useShouldOverrideUrlLoading: true, // URL 로딩 제어
+        mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
+        javaScriptEnabled: true, // 자바스크립트 실행 여부
+        javaScriptCanOpenWindowsAutomatically: true, // 팝업 여부
+        useHybridComposition: true, // 하이브리드 사용을 위한 안드로이드 웹뷰 최적화
+        supportMultipleWindows: true, // 멀티 윈도우 허용
+        allowsInlineMediaPlayback: true, // 웹뷰 내 미디어 재생 허용
+      ),
+
       // 당겨서 새로고침 컨트롤러 정의
       pullToRefreshController: pullToRefreshController,
       // 인앱웹뷰 생성 시 컨트롤러 정의
@@ -352,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       onCreateWindow: (controller, createWindowRequest) async {
         // 새 창 요청을 현재 웹뷰 컨트롤러를 사용하여 로드합니다.
         controller.loadUrl(urlRequest: createWindowRequest.request);
-        return false;  // 새 창을 만들지 않고, 현재 창에서 처리했음을 나타냅니다.
+        return false; // 새 창을 만들지 않고, 현재 창에서 처리했음을 나타냅니다.
       },
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
@@ -367,23 +356,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         Uri url = navigationAction.request.url!;
 
         // 외부 앱 실행 필요한 URL 스키마 처리
-        if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(url.scheme)) {
+        if (!["http", "https", "file", "chrome", "data", "javascript", "about"]
+            .contains(url.scheme)) {
           if (await canLaunchUrl(url)) {
             await launchUrl(url);
-            return NavigationActionPolicy.CANCEL;  // 외부 앱 실행 후 원래 요청 취소
+            return NavigationActionPolicy.CANCEL; // 외부 앱 실행 후 원래 요청 취소
           }
         }
 
-        // 모든 웹 페이지 로드 요청에 "X-Requested-With" 헤더 추가
-        if (url.scheme == "http" || url.scheme == "https") {
-          await controller.loadUrl(urlRequest: URLRequest(
-              url: WebUri(url.toString()),
-              headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}
-          ));
-          return NavigationActionPolicy.CANCEL; // 기존 요청 취소하고 새 요청 실행
+        if (url.toString().contains("similarchart.com")) {
+          url = url.replace(queryParameters: {
+            ...url.queryParameters,
+            'app': '1' // 앱에서 온 요청이라는 것을 알리기
+          });
         }
-
-        return NavigationActionPolicy.ALLOW; // 요청 허용
+        await controller.loadUrl(
+            urlRequest: URLRequest(
+                url: WebUri(url.toString()),
+                headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}));
+        return NavigationActionPolicy.CANCEL; // 기존 요청 취소하고 새 요청 실행
       },
       // 페이지 로딩이 정지 시 메서드 정의
       onLoadStop: (InAppWebViewController controller, url) async {
@@ -395,7 +386,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           myUrl = url!;
         });
         updateFloatingActionButtonVisibility(url.toString());
-        webViewManager.addCurrentUrlToHistory(url.toString(), webViewController);
+        webViewManager.addCurrentUrlToHistory(
+            url.toString(), webViewController);
         webViewManager.addCurrentUrlToRecent(url.toString(), webViewController);
         await webViewManager.saveCookies(webViewController);
       },
@@ -425,7 +417,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
     setState(() {
-      _showFloatingActionButton = startsWithDomestic || startsWithWorld || isNaverHome;
+      _showFloatingActionButton =
+          startsWithDomestic || startsWithWorld || isNaverHome;
     });
   }
 
