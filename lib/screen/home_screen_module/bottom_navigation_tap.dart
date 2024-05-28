@@ -119,7 +119,7 @@ class BottomNavigationTap {
       WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
     } else if (page == 'naver') {
       String lang = await LanguagePreference.getLanguageSetting();
-      WebViewManager.loadUrl(webViewController, 'https://www.similarchart.com?lang=$lang');
+      WebViewManager.loadUrl(webViewController, 'https://www.similarchart.com?lang=$lang&app=1');
     }
   }
 }

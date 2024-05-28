@@ -230,6 +230,6 @@ class WebViewManager {
     await webViewController.loadUrl(
         urlRequest: URLRequest(
             url: WebUri(url, forceToStringRawValue: true),
-            headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}));
+            headers: {"SimilarChart-App": Urls.appHeader}));
   }
 }

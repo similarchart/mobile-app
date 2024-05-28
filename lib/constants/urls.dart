@@ -7,5 +7,5 @@ class Urls {
       'https://m.stock.naver.com/worldstock/stock/';
   static const String naverWorldEtfUrl =
       'https://m.stock.naver.com/worldstock/etf/';
-// 기타 필요한 색상 추가
+  static const String appHeader = "SimilarChartFinder/1.0/dev";
 }

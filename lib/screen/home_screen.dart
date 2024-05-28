@@ -309,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       key: webViewKey,
       // 시작 페이지
       initialUrlRequest: URLRequest(url: WebUri(homeUrl), headers: {
-        "SimilarChart-App": "SimilarChartFinder/1.0/dev",
+        "SimilarChart-App": Urls.appHeader,
       }),
       initialSettings: InAppWebViewSettings(
         useShouldOverrideUrlLoading: true, // URL 로딩 제어
@@ -364,16 +364,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           }
         }
 
-        if (url.toString().contains("similarchart.com")) {
-          url = url.replace(queryParameters: {
-            ...url.queryParameters,
-            'app': '1' // 앱에서 온 요청이라는 것을 알리기
-          });
-        }
         await controller.loadUrl(
             urlRequest: URLRequest(
                 url: WebUri(url.toString()),
-                headers: {"SimilarChart-App": "SimilarChartFinder/1.0/dev"}));
+                headers: {"SimilarChart-App": Urls.appHeader}));
         return NavigationActionPolicy.CANCEL; // 기존 요청 취소하고 새 요청 실행
       },
       // 페이지 로딩이 정지 시 메서드 정의
