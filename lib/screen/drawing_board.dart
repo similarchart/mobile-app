@@ -26,7 +26,6 @@ class DrawingBoard extends StatefulWidget {
 
 class _DrawingBoardState extends State<DrawingBoard>
     with SingleTickerProviderStateMixin {
-  // final InterstitialAdManager _adManager = InterstitialAdManager();
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
@@ -74,8 +73,7 @@ class _DrawingBoardState extends State<DrawingBoard>
   @override
   void dispose() {
     _controller.dispose();
-    // _adManager.dispose();
-    // 페이지를 벗어날 때 화면 방향 제한을 해제 (다른 페이지에서는 원하는 방향으로 설정 가능)
+    // 페이지를 벗어날 때 화면 방향 제한을 해제
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -103,14 +101,14 @@ class _DrawingBoardState extends State<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-                    setState(() {
-                      selectedSize = newValue!;
-                    });
-                    SharedPreferences prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('selectedSize', selectedSize);
-                    points = originalPoints;
-                    makeReadyToSend();
-                  },
+              setState(() {
+                selectedSize = newValue!;
+              });
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.setString('selectedSize', selectedSize);
+              points = originalPoints;
+              makeReadyToSend();
+            },
             style: TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: sizes.map<DropdownMenuItem<String>>((String value) {
@@ -130,12 +128,12 @@ class _DrawingBoardState extends State<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-                    setState(() {
-                      selectedMarket = newValue!;
-                    });
-                    SharedPreferences prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('selectedSize', selectedMarket);
-                  },
+              setState(() {
+                selectedMarket = newValue!;
+              });
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.setString('selectedMarket', selectedMarket);
+            },
             style: TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: countries.map<DropdownMenuItem<String>>((String value) {
@@ -157,51 +155,53 @@ class _DrawingBoardState extends State<DrawingBoard>
             onPressed: isLoading
                 ? null
                 : () => setState(() {
-                      points.clear();
-                      originalPoints.clear();
-                      drawingEnabled = true;
-                    }),
+              points.clear();
+              originalPoints.clear();
+              drawingEnabled = true;
+            }),
           ),
-          IconButton(
-            icon: Icon(
-              Icons.send,
-              color: (selectedSize != "비교일" &&
+          ValueListenableBuilder(
+            valueListenable: DrawingTimer().isCooldownCompleted,
+            builder: (context, bool isCooldownCompleted, child) {
+              return IconButton(
+                icon: Icon(
+                  Icons.send,
+                  color: (selectedSize != "비교일" &&
                       selectedMarket != "시장" &&
                       !drawingEnabled &&
                       !isLoading &&
                       !DrawingTimer().isCooldownActive)
-                  ? AppColors.textColor
-                  : AppColors.secondaryColor,
-            ),
-            onPressed: (selectedSize != "비교일" &&
+                      ? AppColors.textColor
+                      : AppColors.secondaryColor,
+                ),
+                onPressed: (selectedSize != "비교일" &&
                     selectedMarket != "시장" &&
                     !drawingEnabled &&
                     !isLoading &&
                     !DrawingTimer().isCooldownActive)
-                ? () {
-                    DrawingTimer().startTimer(10, onComplete: () {
-                      setState(() {});  // 타이머 완료시 UI 업데이트
-                    });
-                    sendDrawing(widget.screenHeight);
+                    ? () {
+                  DrawingTimer().startTimer(10);
+                  sendDrawing(widget.screenHeight);
+                }
+                    : () {
+                  if (selectedSize == "비교일") {
+                    ToastService().showToastMessage("비교 일수를 선택해 주세요.");
+                  } else if (selectedMarket == "시장") {
+                    ToastService().showToastMessage("시장을 선택해 주세요.");
+                  } else if (drawingEnabled) {
+                    ToastService()
+                        .showToastMessage("검색을 위해 그림을 그려주세요.");
+                  } else if (isLoading) {
+                    ToastService().showToastMessage("잠시만 기다려주세요.");
+                  } else if (DrawingTimer().isCooldownActive) {
+                    int remain = DrawingTimer().remainingTimeInSeconds;
+                    ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
+                  } else {
+                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                   }
-                : () {
-                    // 조건에 따른 메시지 분기
-                    if (selectedSize == "비교일") {
-                      ToastService().showToastMessage("비교 일수를 선택해 주세요.");
-                    } else if (selectedMarket == "시장") {
-                      ToastService().showToastMessage("시장을 선택해 주세요.");
-                    } else if (drawingEnabled) {
-                      ToastService()
-                          .showToastMessage("검색을 위해 그림을 그려주세요.");
-                    } else if (isLoading) {
-                      ToastService().showToastMessage("잠시만 기다려주세요.");
-                    } else if (DrawingTimer().isCooldownActive) {
-                      int remain = DrawingTimer().remainingTimeInSeconds;
-                      ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
-                    } else {
-                      ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-                    }
-                  },
+                },
+              );
+            },
           ),
         ],
       ),
@@ -347,9 +347,9 @@ class _DrawingBoardState extends State<DrawingBoard>
     for (int i = 1; i < numPoints - 1; i++) {
       double newX = minX + i * interval;
       Offset p1 =
-          points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
       Offset p2 =
-          points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
 
       double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
       double newY = p1.dy + slope * (newX - p1.dx);
@@ -377,7 +377,7 @@ class _DrawingBoardState extends State<DrawingBoard>
     String encodedDrawing = base64Encode(pngBytes);
 
     List<double> numbers =
-        points.map((point) => 1 - point.dy / screenHeight).toList();
+    points.map((point) => 1 - point.dy / screenHeight).toList();
     int dayNum = int.tryParse(selectedSize) ?? 0;
 
     String url = 'https://similarchart.com/api/drawing_search';
@@ -415,7 +415,6 @@ class _DrawingBoardState extends State<DrawingBoard>
           drawingEnabled = true;
           isLoading = false;
         });
-        // _adManager.showInterstitialAd(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
@@ -429,6 +428,7 @@ class _DrawingBoardState extends State<DrawingBoard>
     }
   }
 }
+
 
 class DrawingPainter extends CustomPainter {
   final List<Offset> points;
