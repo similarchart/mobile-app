@@ -26,7 +26,7 @@ class DrawingBoard extends StatefulWidget {
 
 class _DrawingBoardState extends State<DrawingBoard>
     with SingleTickerProviderStateMixin {
-  final InterstitialAdManager _adManager = InterstitialAdManager();
+  // final InterstitialAdManager _adManager = InterstitialAdManager();
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
@@ -74,7 +74,7 @@ class _DrawingBoardState extends State<DrawingBoard>
   @override
   void dispose() {
     _controller.dispose();
-    _adManager.dispose();
+    // _adManager.dispose();
     // 페이지를 벗어날 때 화면 방향 제한을 해제 (다른 페이지에서는 원하는 방향으로 설정 가능)
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -415,7 +415,7 @@ class _DrawingBoardState extends State<DrawingBoard>
           drawingEnabled = true;
           isLoading = false;
         });
-        _adManager.showInterstitialAd(context);
+        // _adManager.showInterstitialAd(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');

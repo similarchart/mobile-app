@@ -8,4 +8,5 @@ class Urls {
   static const String naverWorldEtfUrl =
       'https://m.stock.naver.com/worldstock/etf/';
   static const String appHeader = "SimilarChartFinder/1.0/dev";
+  // static const String appHeader = "SimilarChartFinder/1.0";
 }
