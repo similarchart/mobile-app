@@ -5,6 +5,8 @@ import 'package:web_view/screen/home_screen.dart';
 import 'model/history_item.dart';
 import 'package:web_view/services/background_tasks.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
 
 // RouteObserver 객체 생성
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -21,6 +23,8 @@ void main() async {
   Hive.registerAdapter(RecentItemAdapter());
   await Hive.openBox<HistoryItem>('history');
   await Hive.openBox<RecentItem>('recent');
+
+  await dotenv.load(fileName: ".env");
 
   // 앱 실행
   runApp(MaterialApp(

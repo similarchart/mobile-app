@@ -12,6 +12,7 @@ import 'package:web_view/screen/home_screen_module/drawing_timer.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 import 'package:web_view/component/interstitial_ad_manager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../services/toast_service.dart';
 
@@ -26,6 +27,7 @@ class DrawingBoard extends StatefulWidget {
 
 class _DrawingBoardState extends State<DrawingBoard>
     with SingleTickerProviderStateMixin {
+  final InterstitialAdManager _adManager = InterstitialAdManager();
   bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
@@ -73,6 +75,8 @@ class _DrawingBoardState extends State<DrawingBoard>
   @override
   void dispose() {
     _controller.dispose();
+    _adManager.dispose();
+
     // 페이지를 벗어날 때 화면 방향 제한을 해제
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -380,7 +384,7 @@ class _DrawingBoardState extends State<DrawingBoard>
     points.map((point) => 1 - point.dy / screenHeight).toList();
     int dayNum = int.tryParse(selectedSize) ?? 0;
 
-    String url = 'https://similarchart.com/api/drawing_search';
+    String url = dotenv.env["DRAWING_SEARCH_API_URL"] ?? "";
     String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
     String lang = await LanguagePreference.getLanguageSetting();
 
@@ -415,6 +419,7 @@ class _DrawingBoardState extends State<DrawingBoard>
           drawingEnabled = true;
           isLoading = false;
         });
+        _adManager.showInterstitialAd(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
