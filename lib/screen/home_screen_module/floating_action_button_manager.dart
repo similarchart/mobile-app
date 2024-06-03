@@ -1,47 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:web_view/services/toast_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/services/preferences.dart';
+import 'package:web_view/providers/home_screen_state_providers.dart';
 
 class FloatingActionButtonManager {
   InAppWebViewController webViewController;
-  Function(bool) updateLoadingStatus;
 
   FloatingActionButtonManager({
     required this.webViewController,
-    required this.updateLoadingStatus,
   });
 
-  Widget buildFloatingActionButton(bool showFloatingActionButton) {
+  Widget buildFloatingActionButton(
+      bool showFloatingActionButton, WidgetRef ref) {
     return Positioned(
       right: 16,
-      bottom: 60 + 18,  // 예시로 BottomNavigationBar의 높이와 FAB 반지름을 사용
-      child: showFloatingActionButton ? FloatingActionButton(
-        onPressed: () async {
-          await onFloatingActionButtonPressed();
-        },
-        child: Image.asset('assets/logo_2.png'),  // 로컬 에셋 이미지 사용
-        backgroundColor: Colors.transparent,      // 배경색 투명하게 설정
-        elevation: 0,                             // 그림자 제거
-      ) : Container(),
+      bottom: 60 + 18, // 예시로 BottomNavigationBar의 높이와 FAB 반지름을 사용
+      child: showFloatingActionButton
+          ? FloatingActionButton(
+              onPressed: () async {
+                await onFloatingActionButtonPressed(ref);
+              },
+              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지 사용
+              backgroundColor: Colors.transparent, // 배경색 투명하게 설정
+              elevation: 0, // 그림자 제거
+            )
+          : Container(),
     );
   }
 
-  Future<void> onFloatingActionButtonPressed() async {
+  Future<void> onFloatingActionButtonPressed(WidgetRef ref) async {
     WebUri? uri = await webViewController.getUrl();
     String currentUrl = uri.toString();
     print("currentUrl = $currentUrl");
-    if (currentUrl.startsWith(Urls.naverDomesticUrl) || currentUrl.startsWith(Urls.naverWorldUrl)) {
-      await _goStockInfoPage();
+    if (currentUrl.startsWith(Urls.naverDomesticUrl) ||
+        currentUrl.startsWith(Urls.naverWorldUrl)) {
+      await _goStockInfoPage(ref);
     } else {
       ToastService().showToastMessage("특정 종목 정보 페이지에서 터치해 보세요!");
     }
   }
 
-  Future<void> _goStockInfoPage() async {
-    updateLoadingStatus(true); // 콜백을 통해 로딩 상태 업데이트
+  Future<void> _goStockInfoPage(WidgetRef ref) async {
+    ref.read(isLoadingProvider.notifier).state = true;
 
     // 현재 웹뷰의 URL을 가져옵니다.
     WebUri? uri = await webViewController.getUrl();

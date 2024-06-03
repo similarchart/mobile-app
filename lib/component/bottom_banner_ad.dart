@@ -21,11 +21,10 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final screenWidth = MediaQuery.of(context).size.width;
-
     final adUnitId = Platform.isIOS
         ? 'ca-app-pub-3940256099942544/2934735716'
-    : 'ca-app-pub-3940256099942544/6300978111'; // 테스트용
-        // : dotenv.env['ADMOB_BOTTOM_BANNER'] ?? 'ca-app-pub-3940256099942544/6300978111'; // 배포용
+        : 'ca-app-pub-3940256099942544/6300978111'; // 테스트용
+    // : dotenv.env['ADMOB_BOTTOM_BANNER'] ?? 'ca-app-pub-3940256099942544/6300978111'; // 배포용
 
     banner = BannerAd(
       size: AdSize.getInlineAdaptiveBannerAdSize(screenWidth.toInt(), adHeight),
@@ -58,7 +57,9 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
     return Container(
       height: 60,
       color: AppColors.primaryColor, // 광고가 로드되지 않았을 때 보여줄 기본 색상
-      child: isAdLoaded ? AdWidget(ad: banner!) : SizedBox(), // 광고 로드되면 AdWidget을, 아니면 빈 상자
+      child: isAdLoaded
+          ? AdWidget(ad: banner!)
+          : SizedBox(), // 광고 로드되면 AdWidget을, 아니면 빈 상자
     );
   }
 }

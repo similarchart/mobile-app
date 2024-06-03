@@ -10,6 +10,10 @@ class DrawingResult extends StatelessWidget {
   final String size;
   final String lang;
 
+  void initState() {
+
+  }
+
   DrawingResult(
       {Key? key,
       required this.results,

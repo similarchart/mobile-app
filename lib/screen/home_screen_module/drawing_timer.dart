@@ -1,39 +1,36 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_view/providers/drawing_state_providers.dart';
 
 class DrawingTimer {
-  static final DrawingTimer _instance = DrawingTimer._internal();
-  factory DrawingTimer() => _instance;
+  final WidgetRef ref;
 
-  DrawingTimer._internal();
-
-  DateTime? _lastDrawingTime;
-  Duration _cooldown = const Duration(seconds: 60);
-  ValueNotifier<bool> isCooldownCompleted = ValueNotifier<bool>(false);
+  DrawingTimer(this.ref);
 
   void startTimer(int seconds) {
-    _cooldown = Duration(seconds: seconds);
-    _lastDrawingTime = DateTime.now();
-    isCooldownCompleted.value = false;
+    ref.read(cooldownDurationProvider.notifier).state = Duration(seconds: seconds);
+    ref.read(lastDrawingTimeProvider.notifier).state = DateTime.now();
+    ref.read(isCooldownCompletedProvider.notifier).state = false;
 
-    // 타이머 시작
-    Future.delayed(_cooldown, () {
-      isCooldownCompleted.value = true;
+    Future.delayed(ref.read(cooldownDurationProvider), () {
+      ref.read(isCooldownCompletedProvider.notifier).state = true;
     });
   }
 
   bool get isCooldownActive {
-    if (_lastDrawingTime == null) return false;
-    return DateTime.now().difference(_lastDrawingTime!) < _cooldown;
+    DateTime? lastDrawingTime = ref.read(lastDrawingTimeProvider);
+    if (lastDrawingTime == null) return false;
+    return DateTime.now().difference(lastDrawingTime) < ref.read(cooldownDurationProvider);
   }
 
   int get remainingTimeInSeconds {
-    if (_lastDrawingTime == null) return 0;
-    Duration timeLeft = _cooldown - DateTime.now().difference(_lastDrawingTime!);
+    DateTime? lastDrawingTime = ref.read(lastDrawingTimeProvider);
+    if (lastDrawingTime == null) return 0;
+    Duration timeLeft = ref.read(cooldownDurationProvider) - DateTime.now().difference(lastDrawingTime);
     return timeLeft.isNegative ? 0 : timeLeft.inSeconds;
   }
 
   void resetTimer() {
-    _lastDrawingTime = null;
-    isCooldownCompleted.value = false;
+    ref.read(lastDrawingTimeProvider.notifier).state = null;
+    ref.read(isCooldownCompletedProvider.notifier).state = false;
   }
 }

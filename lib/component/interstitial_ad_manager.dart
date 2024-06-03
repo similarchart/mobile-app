@@ -17,8 +17,8 @@ class InterstitialAdManager {
   void _loadInterstitialAd() {
     final adUnitId = Platform.isIOS
         ? 'ca-app-pub-3940256099942544/4411468910' // iOS 전면 광고 단위 ID
-    : 'ca-app-pub-3940256099942544/1033173712'; // 테스트용
-    //     : dotenv.env['ADMOB_INTERSTITIAL'] ?? 'ca-app-pub-3940256099942544/1033173712'; // 배포용
+        : 'ca-app-pub-3940256099942544/1033173712'; // 테스트용
+    // : dotenv.env['ADMOB_INTERSTITIAL'] ?? 'ca-app-pub-3940256099942544/1033173712'; // 배포용
 
     InterstitialAd.load(
       adUnitId: adUnitId,

@@ -13,10 +13,11 @@ import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 import 'package:web_view/component/interstitial_ad_manager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_view/services/toast_service.dart';
+import 'package:web_view/providers/drawing_state_providers.dart';
 
-import '../services/toast_service.dart';
-
-class DrawingBoard extends StatefulWidget {
+class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
 
   DrawingBoard({Key? key, required this.screenHeight}) : super(key: key);
@@ -25,10 +26,9 @@ class DrawingBoard extends StatefulWidget {
   _DrawingBoardState createState() => _DrawingBoardState();
 }
 
-class _DrawingBoardState extends State<DrawingBoard>
+class _DrawingBoardState extends ConsumerState<DrawingBoard>
     with SingleTickerProviderStateMixin {
   final InterstitialAdManager _adManager = InterstitialAdManager();
-  bool isLoading = false;
   List<Offset> points = [];
   List<Offset> originalPoints = [];
   bool drawingEnabled = true;
@@ -89,10 +89,12 @@ class _DrawingBoardState extends State<DrawingBoard>
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(isDrawingLoadingProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryColor,
-        title: Text(
+        title: const Text(
           '드로잉검색',
           style: TextStyle(
             color: AppColors.textColor,
@@ -105,15 +107,16 @@ class _DrawingBoardState extends State<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-              setState(() {
-                selectedSize = newValue!;
-              });
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.setString('selectedSize', selectedSize);
-              points = originalPoints;
-              makeReadyToSend();
-            },
-            style: TextStyle(color: AppColors.textColor),
+                    setState(() {
+                      selectedSize = newValue!;
+                    });
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.setString('selectedSize', selectedSize);
+                    points = originalPoints;
+                    makeReadyToSend();
+                  },
+            style: const TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: sizes.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
@@ -132,13 +135,14 @@ class _DrawingBoardState extends State<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-              setState(() {
-                selectedMarket = newValue!;
-              });
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.setString('selectedMarket', selectedMarket);
-            },
-            style: TextStyle(color: AppColors.textColor),
+                    setState(() {
+                      selectedMarket = newValue!;
+                    });
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.setString('selectedMarket', selectedMarket);
+                  },
+            style: const TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: countries.map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
@@ -159,53 +163,47 @@ class _DrawingBoardState extends State<DrawingBoard>
             onPressed: isLoading
                 ? null
                 : () => setState(() {
-              points.clear();
-              originalPoints.clear();
-              drawingEnabled = true;
-            }),
+                      points.clear();
+                      originalPoints.clear();
+                      drawingEnabled = true;
+                    }),
           ),
-          ValueListenableBuilder(
-            valueListenable: DrawingTimer().isCooldownCompleted,
-            builder: (context, bool isCooldownCompleted, child) {
-              return IconButton(
-                icon: Icon(
-                  Icons.send,
-                  color: (selectedSize != "비교일" &&
+          IconButton(
+            icon: Icon(
+              Icons.send,
+              color: (selectedSize != "비교일" &&
                       selectedMarket != "시장" &&
                       !drawingEnabled &&
                       !isLoading &&
-                      !DrawingTimer().isCooldownActive)
-                      ? AppColors.textColor
-                      : AppColors.secondaryColor,
-                ),
-                onPressed: (selectedSize != "비교일" &&
+                      !DrawingTimer(ref).isCooldownActive)
+                  ? AppColors.textColor
+                  : AppColors.secondaryColor,
+            ),
+            onPressed: (selectedSize != "비교일" &&
                     selectedMarket != "시장" &&
                     !drawingEnabled &&
                     !isLoading &&
-                    !DrawingTimer().isCooldownActive)
-                    ? () {
-                  DrawingTimer().startTimer(10);
-                  sendDrawing(widget.screenHeight);
-                }
-                    : () {
-                  if (selectedSize == "비교일") {
-                    ToastService().showToastMessage("비교 일수를 선택해 주세요.");
-                  } else if (selectedMarket == "시장") {
-                    ToastService().showToastMessage("시장을 선택해 주세요.");
-                  } else if (drawingEnabled) {
-                    ToastService()
-                        .showToastMessage("검색을 위해 그림을 그려주세요.");
-                  } else if (isLoading) {
-                    ToastService().showToastMessage("잠시만 기다려주세요.");
-                  } else if (DrawingTimer().isCooldownActive) {
-                    int remain = DrawingTimer().remainingTimeInSeconds;
-                    ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
-                  } else {
-                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                    !DrawingTimer(ref).isCooldownActive)
+                ? () {
+                    DrawingTimer(ref).startTimer(10);
+                    sendDrawing(widget.screenHeight);
                   }
-                },
-              );
-            },
+                : () {
+                    if (selectedSize == "비교일") {
+                      ToastService().showToastMessage("비교 일수를 선택해 주세요.");
+                    } else if (selectedMarket == "시장") {
+                      ToastService().showToastMessage("시장을 선택해 주세요.");
+                    } else if (drawingEnabled) {
+                      ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
+                    } else if (isLoading) {
+                      ToastService().showToastMessage("잠시만 기다려주세요.");
+                    } else if (DrawingTimer(ref).isCooldownActive) {
+                      int remain = DrawingTimer(ref).remainingTimeInSeconds;
+                      ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
+                    } else {
+                      ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                    }
+                  },
           ),
         ],
       ),
@@ -329,15 +327,15 @@ class _DrawingBoardState extends State<DrawingBoard>
     double maxY = points.reduce((a, b) => a.dy > b.dy ? a : b).dy;
     double height = width;
 
-    // 여백이 height * 0.2 보다 크면 0.2로 설정
-    double marginTop = height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
+    double marginTop =
+        height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
     double marginBottom = minY > 0.2 * height ? 0.2 * height : minY;
 
     for (var i = 0; i < points.length; i++) {
       double normalizedY = (points[i].dy - minY) / (maxY - minY);
 
-      // 상하단 여백을 뺀 높이로 정규화 후, 하단 여백을 더하면 항상 여백 0.2 이하를 보장 가능
-      points[i] = Offset(points[i].dx, (normalizedY * (height - marginTop - marginBottom) + marginBottom));
+      points[i] = Offset(points[i].dx,
+          (normalizedY * (height - marginTop - marginBottom) + marginBottom));
     }
   }
 
@@ -351,9 +349,9 @@ class _DrawingBoardState extends State<DrawingBoard>
     for (int i = 1; i < numPoints - 1; i++) {
       double newX = minX + i * interval;
       Offset p1 =
-      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+          points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
       Offset p2 =
-      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+          points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
 
       double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
       double newY = p1.dy + slope * (newX - p1.dx);
@@ -365,9 +363,8 @@ class _DrawingBoardState extends State<DrawingBoard>
   }
 
   void sendDrawing(double screenHeight) async {
-    setState(() {
-      isLoading = true; // 로딩 시작
-    });
+    // 로딩 상태를 true로 설정
+    ref.read(isDrawingLoadingProvider.notifier).state = true;
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);
@@ -412,14 +409,16 @@ class _DrawingBoardState extends State<DrawingBoard>
             mkt: market,
             sz: selectedSize,
             language: lang);
+
+        ref.read(isDrawingLoadingProvider.notifier).state = false;
+
         DrawingResultManager.showDrawingResult(context);
+
         setState(() {
           points.clear();
           originalPoints.clear();
           drawingEnabled = true;
-          isLoading = false;
         });
-        _adManager.showInterstitialAd(context);
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
@@ -427,13 +426,11 @@ class _DrawingBoardState extends State<DrawingBoard>
     } catch (e) {
       print('Error sending data to the API: $e');
     } finally {
-      setState(() {
-        isLoading = false; // 로딩 종료
-      });
+      // 로딩 상태를 false로 설정
+      ref.read(isDrawingLoadingProvider.notifier).state = false;
     }
   }
 }
-
 
 class DrawingPainter extends CustomPainter {
   final List<Offset> points;
@@ -463,10 +460,10 @@ class DrawingPainter extends CustomPainter {
     paint
       ..color = Colors.grey.withOpacity(0.4)
       ..strokeWidth = 2.0;
-    canvas.drawLine(
-        Offset(0, size.height * 0.2), Offset(size.width, size.height * 0.2), paint);
-    canvas.drawLine(
-        Offset(0, size.height * 0.8), Offset(size.width, size.height * 0.8), paint);
+    canvas.drawLine(Offset(0, size.height * 0.2),
+        Offset(size.width, size.height * 0.2), paint);
+    canvas.drawLine(Offset(0, size.height * 0.8),
+        Offset(size.width, size.height * 0.8), paint);
 
     // 화면 테두리 그리기
     paint

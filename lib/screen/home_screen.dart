@@ -1,48 +1,36 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
-import 'package:web_view/services/preferences.dart';
-import 'package:web_view/screen/splash_screen.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dart';
-import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
-import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:web_view/constants/urls.dart';
+import 'package:web_view/screen/home_screen_module/bottom_navigation_builder.dart';
+import 'package:web_view/screen/home_screen_module/bottom_navigation_tap.dart';
+import 'package:web_view/screen/home_screen_module/floating_action_button_manager.dart';
+import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
+import 'package:web_view/screen/splash_screen.dart';
+import 'package:web_view/services/preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
+import 'dart:io';
+import 'package:web_view/providers/home_screen_state_providers.dart';
+import 'package:web_view/main.dart';
 
-import '../main.dart';
-
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with RouteAware {
+class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   static const double bottomNavigationBarHeight = 55;
   final GlobalKey webViewKey = GlobalKey();
   late String homeUrl;
-  Uri myUrl = Uri.parse(Urls.naverHomeUrl);
   late final InAppWebViewController? webViewController;
   late WebViewManager webViewManager;
   late BottomNavigationTap bottomNavigationTap;
   late FloatingActionButtonManager fabManager;
-  bool _isFirstLoad = true; // 앱이 처음 시작될 때만 true(splash screen을 위해)
-  bool _showFloatingActionButton = false; // FAB 표시 여부
-  bool _isLoading = false; // 로딩바 표시 여부
-  bool _isPageLoading = false; // 로딩바 표시 여부
-  String subPageLabel = ''; // 하단바 홈 버튼 왼쪽의 서브 페이지 버튼 이름
-  String homePageLabel = ''; // 하단바 홈 버튼 이름
-  bool didScrollDown = true; // 하단 바의 초기 상태
-  bool bottomBarFixedPref = true;
-  double startY = 0.0; // 드래그 시작 지점의 Y 좌표
-  bool isDragging = false; // 드래그 중인지 여부
-  bool _isOnHomeScreen = true; // 현재 화면이 HomeScreen인지 여부
-
   late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
 
   @override
@@ -63,33 +51,28 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override // 현재 화면(라우트)이 다른 화면에서 팝(pop)되어 다시 활성화되었을 때 호출
   Future<void> didPopNext() async {
     _loadPreferences();
-    setState(() {
-      _isOnHomeScreen = true;
-    });
+    ref.read(isOnHomeScreenProvider.notifier).state = true;
   }
 
   @override // 다른 화면으로 넘어갈 때 실행되는 로직
   void didPushNext() {
-    setState(() {
-      _isOnHomeScreen = false;
-    });
+    ref.read(isOnHomeScreenProvider.notifier).state = false;
   }
 
   Future<void> _loadPreferences() async {
-    bottomBarFixedPref = await BottomBarPreference
+    bool bottomBarFixedPref = await BottomBarPreference
         .getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
+    ref.read(bottomBarFixedPrefProvider.notifier).state = bottomBarFixedPref;
+
     String preferPage = await MainPagePreference.getMainPageSetting();
     if (preferPage == 'naver') {
-      setState(() {
-        subPageLabel = '비슷한차트';
-        homePageLabel = '네이버증권';
-      });
+      ref.read(subPageLabelProvider.notifier).state = '비슷한차트';
+      ref.read(homePageLabelProvider.notifier).state = '네이버증권';
     } else if (preferPage == 'chart') {
-      setState(() {
-        subPageLabel = '네이버증권';
-        homePageLabel = '비슷한차트';
-      });
+      ref.read(subPageLabelProvider.notifier).state = '네이버증권';
+      ref.read(homePageLabelProvider.notifier).state = '비슷한차트';
     }
+
     String lang = await LanguagePreference.getLanguageSetting();
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
@@ -105,10 +88,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
-      // 여기에 반복 실행하고 싶은 함수를 호출합니다.
       WebUri? uri = await webViewController?.getUrl();
       String currentUrl = uri.toString();
-      if (!_isFirstLoad && _isOnHomeScreen && !_isLoading && !_isPageLoading) {
+      bool isFirstLoad = ref.read(isFirstLoadProvider);
+      bool isOnHomeScreen = ref.read(isOnHomeScreenProvider);
+      bool isLoading = ref.read(isLoadingProvider);
+      bool isPageLoading = ref.read(isPageLoadingProvider);
+
+      if (!isFirstLoad && isOnHomeScreen && !isLoading && !isPageLoading) {
         webViewManager.addCurrentUrlToRecent(currentUrl, webViewController);
         webViewManager.removeDuplicateRecentItem();
         updateFloatingActionButtonVisibility(currentUrl);
@@ -122,11 +109,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     super.initState();
     _loadPreferences();
     webViewManager = WebViewManager();
-    bottomNavigationTap = BottomNavigationTap((isLoading) {
-      setState(() {
-        _isLoading = isLoading;
-      });
-    });
+    bottomNavigationTap = BottomNavigationTap();
 
     pullToRefreshController = PullToRefreshController(
       settings: PullToRefreshSettings(color: Colors.blue),
@@ -146,6 +129,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final bool isFirstLoad = ref.watch(isFirstLoadProvider);
+    final bool showFloatingActionButton =
+        ref.watch(showFloatingActionButtonProvider);
+    final bool isLoading = ref.watch(isLoadingProvider);
+    final bool didScrollDown = ref.watch(didScrollDownProvider);
+    final bool bottomBarFixedPref = ref.watch(bottomBarFixedPrefProvider);
+    final double startY = ref.watch(startYProvider);
+    final bool isDragging = ref.watch(isDraggingProvider);
+
     // FloatingActionButton의 반지름입니다. 실제 크기에 따라 조정할 수 있습니다.
     const double fabRadius = 18;
 
@@ -211,8 +203,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         Positioned.fill(
                           child: Listener(
                             onPointerDown: (PointerDownEvent event) {
-                              startY = event.position.dy; // 시작 지점 저장
-                              isDragging = true; // 드래그 시작
+                              ref.read(startYProvider.notifier).state =
+                                  event.position.dy; // 시작 지점 저장
+                              ref.read(isDraggingProvider.notifier).state =
+                                  true; // 드래그 시작
                             },
                             onPointerMove: (PointerMoveEvent event) {
                               if (isDragging) {
@@ -220,21 +214,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     startY - event.position.dy; // 이동 거리 계산
                                 if (distance > 70) {
                                   // 50픽셀 이상 위로 드래그
-                                  setState(() {
-                                    didScrollDown = false;
-                                  });
-                                  isDragging = false; // 드래그 중지
+                                  ref
+                                      .read(didScrollDownProvider.notifier)
+                                      .state = false;
+                                  ref.read(isDraggingProvider.notifier).state =
+                                      false; // 드래그 중지
                                 } else if (distance < -70) {
                                   // 50픽셀 이상 아래로 드래그
-                                  setState(() {
-                                    didScrollDown = true;
-                                  });
-                                  isDragging = false; // 드래그 중지
+                                  ref
+                                      .read(didScrollDownProvider.notifier)
+                                      .state = true;
+                                  ref.read(isDraggingProvider.notifier).state =
+                                      false; // 드래그 중지
                                 }
                               }
                             },
                             onPointerUp: (PointerUpEvent event) {
-                              isDragging = false; // 드래그 종료
+                              ref.read(isDraggingProvider.notifier).state =
+                                  false; // 드래그 종료
                             },
                             child: createWebView(),
                           ),
@@ -259,19 +256,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
           ),
 
-          _isFirstLoad
-              ? const SplashScreen()
-              : Container(), // 첫 로드면 스플래시 화면 띄우기
+          isFirstLoad ? const SplashScreen() : Container(), // 첫 로드면 스플래시 화면 띄우기
 
           Positioned(
             right: 16,
             bottom: bottomNavigationBarHeight +
                 fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
-            child: _showFloatingActionButton
-                ? fabManager.buildFloatingActionButton(true)
+            child: showFloatingActionButton
+                ? fabManager.buildFloatingActionButton(true, ref)
                 : Container(),
           ),
-          _isLoading
+          isLoading
               ? Positioned.fill(
                   child: Container(
                     color: Colors.black.withOpacity(0.5), // 반투명 오버레이
@@ -329,11 +324,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
         fabManager = FloatingActionButtonManager(
           webViewController: webViewController!,
-          updateLoadingStatus: (bool isLoading) {
-            setState(() {
-              _isLoading = isLoading;
-            });
-          },
         );
         startTimer(webViewController);
       },
@@ -345,10 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       },
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
-        setState(() {
-          myUrl = url!;
-          _isPageLoading = true;
-        });
+        ref.read(isPageLoadingProvider.notifier).state = true;
       },
 
       // URL 로딩 제어
@@ -373,12 +360,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       // 페이지 로딩이 정지 시 메서드 정의
       onLoadStop: (InAppWebViewController controller, url) async {
         pullToRefreshController.endRefreshing();
-        setState(() {
-          _isFirstLoad = false;
-          _isLoading = false;
-          _isPageLoading = false;
-          myUrl = url!;
-        });
+        ref.read(isFirstLoadProvider.notifier).state = false;
+        ref.read(isLoadingProvider.notifier).state = false;
+        ref.read(isPageLoadingProvider.notifier).state = false;
         updateFloatingActionButtonVisibility(url.toString());
         webViewManager.addCurrentUrlToHistory(
             url.toString(), webViewController);
@@ -395,11 +379,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         // 로딩이 완료되면 당겨서 새로고침 중단
         if (progress >= 100) {
           pullToRefreshController.endRefreshing();
-          setState(() {
-            _isFirstLoad = false;
-            _isLoading = false;
-            _isPageLoading = false;
-          });
+          ref.read(isFirstLoadProvider.notifier).state = false;
+          ref.read(isLoadingProvider.notifier).state = false;
+          ref.read(isPageLoadingProvider.notifier).state = false;
         }
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },
@@ -410,13 +392,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     bool isNaverHome = (url == Urls.naverHomeUrl);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
-    setState(() {
-      _showFloatingActionButton =
-          startsWithDomestic || startsWithWorld || isNaverHome;
-    });
+    ref.read(showFloatingActionButtonProvider.notifier).state =
+        startsWithDomestic || startsWithWorld || isNaverHome;
   }
 
   Widget _buildBottomNavigationBar() {
+    final String subPageLabel = ref.watch(subPageLabelProvider);
+    final String homePageLabel = ref.watch(homePageLabelProvider);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -424,24 +407,27 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             Icons.brush,
             '드로잉검색',
             () => bottomNavigationTap.onDrawingSearchTap(
-                context, webViewController!)),
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
             Icons.trending_up,
             subPageLabel,
-            () =>
-                bottomNavigationTap.onSubPageTap(context, webViewController!)),
-        BottomNavigationBuilder.buildBottomIcon(Icons.home, homePageLabel,
-            () => bottomNavigationTap.onHomeTap(context, webViewController!)),
+            () => bottomNavigationTap.onSubPageTap(
+                context, ref, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.home,
+            homePageLabel,
+            () => bottomNavigationTap.onHomeTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
             Icons.history,
             '최근본종목',
-            () =>
-                bottomNavigationTap.onFavoriteTap(context, webViewController!)),
+            () => bottomNavigationTap.onFavoriteTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
             Icons.settings,
             '설정',
-            () =>
-                bottomNavigationTap.onSettingsTap(context, webViewController!)),
+            () => bottomNavigationTap.onSettingsTap(
+                context, ref, webViewController!)),
       ],
     );
   }
