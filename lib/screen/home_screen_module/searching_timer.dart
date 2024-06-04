@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:web_view/providers/drawing_state_providers.dart';
+import 'package:web_view/providers/search_state_providers.dart';
 
-class DrawingTimer {
+class SearchingTimer {
   final WidgetRef ref;
 
-  DrawingTimer(this.ref);
+  SearchingTimer(this.ref);
 
   void startTimer(int seconds) {
     ref.read(cooldownDurationProvider.notifier).state = Duration(seconds: seconds);
-    ref.read(lastDrawingTimeProvider.notifier).state = DateTime.now();
+    ref.read(lastSearchTimeProvider.notifier).state = DateTime.now();
     ref.read(isCooldownCompletedProvider.notifier).state = false;
 
     Future.delayed(ref.read(cooldownDurationProvider), () {
@@ -17,20 +17,20 @@ class DrawingTimer {
   }
 
   bool get isCooldownActive {
-    DateTime? lastDrawingTime = ref.read(lastDrawingTimeProvider);
+    DateTime? lastDrawingTime = ref.read(lastSearchTimeProvider);
     if (lastDrawingTime == null) return false;
     return DateTime.now().difference(lastDrawingTime) < ref.read(cooldownDurationProvider);
   }
 
   int get remainingTimeInSeconds {
-    DateTime? lastDrawingTime = ref.read(lastDrawingTimeProvider);
+    DateTime? lastDrawingTime = ref.read(lastSearchTimeProvider);
     if (lastDrawingTime == null) return 0;
     Duration timeLeft = ref.read(cooldownDurationProvider) - DateTime.now().difference(lastDrawingTime);
     return timeLeft.isNegative ? 0 : timeLeft.inSeconds;
   }
 
   void resetTimer() {
-    ref.read(lastDrawingTimeProvider.notifier).state = null;
+    ref.read(lastSearchTimeProvider.notifier).state = null;
     ref.read(isCooldownCompletedProvider.notifier).state = false;
   }
 }

@@ -7,7 +7,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/screen/drawing_result.dart';
+import 'package:web_view/screen/pattern_result.dart';
 import 'package:web_view/screen/home_screen_module/searching_timer.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
@@ -17,16 +17,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/providers/search_state_providers.dart';
 
-class DrawingBoard extends ConsumerStatefulWidget {
+class PatternSearchBoard extends ConsumerStatefulWidget {
   final double screenHeight;
 
-  DrawingBoard({Key? key, required this.screenHeight}) : super(key: key);
+  PatternSearchBoard({Key? key, required this.screenHeight}) : super(key: key);
 
   @override
-  _DrawingBoardState createState() => _DrawingBoardState();
+  _PatternSearchBoardState createState() => _PatternSearchBoardState();
 }
 
-class _DrawingBoardState extends ConsumerState<DrawingBoard>
+class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     with SingleTickerProviderStateMixin {
   final InterstitialAdManager _adManager = InterstitialAdManager();
   List<Offset> points = [];
@@ -89,13 +89,13 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(isDrawingLoadingProvider);
+    final isLoading = ref.watch(isPatternLoadingProvider);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryColor,
         title: const Text(
-          '드로잉검색',
+          '패턴검색',
           style: TextStyle(
             color: AppColors.textColor,
           ),
@@ -107,15 +107,15 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-                    setState(() {
-                      selectedSize = newValue!;
-                    });
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    await prefs.setString('selectedSize', selectedSize);
-                    points = originalPoints;
-                    makeReadyToSend();
-                  },
+              setState(() {
+                selectedSize = newValue!;
+              });
+              SharedPreferences prefs =
+              await SharedPreferences.getInstance();
+              await prefs.setString('selectedSize', selectedSize);
+              points = originalPoints;
+              makeReadyToSend();
+            },
             style: const TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: sizes.map<DropdownMenuItem<String>>((String value) {
@@ -135,13 +135,13 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
             onChanged: isLoading
                 ? null
                 : (String? newValue) async {
-                    setState(() {
-                      selectedMarket = newValue!;
-                    });
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    await prefs.setString('selectedMarket', selectedMarket);
-                  },
+              setState(() {
+                selectedMarket = newValue!;
+              });
+              SharedPreferences prefs =
+              await SharedPreferences.getInstance();
+              await prefs.setString('selectedMarket', selectedMarket);
+            },
             style: const TextStyle(color: AppColors.textColor),
             dropdownColor: AppColors.primaryColor,
             items: countries.map<DropdownMenuItem<String>>((String value) {
@@ -163,47 +163,47 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
             onPressed: isLoading
                 ? null
                 : () => setState(() {
-                      points.clear();
-                      originalPoints.clear();
-                      drawingEnabled = true;
-                    }),
+              points.clear();
+              originalPoints.clear();
+              drawingEnabled = true;
+            }),
           ),
           IconButton(
             icon: Icon(
               Icons.send,
               color: (selectedSize != "비교일" &&
-                      selectedMarket != "시장" &&
-                      !drawingEnabled &&
-                      !isLoading &&
-                      !SearchingTimer(ref).isCooldownActive)
+                  selectedMarket != "시장" &&
+                  !drawingEnabled &&
+                  !isLoading &&
+                  !SearchingTimer(ref).isCooldownActive)
                   ? AppColors.textColor
                   : AppColors.secondaryColor,
             ),
             onPressed: (selectedSize != "비교일" &&
-                    selectedMarket != "시장" &&
-                    !drawingEnabled &&
-                    !isLoading &&
-                    !SearchingTimer(ref).isCooldownActive)
+                selectedMarket != "시장" &&
+                !drawingEnabled &&
+                !isLoading &&
+                !SearchingTimer(ref).isCooldownActive)
                 ? () {
               SearchingTimer(ref).startTimer(10);
-                    sendDrawing(widget.screenHeight);
-                  }
+              sendPattern(widget.screenHeight);
+            }
                 : () {
-                    if (selectedSize == "비교일") {
-                      ToastService().showToastMessage("비교 일수를 선택해 주세요.");
-                    } else if (selectedMarket == "시장") {
-                      ToastService().showToastMessage("시장을 선택해 주세요.");
-                    } else if (drawingEnabled) {
-                      ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
-                    } else if (isLoading) {
-                      ToastService().showToastMessage("잠시만 기다려주세요.");
-                    } else if (SearchingTimer(ref).isCooldownActive) {
-                      int remain = SearchingTimer(ref).remainingTimeInSeconds;
-                      ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
-                    } else {
-                      ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-                    }
-                  },
+              if (selectedSize == "비교일") {
+                ToastService().showToastMessage("비교 일수를 선택해 주세요.");
+              } else if (selectedMarket == "시장") {
+                ToastService().showToastMessage("시장을 선택해 주세요.");
+              } else if (drawingEnabled) {
+                ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
+              } else if (isLoading) {
+                ToastService().showToastMessage("잠시만 기다려주세요.");
+              } else if (SearchingTimer(ref).isCooldownActive) {
+                int remain = SearchingTimer(ref).remainingTimeInSeconds;
+                ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
+              } else {
+                ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+              }
+            },
           ),
         ],
       ),
@@ -219,7 +219,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
               child: RepaintBoundary(
                 key: repaintBoundaryKey,
                 child: CustomPaint(
-                  painter: DrawingPainter(points, drawingEnabled),
+                  painter: PatternPainter(points, drawingEnabled),
                   child: Container(),
                 ),
               ),
@@ -328,7 +328,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     double height = width;
 
     double marginTop =
-        height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
+    height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
     double marginBottom = minY > 0.2 * height ? 0.2 * height : minY;
 
     for (var i = 0; i < points.length; i++) {
@@ -349,9 +349,9 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     for (int i = 1; i < numPoints - 1; i++) {
       double newX = minX + i * interval;
       Offset p1 =
-          points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
+      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
       Offset p2 =
-          points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
+      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
 
       double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
       double newY = p1.dy + slope * (newX - p1.dx);
@@ -362,9 +362,9 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     points = newPoints;
   }
 
-  void sendDrawing(double screenHeight) async {
+  void sendPattern(double screenHeight) async {
     // 로딩 상태를 true로 설정
-    ref.read(isDrawingLoadingProvider.notifier).state = true;
+    ref.read(isPatternLoadingProvider.notifier).state = true;
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);
@@ -375,13 +375,13 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     ui.Image image = await boundary.toImage(pixelRatio: 3.0);
     ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     Uint8List pngBytes = byteData!.buffer.asUint8List();
-    String encodedDrawing = base64Encode(pngBytes);
+    String encodedPattern = base64Encode(pngBytes);
 
     List<double> numbers =
     points.map((point) => 1 - point.dy / screenHeight).toList();
     int dayNum = int.tryParse(selectedSize) ?? 0;
 
-    String url = dotenv.env["DRAWING_SEARCH_API_URL"] ?? "";
+    String url = dotenv.env["PATTERN_SEARCH_API_URL"] ?? "";
     String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
     String lang = await LanguagePreference.getLanguageSetting();
 
@@ -403,16 +403,16 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
       if (response.statusCode == 200) {
         List<dynamic> results = jsonDecode(response.body);
-        DrawingResultManager.initializeDrawingResult(
+        PatternResultManager.initializePatternResult(
             res: results,
-            drawing: encodedDrawing,
+            pattern: encodedPattern,
             mkt: market,
             sz: selectedSize,
             language: lang);
 
-        ref.read(isDrawingLoadingProvider.notifier).state = false;
+        ref.read(isPatternLoadingProvider.notifier).state = false;
 
-        DrawingResultManager.showDrawingResult(context);
+        PatternResultManager.showPatternResult(context);
 
         setState(() {
           points.clear();
@@ -427,15 +427,15 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       print('Error sending data to the API: $e');
     } finally {
       // 로딩 상태를 false로 설정
-      ref.read(isDrawingLoadingProvider.notifier).state = false;
+      ref.read(isPatternLoadingProvider.notifier).state = false;
     }
   }
 }
 
-class DrawingPainter extends CustomPainter {
+class PatternPainter extends CustomPainter {
   final List<Offset> points;
   final bool drawingEnabled;
-  DrawingPainter(this.points, this.drawingEnabled);
+  PatternPainter(this.points, this.drawingEnabled);
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -409,6 +409,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             () => bottomNavigationTap.onDrawingSearchTap(
                 context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
+            Icons.candlestick_chart,
+            '패턴검색',
+                () => bottomNavigationTap.onPatternSearchTap(
+                context, ref, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
             Icons.trending_up,
             subPageLabel,
             () => bottomNavigationTap.onSubPageTap(

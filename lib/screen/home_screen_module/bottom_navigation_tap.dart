@@ -7,7 +7,9 @@ import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/screen/settings_screen.dart';
 import 'package:web_view/screen/drawing_board.dart';
+import 'package:web_view/screen/pattern_board.dart';
 import 'package:web_view/screen/drawing_result.dart';
+import 'package:web_view/screen/pattern_result.dart';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -104,6 +106,42 @@ class BottomNavigationTap {
       DrawingResultManager.showDrawingResult(context);
     }
   }
+
+  void onPatternSearchTap(BuildContext context, WidgetRef ref,
+      InAppWebViewController webViewController) {
+    double width = min(
+        MediaQuery.of(context).size.height, MediaQuery.of(context).size.width);
+    double appBarHeight = AppBar().preferredSize.height;
+    double adHeight = 60;
+    double height = width + appBarHeight + adHeight;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(0),
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: PatternSearchBoard(
+              screenHeight: height - appBarHeight,
+            ),
+          ),
+        );
+      },
+    ).then((url) {
+      if (url != null) {
+        ref.read(isLoadingProvider.notifier).state = true;
+        WebViewManager.loadUrl(webViewController, url);
+      }
+    });
+
+    if (PatternResultManager.isResultExist()) {
+      PatternResultManager.showPatternResult(context);
+    }
+  }
+
 
   Future<void> onSubPageTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) async {
