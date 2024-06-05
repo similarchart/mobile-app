@@ -29,33 +29,19 @@ class PatternSearchBoard extends ConsumerStatefulWidget {
 class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     with SingleTickerProviderStateMixin {
   final InterstitialAdManager _adManager = InterstitialAdManager();
-  List<Offset> points = [];
-  List<Offset> originalPoints = [];
-  bool drawingEnabled = true;
-  String selectedSize = '비교일';
+  List<int> openPrices = List.filled(4, 0);
+  List<int> closePrices = List.filled(4, 0);
+  List<int> highPrices = List.filled(4, 0);
+  List<int> lowPrices = List.filled(4, 0);
   String selectedMarket = '시장';
-  final List<String> sizes = ['비교일', '128', '64', '32', '16', '8'];
   final List<String> countries = ['시장', '미국', '한국'];
-  GlobalKey repaintBoundaryKey = GlobalKey();
-
-  late AnimationController _controller;
-  late Animation<Color?> _colorAnimation;
+  int selectedCandleIndex = 0; // 선택된 캔들스틱의 인덱스
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _colorAnimation = ColorTween(
-      begin: AppColors.textColor,
-      end: AppColors.secondaryColor,
-    ).animate(_controller)
-      ..addListener(() {
-        setState(() {});
-      });
     loadPreferences();
+    loadPrices(); // Load prices from SharedPreferences
 
     // 페이지가 초기화될 때 세로 모드로 설정
     SystemChrome.setPreferredOrientations([
@@ -64,17 +50,26 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     ]);
   }
 
+  void loadPrices() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      openPrices = (prefs.getStringList('openPrices')?.map((e) => int.tryParse(e) ?? 0).toList() ?? List.filled(4, 0));
+      closePrices = (prefs.getStringList('closePrices')?.map((e) => int.tryParse(e) ?? 0).toList() ?? List.filled(4, 0));
+      highPrices = (prefs.getStringList('highPrices')?.map((e) => int.tryParse(e) ?? 0).toList() ?? List.filled(4, 0));
+      lowPrices = (prefs.getStringList('lowPrices')?.map((e) => int.tryParse(e) ?? 0).toList() ?? List.filled(4, 0));
+    });
+  }
+
+
   void loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedSize = prefs.getString('selectedSize') ?? '비교일';
       selectedMarket = prefs.getString('selectedMarket') ?? '시장';
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
     _adManager.dispose();
 
     // 페이지를 벗어날 때 화면 방향 제한을 해제
@@ -90,8 +85,11 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(isPatternLoadingProvider);
+    double chartHeight = (widget.screenHeight - 60) / 2;
+    double chartWidth = chartHeight;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: AppColors.primaryColor,
         title: const Text(
@@ -102,33 +100,6 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
         ),
         automaticallyImplyLeading: false,
         actions: [
-          DropdownButton<String>(
-            value: selectedSize,
-            onChanged: isLoading
-                ? null
-                : (String? newValue) async {
-              setState(() {
-                selectedSize = newValue!;
-              });
-              SharedPreferences prefs =
-              await SharedPreferences.getInstance();
-              await prefs.setString('selectedSize', selectedSize);
-              points = originalPoints;
-              makeReadyToSend();
-            },
-            style: const TextStyle(color: AppColors.textColor),
-            dropdownColor: AppColors.primaryColor,
-            items: sizes.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value,
-                    style: TextStyle(
-                        color: isLoading
-                            ? AppColors.secondaryColor
-                            : AppColors.textColor)),
-              );
-            }).toList(),
-          ),
           SizedBox(width: 10.0),
           DropdownButton<String>(
             value: selectedMarket,
@@ -156,45 +127,24 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
             }).toList(),
           ),
           IconButton(
-            icon: Icon(Icons.refresh,
-                color: isLoading
-                    ? AppColors.secondaryColor
-                    : _colorAnimation.value ?? AppColors.textColor),
-            onPressed: isLoading
-                ? null
-                : () => setState(() {
-              points.clear();
-              originalPoints.clear();
-              drawingEnabled = true;
-            }),
-          ),
-          IconButton(
             icon: Icon(
               Icons.send,
-              color: (selectedSize != "비교일" &&
-                  selectedMarket != "시장" &&
-                  !drawingEnabled &&
+              color: (selectedMarket != "시장" &&
                   !isLoading &&
                   !SearchingTimer(ref).isCooldownActive)
                   ? AppColors.textColor
                   : AppColors.secondaryColor,
             ),
-            onPressed: (selectedSize != "비교일" &&
-                selectedMarket != "시장" &&
-                !drawingEnabled &&
+            onPressed: (selectedMarket != "시장" &&
                 !isLoading &&
                 !SearchingTimer(ref).isCooldownActive)
                 ? () {
               SearchingTimer(ref).startTimer(10);
-              sendPattern(widget.screenHeight);
+              // sendPattern(widget.screenHeight);
             }
                 : () {
-              if (selectedSize == "비교일") {
-                ToastService().showToastMessage("비교 일수를 선택해 주세요.");
-              } else if (selectedMarket == "시장") {
+              if (selectedMarket == "시장") {
                 ToastService().showToastMessage("시장을 선택해 주세요.");
-              } else if (drawingEnabled) {
-                ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
               } else if (isLoading) {
                 ToastService().showToastMessage("잠시만 기다려주세요.");
               } else if (SearchingTimer(ref).isCooldownActive) {
@@ -207,27 +157,54 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Builder(builder: (BuildContext innerContext) {
-            return GestureDetector(
-              onPanStart: (details) => onPanStart(details, innerContext),
-              onPanUpdate: drawingEnabled
-                  ? (details) => onPanUpdate(details, innerContext)
-                  : null,
-              onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
-              child: RepaintBoundary(
-                key: repaintBoundaryKey,
-                child: CustomPaint(
-                  painter: PatternPainter(points, drawingEnabled),
-                  child: Container(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              height: chartHeight,
+              color: AppColors.secondaryColor,
+              child: Center(
+                child: Container(
+                  width: chartWidth,
+                  height: chartHeight,
+                  color: Colors.white, // 배경색을 하얀색으로 설정
+                  child: CustomPaint(
+                    painter: CandlestickChartPainter(
+                      openPrices: openPrices,
+                      closePrices: closePrices,
+                      highPrices: highPrices,
+                      lowPrices: lowPrices,
+                    ),
+                    child: Container(),
+                  ),
                 ),
               ),
-            );
-          }),
-          if (isLoading)
-            Positioned.fill(
-              child: Container(
+            ),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (index) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedCandleIndex = index;
+                        });
+                      },
+                      child: Text((index + 1).toString()),
+                    );
+                  }),
+                ),
+                Column(
+                  children: [
+                    buildPriceInputRow('시가', openPrices, '종가', closePrices, selectedCandleIndex),
+                    buildPriceInputRow('고가', highPrices, '저가', lowPrices, selectedCandleIndex),
+                  ],
+                ),
+              ],
+            ),
+            if (isLoading)
+              Container(
                 color: Colors.white.withOpacity(0.0),
                 child: Center(
                   child: FutureBuilder<String>(
@@ -248,229 +225,210 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: const BottomBannerAd(),
     );
   }
 
-  void onPanStart(DragStartDetails details, BuildContext context) {
-    if (!drawingEnabled) {
-      _controller.forward().whenComplete(() {
-        _controller.reverse();
-      });
-    }
+  Widget buildPriceInputRow(String label1, List<int> prices1, String label2, List<int> prices2, int index) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        buildSinglePriceInput(label1, prices1, index, label1),
+        buildSinglePriceInput(label2, prices2, index, label2),
+      ],
+    );
   }
 
-  void onPanUpdate(DragUpdateDetails details, BuildContext context) {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    Offset localPosition = renderBox.globalToLocal(details.globalPosition);
-    Size size = renderBox.size;
+  Widget buildSinglePriceInput(String label, List<int> prices, int index, String type) {
+    TextEditingController controller = TextEditingController(text: prices[index].toString());
 
-    if (localPosition.dx >= 0 &&
-        localPosition.dx <= size.width &&
-        localPosition.dy >= 0 &&
-        localPosition.dy <= size.height) {
-      setState(() {
-        points.add(localPosition);
-      });
-    }
+    return Row(
+      children: [
+        Text('$label: '),
+        SizedBox(
+          width: 30,
+          child: TextFormField(
+            controller: controller,
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(1),
+              FilteringTextInputFormatter.allow(RegExp(r'^[0-9]$')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                prices[index] = int.tryParse(value) ?? 0;
+                adjustPrices(index, type);
+                controller.text = prices[index].toString();
+              });
+            },
+          ),
+        ),
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_drop_up),
+              padding: EdgeInsets.all(0), // 간격 줄이기
+              constraints: BoxConstraints(), // 기본 constraints 제거
+              onPressed: () {
+                setState(() {
+                  if (prices[index] < 9) {
+                    prices[index]++;
+                    adjustPrices(index, type);
+                    controller.text = prices[index].toString();
+                  }
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.arrow_drop_down),
+              padding: EdgeInsets.all(0), // 간격 줄이기
+              constraints: BoxConstraints(), // 기본 constraints 제거
+              onPressed: () {
+                setState(() {
+                  if (prices[index] > 0) {
+                    prices[index]--;
+                    adjustPrices(index, type);
+                    controller.text = prices[index].toString();
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
-  void onPanEnd(DragEndDetails details) {
-    originalPoints = points.toList();
-    makeReadyToSend();
-  }
 
-  void makeReadyToSend() {
+  void adjustPrices(int index, String type) {
     setState(() {
-      validatePoints();
-      if (points.isNotEmpty) {
-        stretchGraphToFullWidth();
-        interpolatePoints();
-        drawingEnabled = false;
+      if (type == '시가' || type == '종가') {
+        if (openPrices[index] > highPrices[index]) highPrices[index] = openPrices[index];
+        if (openPrices[index] < lowPrices[index]) lowPrices[index] = openPrices[index];
+        if (closePrices[index] > highPrices[index]) highPrices[index] = closePrices[index];
+        if (closePrices[index] < lowPrices[index]) lowPrices[index] = closePrices[index];
+      } else if (type == '고가') {
+        if (highPrices[index] < openPrices[index]) openPrices[index] = highPrices[index];
+        if (highPrices[index] < closePrices[index]) closePrices[index] = highPrices[index];
+      } else if (type == '저가') {
+        if (lowPrices[index] > openPrices[index]) openPrices[index] = lowPrices[index];
+        if (lowPrices[index] > closePrices[index]) closePrices[index] = lowPrices[index];
       }
-      if (points.any((point) => point.dx.isNaN || point.dy.isNaN)) {
-        points = [];
-        drawingEnabled = true;
-      }
+      savePrices();
     });
   }
 
-  void validatePoints() {
-    List<Offset> result = [];
-    double? prevX;
-
-    for (Offset point in originalPoints) {
-      double currentX = point.dx;
-      if (prevX == null || currentX > prevX) {
-        result.add(point);
-        prevX = currentX;
-      }
-    }
-
-    points = result;
-  }
-
-  void stretchGraphToFullWidth() {
-    double minX = points.reduce((a, b) => a.dx < b.dx ? a : b).dx;
-    double maxX = points.reduce((a, b) => a.dx > b.dx ? a : b).dx;
-    double width = context.size!.width;
-
-    for (var i = 0; i < points.length; i++) {
-      double normalizedX = (points[i].dx - minX) / (maxX - minX);
-      points[i] = Offset(normalizedX * width, points[i].dy);
-    }
-
-    double minY = points.reduce((a, b) => a.dy < b.dy ? a : b).dy;
-    double maxY = points.reduce((a, b) => a.dy > b.dy ? a : b).dy;
-    double height = width;
-
-    double marginTop =
-    height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
-    double marginBottom = minY > 0.2 * height ? 0.2 * height : minY;
-
-    for (var i = 0; i < points.length; i++) {
-      double normalizedY = (points[i].dy - minY) / (maxY - minY);
-
-      points[i] = Offset(points[i].dx,
-          (normalizedY * (height - marginTop - marginBottom) + marginBottom));
-    }
-  }
-
-  void interpolatePoints() {
-    double minX = points.map((p) => p.dx).reduce(min);
-    double maxX = points.map((p) => p.dx).reduce(max);
-    int numPoints = int.tryParse(selectedSize) ?? 128;
-    double interval = (maxX - minX) / (numPoints - 1);
-
-    List<Offset> newPoints = [points.first];
-    for (int i = 1; i < numPoints - 1; i++) {
-      double newX = minX + i * interval;
-      Offset p1 =
-      points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
-      Offset p2 =
-      points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
-
-      double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
-      double newY = p1.dy + slope * (newX - p1.dx);
-      newPoints.add(Offset(newX, newY));
-    }
-    newPoints.add(points.last);
-
-    points = newPoints;
-  }
-
-  void sendPattern(double screenHeight) async {
-    // 로딩 상태를 true로 설정
-    ref.read(isPatternLoadingProvider.notifier).state = true;
-
+  void savePrices() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selectedSize', selectedSize);
-    await prefs.setString('selectedMarket', selectedMarket);
-
-    RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
-        .findRenderObject() as RenderRepaintBoundary;
-    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    Uint8List pngBytes = byteData!.buffer.asUint8List();
-    String encodedPattern = base64Encode(pngBytes);
-
-    List<double> numbers =
-    points.map((point) => 1 - point.dy / screenHeight).toList();
-    int dayNum = int.tryParse(selectedSize) ?? 0;
-
-    String url = dotenv.env["PATTERN_SEARCH_API_URL"] ?? "";
-    String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
-    String lang = await LanguagePreference.getLanguageSetting();
-
-    Map<String, dynamic> body = {
-      'numbers': numbers,
-      'day_num': dayNum,
-      'market': market,
-      'lang': lang,
-    };
-
-    try {
-      http.Response response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200) {
-        List<dynamic> results = jsonDecode(response.body);
-        PatternResultManager.initializePatternResult(
-            res: results,
-            pattern: encodedPattern,
-            mkt: market,
-            sz: selectedSize,
-            language: lang);
-
-        ref.read(isPatternLoadingProvider.notifier).state = false;
-
-        PatternResultManager.showPatternResult(context);
-
-        setState(() {
-          points.clear();
-          originalPoints.clear();
-          drawingEnabled = true;
-        });
-      } else {
-        print('Failed to send data. Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      }
-    } catch (e) {
-      print('Error sending data to the API: $e');
-    } finally {
-      // 로딩 상태를 false로 설정
-      ref.read(isPatternLoadingProvider.notifier).state = false;
-    }
+    prefs.setStringList('openPrices', openPrices.map((e) => e.toString()).toList());
+    prefs.setStringList('closePrices', closePrices.map((e) => e.toString()).toList());
+    prefs.setStringList('highPrices', highPrices.map((e) => e.toString()).toList());
+    prefs.setStringList('lowPrices', lowPrices.map((e) => e.toString()).toList());
   }
 }
 
-class PatternPainter extends CustomPainter {
-  final List<Offset> points;
-  final bool drawingEnabled;
-  PatternPainter(this.points, this.drawingEnabled);
+class CandlestickChartPainter extends CustomPainter {
+  final List<int> openPrices;
+  final List<int> closePrices;
+  final List<int> highPrices;
+  final List<int> lowPrices;
+
+  CandlestickChartPainter({
+    required this.openPrices,
+    required this.closePrices,
+    required this.highPrices,
+    required this.lowPrices,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 기존 그리기 설정
-    Paint paint = Paint()
-      ..color = drawingEnabled ? Colors.black : AppColors.secondaryColor
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0;
+    double gridWidth = size.width / 8;
+    double totalHeight = size.height;
+    double chartHeight = totalHeight * 0.9; // 차트 높이를 90%로 설정하여 위아래에 공백 추가
+    double marginHeight = (totalHeight - chartHeight) / 2; // 위아래 공백
+    double gridHeight = chartHeight / 9; // 10개의 그리드 라인
 
-    // 점들을 연결하여 선을 그림
-    for (int i = 0; i < points.length - 1; i++) {
-      canvas.drawLine(points[i], points[i + 1], paint);
+    double minHeight = 1.0;  // 최소 높이 설정
+
+    Paint axisPaint = Paint()
+      ..color = Colors.black12
+      ..strokeWidth = 1;
+
+    TextPainter textPainter = TextPainter(
+      textAlign: TextAlign.right,
+      textDirection: TextDirection.ltr,
+    );
+
+    for (int i = 0; i <= 9; i++) {
+      double y = totalHeight - marginHeight - i * gridHeight;
+
+      // 높이 숫자 표기 (0, 3, 6, 9에만 숫자 표시)
+      if (i % 3 == 0) {
+        textPainter.text = TextSpan(
+          text: '$i',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+          ),
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(2, y - 8));
+      }
+
+      // 회색 실선 그리기
+      canvas.drawLine(Offset(12, y), Offset(size.width - gridWidth / 2, y), axisPaint);
     }
 
-    // 반투명 회색으로 화면 전체를 채우는 네모를 추가
-    paint
-      ..color = Colors.grey.withOpacity(0.15) // 색상과 투명도 설정
-      ..style = PaintingStyle.fill; // 채우기 스타일로 변경
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    for (int i = 0; i <= 8; i++) {
+      double x = i * gridWidth - gridWidth / 2;
 
-    // 가이드 라인 추가
-    paint
-      ..color = Colors.grey.withOpacity(0.4)
-      ..strokeWidth = 2.0;
-    canvas.drawLine(Offset(0, size.height * 0.2),
-        Offset(size.width, size.height * 0.2), paint);
-    canvas.drawLine(Offset(0, size.height * 0.8),
-        Offset(size.width, size.height * 0.8), paint);
+      // 세로선 그리기
+      canvas.drawLine(Offset(x, marginHeight), Offset(x, totalHeight - marginHeight), axisPaint);
+    }
 
-    // 화면 테두리 그리기
-    paint
-      ..color = Colors.grey.withOpacity(0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    for (int i = 0; i < 4; i++) {
+      double x = (i * 2 + 1) * gridWidth;
+      double open = totalHeight - marginHeight - openPrices[i] * gridHeight;
+      double close = totalHeight - marginHeight - closePrices[i] * gridHeight;
+      double high = totalHeight - marginHeight - highPrices[i] * gridHeight;
+      double low = totalHeight - marginHeight - lowPrices[i] * gridHeight;
+      Color candleColor = close <= open ? Colors.red : Colors.blue;
+
+      Paint candlePaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = candleColor;
+
+      Paint wickPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = candleColor; // 꼬리 색을 캔들 색과 맞춤
+
+      double top = min(open, close);
+      double bottom = max(open, close);
+
+      if (bottom - top < minHeight) {
+        bottom = top + minHeight;
+      }
+
+      // 캔들 바디 그리기
+      canvas.drawRect(
+        Rect.fromPoints(
+          Offset(x - gridWidth / 2, top),
+          Offset(x + gridWidth / 2, bottom),
+        ),
+        candlePaint,
+      );
+
+      // 꼬리 그리기
+      canvas.drawLine(Offset(x, low), Offset(x, high), wickPaint);
+    }
   }
 
   @override
