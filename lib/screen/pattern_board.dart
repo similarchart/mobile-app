@@ -36,12 +36,14 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   String selectedMarket = '시장';
   final List<String> countries = ['시장', '미국', '한국'];
   int selectedCandleIndex = 0; // 선택된 캔들스틱의 인덱스
+  String lang = 'ko'; // 기본 언어 설정을 한국어로
 
   @override
   void initState() {
     super.initState();
     loadPreferences();
     loadPrices(); // Load prices from SharedPreferences
+    loadLanguagePreference(); // 언어 설정 로드
 
     // 페이지가 초기화될 때 세로 모드로 설정
     SystemChrome.setPreferredOrientations([
@@ -60,12 +62,16 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     });
   }
 
-
   void loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       selectedMarket = prefs.getString('selectedMarket') ?? '시장';
     });
+  }
+
+  void loadLanguagePreference() async {
+    lang = await LanguagePreference.getLanguageSetting();
+    setState(() {});
   }
 
   @override
@@ -85,8 +91,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(isPatternLoadingProvider);
-    double chartHeight = (widget.screenHeight - 60) / 2;
+    double chartHeight = widget.screenHeight / 2;
     double chartWidth = chartHeight;
+    final inputHeight = MediaQuery.of(context).size.width - chartHeight;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -109,8 +116,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
               setState(() {
                 selectedMarket = newValue!;
               });
-              SharedPreferences prefs =
-              await SharedPreferences.getInstance();
+              SharedPreferences prefs = await SharedPreferences.getInstance();
               await prefs.setString('selectedMarket', selectedMarket);
             },
             style: const TextStyle(color: AppColors.textColor),
@@ -157,76 +163,96 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              height: chartHeight,
-              color: AppColors.secondaryColor,
-              child: Center(
-                child: Container(
-                  width: chartWidth,
-                  height: chartHeight,
-                  color: Colors.white, // 배경색을 하얀색으로 설정
-                  child: CustomPaint(
-                    painter: CandlestickChartPainter(
-                      openPrices: openPrices,
-                      closePrices: closePrices,
-                      highPrices: highPrices,
-                      lowPrices: lowPrices,
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return Column(
+            children: [
+              Container(
+                height: chartHeight,
+                color: AppColors.secondaryColor,
+                child: Center(
+                  child: Container(
+                    width: chartWidth,
+                    height: chartHeight,
+                    color: Colors.white, // 배경색을 하얀색으로 설정
+                    child: CustomPaint(
+                      painter: CandlestickChartPainter(
+                        openPrices: openPrices,
+                        closePrices: closePrices,
+                        highPrices: highPrices,
+                        lowPrices: lowPrices,
+                        selectedCandleIndex: selectedCandleIndex,
+                        lang: lang, // 추가
+                      ),
+                      child: Container(),
                     ),
-                    child: Container(),
                   ),
                 ),
               ),
-            ),
-            Column(
-              children: [
-                Row(
+              SizedBox(height: inputHeight * 0.05), // 5% 패딩 추가
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(4, (index) {
+                  return ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedCandleIndex = index;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.all(8), // 버튼 크기 조절
+                      backgroundColor: selectedCandleIndex == index ? Colors.black26 : Colors.white70, // 선택된 버튼 색상 변경
+                    ),
+                    child: Text(
+                      (index + 1).toString(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, // 텍스트 굵게
+                        color: selectedCandleIndex == index ? Colors.white : Colors.black, // 선택된 버튼 텍스트 색상 변경
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              Expanded(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(4, (index) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedCandleIndex = index;
-                        });
-                      },
-                      child: Text((index + 1).toString()),
-                    );
-                  }),
-                ),
-                Column(
                   children: [
                     buildPriceInputRow('시가', openPrices, '종가', closePrices, selectedCandleIndex),
+                    Container(
+                      margin: EdgeInsets.zero,
+                      height: 1.0,
+                      color: Colors.black12,
+                    ),
                     buildPriceInputRow('고가', highPrices, '저가', lowPrices, selectedCandleIndex),
                   ],
                 ),
-              ],
-            ),
-            if (isLoading)
-              Container(
-                color: Colors.white.withOpacity(0.0),
-                child: Center(
-                  child: FutureBuilder<String>(
-                    future: LanguagePreference.getLanguageSetting(),
-                    builder:
-                        (BuildContext context, AsyncSnapshot<String> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
-                      } else if (snapshot.hasData) {
-                        String lang = snapshot.data!;
-                        return Image.asset(lang == 'ko'
-                            ? 'assets/loading_image.gif'
-                            : 'assets/loading_image_en.gif');
-                      } else {
-                        return const Text('로딩 이미지를 불러올 수 없습니다.');
-                      }
-                    },
+              ),
+              if (isLoading)
+                Expanded(
+                  child: Container(
+                    color: Colors.white.withOpacity(0.0),
+                    child: Center(
+                      child: FutureBuilder<String>(
+                        future: LanguagePreference.getLanguageSetting(),
+                        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          } else if (snapshot.hasData) {
+                            String lang = snapshot.data!;
+                            return Image.asset(lang == 'ko'
+                                ? 'assets/loading_image.gif'
+                                : 'assets/loading_image_en.gif');
+                          } else {
+                            return const Text('로딩 이미지를 불러올 수 없습니다.');
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: const BottomBannerAd(),
     );
@@ -237,75 +263,68 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         buildSinglePriceInput(label1, prices1, index, label1),
+        Container(
+          height: 30, // Divider의 높이를 지정
+          child: VerticalDivider(
+            color: Colors.black12,
+            thickness: 1,
+          ),
+        ),
         buildSinglePriceInput(label2, prices2, index, label2),
       ],
     );
   }
 
   Widget buildSinglePriceInput(String label, List<int> prices, int index, String type) {
-    TextEditingController controller = TextEditingController(text: prices[index].toString());
+    Color textColor = Colors.black;
+
+    // 고가와 저가에 따른 색상 변경
+    if (label == '고가') {
+      textColor = lang == 'ko' ? Colors.red : Colors.green;
+    } else if (label == '저가') {
+      textColor = lang == 'ko' ? Colors.blue : Colors.red;
+    }
 
     return Row(
       children: [
-        Text('$label: '),
-        SizedBox(
-          width: 30,
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-            ),
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(1),
-              FilteringTextInputFormatter.allow(RegExp(r'^[0-9]$')),
-            ],
-            onChanged: (value) {
-              setState(() {
-                prices[index] = int.tryParse(value) ?? 0;
-                adjustPrices(index, type);
-                controller.text = prices[index].toString();
-              });
-            },
+        Text(
+          '$label : ${prices[index]}',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textColor,
           ),
         ),
+        SizedBox(width: 16,), // 텍스트와 아이콘 사이의 간격 조절
         Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.arrow_drop_up),
-              padding: EdgeInsets.all(0), // 간격 줄이기
-              constraints: BoxConstraints(), // 기본 constraints 제거
-              onPressed: () {
+            InkWell(
+              onTap: () {
                 setState(() {
                   if (prices[index] < 9) {
                     prices[index]++;
                     adjustPrices(index, type);
-                    controller.text = prices[index].toString();
                   }
                 });
               },
+              child: Icon(Icons.arrow_circle_up),
             ),
-            IconButton(
-              icon: Icon(Icons.arrow_drop_down),
-              padding: EdgeInsets.all(0), // 간격 줄이기
-              constraints: BoxConstraints(), // 기본 constraints 제거
-              onPressed: () {
+            SizedBox(width: 10), // 아이콘 사이의 간격을 좁게 설정
+            InkWell(
+              onTap: () {
                 setState(() {
                   if (prices[index] > 0) {
                     prices[index]--;
                     adjustPrices(index, type);
-                    controller.text = prices[index].toString();
                   }
                 });
               },
+              child: Icon(Icons.arrow_circle_down),
             ),
           ],
         ),
       ],
     );
   }
-
 
   void adjustPrices(int index, String type) {
     setState(() {
@@ -317,9 +336,11 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
       } else if (type == '고가') {
         if (highPrices[index] < openPrices[index]) openPrices[index] = highPrices[index];
         if (highPrices[index] < closePrices[index]) closePrices[index] = highPrices[index];
+        if (highPrices[index] < lowPrices[index]) lowPrices[index] = highPrices[index];
       } else if (type == '저가') {
         if (lowPrices[index] > openPrices[index]) openPrices[index] = lowPrices[index];
         if (lowPrices[index] > closePrices[index]) closePrices[index] = lowPrices[index];
+        if (lowPrices[index] > highPrices[index]) highPrices[index] = lowPrices[index];
       }
       savePrices();
     });
@@ -339,12 +360,16 @@ class CandlestickChartPainter extends CustomPainter {
   final List<int> closePrices;
   final List<int> highPrices;
   final List<int> lowPrices;
+  final int selectedCandleIndex;
+  final String lang;
 
   CandlestickChartPainter({
     required this.openPrices,
     required this.closePrices,
     required this.highPrices,
     required this.lowPrices,
+    required this.selectedCandleIndex,
+    required this.lang,
   });
 
   @override
@@ -386,7 +411,7 @@ class CandlestickChartPainter extends CustomPainter {
       canvas.drawLine(Offset(12, y), Offset(size.width - gridWidth / 2, y), axisPaint);
     }
 
-    for (int i = 0; i <= 8; i++) {
+    for (int i = 1; i <= 8; i++) {
       double x = i * gridWidth - gridWidth / 2;
 
       // 세로선 그리기
@@ -399,7 +424,13 @@ class CandlestickChartPainter extends CustomPainter {
       double close = totalHeight - marginHeight - closePrices[i] * gridHeight;
       double high = totalHeight - marginHeight - highPrices[i] * gridHeight;
       double low = totalHeight - marginHeight - lowPrices[i] * gridHeight;
-      Color candleColor = close <= open ? Colors.red : Colors.blue;
+
+      Color candleColor;
+      if (lang == 'ko') {
+        candleColor = close <= open ? Colors.red : Colors.blue;
+      } else {
+        candleColor = close <= open ? Colors.red : Colors.green;
+      }
 
       Paint candlePaint = Paint()
         ..style = PaintingStyle.fill
@@ -415,6 +446,17 @@ class CandlestickChartPainter extends CustomPainter {
 
       if (bottom - top < minHeight) {
         bottom = top + minHeight;
+      }
+
+      // 선택된 캔들스틱의 배경을 노란색으로 설정
+      if (i == selectedCandleIndex) {
+        Paint backgroundPaint = Paint()
+          ..style = PaintingStyle.fill
+          ..color = Colors.yellow.withOpacity(0.3);
+        canvas.drawRect(
+          Rect.fromLTWH(x - gridWidth / 2, marginHeight, gridWidth, chartHeight),
+          backgroundPaint,
+        );
       }
 
       // 캔들 바디 그리기
