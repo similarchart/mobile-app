@@ -8,7 +8,6 @@ class PatternResult extends StatelessWidget {
   final List<dynamic> results;
   final String userPattern;
   final String market;
-  final String size;
   final String lang;
 
   PatternResult(
@@ -16,12 +15,11 @@ class PatternResult extends StatelessWidget {
         required this.results,
         required this.userPattern,
         required this.market,
-        required this.size,
         required this.lang})
       : super(key: key);
 
   String createResultUrl(String code, String date) {
-    return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$lang';
+    return 'https://www.similarchart.com/stock_info/?code=$code&lang=$lang';
   }
 
   @override
@@ -58,7 +56,7 @@ class PatternResult extends StatelessWidget {
           Padding(
             padding: EdgeInsets.all(10),
             child: Text(
-              results.isEmpty ? "비슷한 차트를 찾지 못했습니다" : "원하는 차트를 선택하세요",
+              results.isEmpty ? "비슷한 패턴을 찾지 못했습니다" : "원하는 패턴을 선택하세요",
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.textColor,
@@ -119,7 +117,6 @@ class PatternResultManager {
   static List<dynamic> results = [];
   static String userPattern = '';
   static String market = '';
-  static String size = '';
   static String lang = '';
   static bool isScreenDisplayed = false;
 
@@ -127,12 +124,10 @@ class PatternResultManager {
       {required List<dynamic> res,
         required String pattern,
         required String mkt,
-        required String sz,
         required String language}) {
     results = res;
     userPattern = pattern;
     market = mkt;
-    size = sz;
     lang = language;
     isScreenDisplayed = true;
   }
@@ -141,7 +136,6 @@ class PatternResultManager {
     results.clear();
     userPattern = '';
     market = '';
-    size = '';
     lang = '';
     isScreenDisplayed = false;
   }
@@ -162,7 +156,6 @@ class PatternResultManager {
             results: results,
             userPattern: userPattern,
             market: market,
-            size: size,
             lang: lang),
       ),
     );
