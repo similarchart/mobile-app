@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/drawing_result.dart';
@@ -40,10 +41,12 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   late AnimationController _controller;
   late Animation<Color?> _colorAnimation;
+  Client? _httpClient;
 
   @override
   void initState() {
     super.initState();
+    _httpClient = Client();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
@@ -74,6 +77,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   @override
   void dispose() {
+    _httpClient?.close(); // HTTP 요청 취소
     _controller.dispose();
     _adManager.dispose();
 
@@ -89,169 +93,179 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(isDrawingLoadingProvider);
+    return PopScope(
+      onPopInvoked: (bool value) {
+        ref.read(isDrawingLoadingProvider.notifier).state = false;
+      },
+      child: Consumer(builder: (context, ref, child) {
+        final isLoading = ref.watch(isDrawingLoadingProvider);
+        final isCooldownCompleted = ref.watch(isCooldownCompletedProvider);
+        final remainingTimeInSeconds = ref.watch(cooldownDurationProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryColor,
-        title: const Text(
-          '드로잉검색',
-          style: TextStyle(
-            color: AppColors.textColor,
-          ),
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          DropdownButton<String>(
-            value: selectedSize,
-            onChanged: isLoading
-                ? null
-                : (String? newValue) async {
-                    setState(() {
-                      selectedSize = newValue!;
-                    });
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    await prefs.setString('selectedSize', selectedSize);
-                    points = originalPoints;
-                    makeReadyToSend();
-                  },
-            style: const TextStyle(color: AppColors.textColor),
-            dropdownColor: AppColors.primaryColor,
-            items: sizes.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value,
-                    style: TextStyle(
-                        color: isLoading
-                            ? AppColors.secondaryColor
-                            : AppColors.textColor)),
-              );
-            }).toList(),
-          ),
-          SizedBox(width: 10.0),
-          DropdownButton<String>(
-            value: selectedMarket,
-            onChanged: isLoading
-                ? null
-                : (String? newValue) async {
-                    setState(() {
-                      selectedMarket = newValue!;
-                    });
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    await prefs.setString('selectedMarket', selectedMarket);
-                  },
-            style: const TextStyle(color: AppColors.textColor),
-            dropdownColor: AppColors.primaryColor,
-            items: countries.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value,
-                    style: TextStyle(
-                        color: isLoading
-                            ? AppColors.secondaryColor
-                            : AppColors.textColor)),
-              );
-            }).toList(),
-          ),
-          IconButton(
-            icon: Icon(Icons.refresh,
-                color: isLoading
-                    ? AppColors.secondaryColor
-                    : _colorAnimation.value ?? AppColors.textColor),
-            onPressed: isLoading
-                ? null
-                : () => setState(() {
-                      points.clear();
-                      originalPoints.clear();
-                      drawingEnabled = true;
-                    }),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.send,
-              color: (selectedSize != "비교일" &&
+        bool isCooldownActive = !isCooldownCompleted;
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: AppColors.primaryColor,
+            title: const Text(
+              '드로잉검색',
+              style: TextStyle(
+                color: AppColors.textColor,
+              ),
+            ),
+            automaticallyImplyLeading: false,
+            actions: [
+              DropdownButton<String>(
+                value: selectedSize,
+                onChanged: isLoading
+                    ? null
+                    : (String? newValue) async {
+                  setState(() {
+                    selectedSize = newValue!;
+                  });
+                  SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
+                  await prefs.setString('selectedSize', selectedSize);
+                  points = originalPoints;
+                  makeReadyToSend();
+                },
+                style: const TextStyle(color: AppColors.textColor),
+                dropdownColor: AppColors.primaryColor,
+                items: sizes.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style: TextStyle(
+                            color: isLoading
+                                ? AppColors.secondaryColor
+                                : AppColors.textColor)),
+                  );
+                }).toList(),
+              ),
+              SizedBox(width: 10.0),
+              DropdownButton<String>(
+                value: selectedMarket,
+                onChanged: isLoading
+                    ? null
+                    : (String? newValue) async {
+                  setState(() {
+                    selectedMarket = newValue!;
+                  });
+                  SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
+                  await prefs.setString('selectedMarket', selectedMarket);
+                },
+                style: const TextStyle(color: AppColors.textColor),
+                dropdownColor: AppColors.primaryColor,
+                items: countries.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style: TextStyle(
+                            color: isLoading
+                                ? AppColors.secondaryColor
+                                : AppColors.textColor)),
+                  );
+                }).toList(),
+              ),
+              IconButton(
+                icon: Icon(Icons.refresh,
+                    color: isLoading
+                        ? AppColors.secondaryColor
+                        : _colorAnimation.value ?? AppColors.textColor),
+                onPressed: isLoading
+                    ? null
+                    : () => setState(() {
+                  points.clear();
+                  originalPoints.clear();
+                  drawingEnabled = true;
+                }),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.send,
+                  color: (selectedSize != "비교일" &&
                       selectedMarket != "시장" &&
                       !drawingEnabled &&
                       !isLoading &&
-                      !SearchingTimer(ref).isCooldownActive)
-                  ? AppColors.textColor
-                  : AppColors.secondaryColor,
-            ),
-            onPressed: (selectedSize != "비교일" &&
+                      !isCooldownActive)
+                      ? AppColors.textColor
+                      : AppColors.secondaryColor,
+                ),
+                onPressed: (selectedSize != "비교일" &&
                     selectedMarket != "시장" &&
                     !drawingEnabled &&
                     !isLoading &&
-                    !SearchingTimer(ref).isCooldownActive)
-                ? () {
-              SearchingTimer(ref).startTimer(10);
-                    sendDrawing(widget.screenHeight);
+                    !isCooldownActive)
+                    ? () {
+                  SearchingTimer(ref).startTimer(10);
+                  sendDrawing(widget.screenHeight);
+                }
+                    : () {
+                  if (selectedSize == "비교일") {
+                    ToastService().showToastMessage("비교 일수를 선택해 주세요.");
+                  } else if (selectedMarket == "시장") {
+                    ToastService().showToastMessage("시장을 선택해 주세요.");
+                  } else if (drawingEnabled) {
+                    ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
+                  } else if (isLoading) {
+                    ToastService().showToastMessage("잠시만 기다려주세요.");
+                  } else if (isCooldownActive) {
+                    ToastService().showToastMessage("$remainingTimeInSeconds초 후 재검색이 가능합니다.");
+                  } else {
+                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                   }
-                : () {
-                    if (selectedSize == "비교일") {
-                      ToastService().showToastMessage("비교 일수를 선택해 주세요.");
-                    } else if (selectedMarket == "시장") {
-                      ToastService().showToastMessage("시장을 선택해 주세요.");
-                    } else if (drawingEnabled) {
-                      ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
-                    } else if (isLoading) {
-                      ToastService().showToastMessage("잠시만 기다려주세요.");
-                    } else if (SearchingTimer(ref).isCooldownActive) {
-                      int remain = SearchingTimer(ref).remainingTimeInSeconds;
-                      ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
-                    } else {
-                      ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-                    }
-                  },
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Builder(builder: (BuildContext innerContext) {
-            return GestureDetector(
-              onPanStart: (details) => onPanStart(details, innerContext),
-              onPanUpdate: drawingEnabled
-                  ? (details) => onPanUpdate(details, innerContext)
-                  : null,
-              onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
-              child: RepaintBoundary(
-                key: repaintBoundaryKey,
-                child: CustomPaint(
-                  painter: DrawingPainter(points, drawingEnabled),
-                  child: Container(),
-                ),
+                },
               ),
-            );
-          }),
-          if (isLoading)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.0),
-                child: Center(
-                  child: FutureBuilder<String>(
-                    future: LanguagePreference.getLanguageSetting(),
-                    builder:
-                        (BuildContext context, AsyncSnapshot<String> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
-                      } else if (snapshot.hasData) {
-                        String lang = snapshot.data!;
-                        return Image.asset(lang == 'ko'
-                            ? 'assets/loading_image.gif'
-                            : 'assets/loading_image_en.gif');
-                      } else {
-                        return const Text('로딩 이미지를 불러올 수 없습니다.');
-                      }
-                    },
+            ],
+          ),
+          body: Stack(
+            children: [
+              Builder(builder: (BuildContext innerContext) {
+                return GestureDetector(
+                  onPanStart: (details) => onPanStart(details, innerContext),
+                  onPanUpdate: drawingEnabled
+                      ? (details) => onPanUpdate(details, innerContext)
+                      : null,
+                  onPanEnd: drawingEnabled ? (details) => onPanEnd(details) : null,
+                  child: RepaintBoundary(
+                    key: repaintBoundaryKey,
+                    child: CustomPaint(
+                      painter: DrawingPainter(points, drawingEnabled),
+                      child: Container(),
+                    ),
+                  ),
+                );
+              }),
+              if (isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white.withOpacity(0.0),
+                    child: Center(
+                      child: FutureBuilder<String>(
+                        future: LanguagePreference.getLanguageSetting(),
+                        builder:
+                            (BuildContext context, AsyncSnapshot<String> snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          } else if (snapshot.hasData) {
+                            String lang = snapshot.data!;
+                            return Image.asset(lang == 'ko'
+                                ? 'assets/loading_image.gif'
+                                : 'assets/loading_image_en.gif');
+                          } else {
+                            return const Text('로딩 이미지를 불러올 수 없습니다.');
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
-      ),
-      bottomNavigationBar: const BottomBannerAd(),
+            ],
+          ),
+          bottomNavigationBar: const BottomBannerAd(),
+        );
+      }),
     );
   }
 
@@ -393,7 +407,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     };
 
     try {
-      http.Response response = await http.post(
+      http.Response response = await _httpClient!.post(
         Uri.parse(url),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',

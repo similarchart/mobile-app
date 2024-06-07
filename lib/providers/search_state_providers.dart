@@ -1,11 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
+// Loading state providers
 final isDrawingLoadingProvider = StateProvider<bool>((ref) => false);
 final isPatternLoadingProvider = StateProvider<bool>((ref) => false);
 
-// 쿨다운 상태 관리
-final isCooldownCompletedProvider = StateProvider<bool>((ref) => true);
-// 마지막 드로잉 시간 관리
+// Cooldown state management
+class CooldownNotifier extends StateNotifier<int> {
+  Timer? _timer;
+
+  CooldownNotifier() : super(0);
+
+  void startCooldown(int seconds) {
+    state = seconds;
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (state > 0) {
+        state--;
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+final cooldownDurationProvider = StateNotifierProvider<CooldownNotifier, int>((ref) {
+  return CooldownNotifier();
+});
+
+// Last drawing time management
 final lastSearchTimeProvider = StateProvider<DateTime?>((ref) => null);
-// 쿨다운 지속 시간 관리
-final cooldownDurationProvider = StateProvider<Duration>((ref) => const Duration(seconds: 60));
+
+// Cooldown completed management
+final isCooldownCompletedProvider = Provider<bool>((ref) {
+  return ref.watch(cooldownDurationProvider) == 0;
+});

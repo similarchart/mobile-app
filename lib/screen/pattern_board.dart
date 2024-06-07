@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/screen/pattern_result.dart';
@@ -44,9 +45,13 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   PriceType? selectedPriceType;
   GlobalKey repaintBoundaryKey = GlobalKey();
 
+  Client? _httpClient;
+
   @override
   void initState() {
     super.initState();
+    _httpClient = Client();
+
     loadPreferences();
     loadPrices(); // Load prices from SharedPreferences
     loadLanguagePreference(); // 언어 설정 로드
@@ -62,24 +67,24 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       openPrices = (prefs
-          .getStringList('openPrices')
-          ?.map((e) => int.tryParse(e) ?? 0)
-          .toList() ??
+              .getStringList('openPrices')
+              ?.map((e) => int.tryParse(e) ?? 0)
+              .toList() ??
           [1, 3, 5, 7]);
       closePrices = (prefs
-          .getStringList('closePrices')
-          ?.map((e) => int.tryParse(e) ?? 0)
-          .toList() ??
+              .getStringList('closePrices')
+              ?.map((e) => int.tryParse(e) ?? 0)
+              .toList() ??
           [2, 4, 6, 8]);
       highPrices = (prefs
-          .getStringList('highPrices')
-          ?.map((e) => int.tryParse(e) ?? 0)
-          .toList() ??
+              .getStringList('highPrices')
+              ?.map((e) => int.tryParse(e) ?? 0)
+              .toList() ??
           [3, 5, 7, 9]);
       lowPrices = (prefs
-          .getStringList('lowPrices')
-          ?.map((e) => int.tryParse(e) ?? 0)
-          .toList() ??
+              .getStringList('lowPrices')
+              ?.map((e) => int.tryParse(e) ?? 0)
+              .toList() ??
           [0, 2, 4, 6]);
     });
   }
@@ -99,6 +104,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   @override
   void dispose() {
     _adManager.dispose();
+    _httpClient?.close(); // HTTP 요청 취소
 
     // 페이지를 벗어날 때 화면 방향 제한을 해제
     SystemChrome.setPreferredOrientations([
@@ -112,369 +118,441 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(isPatternLoadingProvider);
-    double screenWidth = MediaQuery.of(context).size.width;
-    double chartHeight = widget.screenHeight / 2;
-    double chartWidth = chartHeight;
-    double gridWidth = chartWidth / 8;
-    double gridHeight = chartHeight / 10;
-    double widthMargin = gridWidth / 2; // 상단 여백
-    double heightMargin = gridHeight / 2; // 상단 여백
-    final inputHeight = screenWidth - chartHeight;
+    return PopScope(
+      onPopInvoked: (bool value) {
+        ref.read(isPatternLoadingProvider.notifier).state = false;
+      },
+      child: Consumer(builder: (context, ref, child) {
+        final isLoading = ref.watch(isPatternLoadingProvider);
+        final isCooldownCompleted = ref.watch(isCooldownCompletedProvider);
+        final remainingTimeInSeconds = ref.watch(cooldownDurationProvider);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryColor,
-        title: const Text(
-          '패턴검색',
-          style: TextStyle(
-            color: AppColors.textColor,
-          ),
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          SizedBox(width: 10.0),
-          DropdownButton<String>(
-            value: selectedMarket,
-            onChanged: isLoading
-                ? null
-                : (String? newValue) async {
-              setState(() {
-                selectedMarket = newValue!;
-              });
-              SharedPreferences prefs =
-              await SharedPreferences.getInstance();
-              await prefs.setString('selectedMarket', selectedMarket);
-            },
-            style: const TextStyle(color: AppColors.textColor),
-            dropdownColor: AppColors.primaryColor,
-            items: countries.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value,
-                    style: TextStyle(
-                        color: isLoading
-                            ? AppColors.secondaryColor
-                            : AppColors.textColor)),
-              );
-            }).toList(),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.send,
-              color: (selectedMarket != "시장" &&
-                  !isLoading &&
-                  !SearchingTimer(ref).isCooldownActive &&
-                  containsNumber(9, openPrices, closePrices, highPrices, lowPrices) &&
-                  containsNumber(0, openPrices, closePrices, highPrices, lowPrices))
-                  ? AppColors.textColor
-                  : AppColors.secondaryColor,
+        bool isCooldownActive = !isCooldownCompleted;
+
+        double screenWidth = MediaQuery.of(context).size.width;
+        double chartHeight = widget.screenHeight / 2;
+        double chartWidth = chartHeight;
+        double gridWidth = chartWidth / 8;
+        double gridHeight = chartHeight / 10;
+        double widthMargin = gridWidth / 2; // 상단 여백
+        double heightMargin = gridHeight / 2; // 상단 여백
+        final inputHeight = screenWidth - chartHeight;
+
+        return Scaffold(
+          resizeToAvoidBottomInset: false,
+          appBar: AppBar(
+            backgroundColor: AppColors.primaryColor,
+            title: const Text(
+              '패턴검색',
+              style: TextStyle(
+                color: AppColors.textColor,
+              ),
             ),
-            onPressed: (selectedMarket != "시장" &&
-                !isLoading &&
-                !SearchingTimer(ref).isCooldownActive &&
-                containsNumber(9, openPrices, closePrices, highPrices, lowPrices) &&
-                containsNumber(0, openPrices, closePrices, highPrices, lowPrices))
-                ? () {
-              SearchingTimer(ref).startTimer(10);
-              sendPattern(widget.screenHeight);
-            }
-                : () {
-              if (selectedMarket == "시장") {
-                ToastService().showToastMessage("시장을 선택해 주세요.");
-              } else if (isLoading) {
-                ToastService().showToastMessage("잠시만 기다려주세요.");
-              } else if (SearchingTimer(ref).isCooldownActive) {
-                int remain = SearchingTimer(ref).remainingTimeInSeconds;
-                ToastService().showToastMessage("$remain초 후 재검색이 가능합니다.");
-              } else if (!containsNumber(9, openPrices, closePrices, highPrices, lowPrices)) {
-                ToastService().showToastMessage("하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
-              } else if (!containsNumber(0, openPrices, closePrices, highPrices, lowPrices)) {
-                ToastService().showToastMessage("하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
-              } else {
-                ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-              }
-            },
+            automaticallyImplyLeading: false,
+            actions: [
+              SizedBox(width: 10.0),
+              DropdownButton<String>(
+                value: selectedMarket,
+                onChanged: isLoading
+                    ? null
+                    : (String? newValue) async {
+                        setState(() {
+                          selectedMarket = newValue!;
+                        });
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        await prefs.setString('selectedMarket', selectedMarket);
+                      },
+                style: const TextStyle(color: AppColors.textColor),
+                dropdownColor: AppColors.primaryColor,
+                items: countries.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style: TextStyle(
+                            color: isLoading
+                                ? AppColors.secondaryColor
+                                : AppColors.textColor)),
+                  );
+                }).toList(),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.send,
+                  color: (selectedMarket != "시장" &&
+                          !isLoading &&
+                          !isCooldownActive &&
+                          containsNumber(9, openPrices, closePrices, highPrices,
+                              lowPrices) &&
+                          containsNumber(0, openPrices, closePrices, highPrices,
+                              lowPrices))
+                      ? AppColors.textColor
+                      : AppColors.secondaryColor,
+                ),
+                onPressed: (selectedMarket != "시장" &&
+                        !isLoading &&
+                        !isCooldownActive &&
+                        containsNumber(9, openPrices, closePrices, highPrices,
+                            lowPrices) &&
+                        containsNumber(
+                            0, openPrices, closePrices, highPrices, lowPrices))
+                    ? () {
+                        SearchingTimer(ref).startTimer(10);
+                        sendPattern(widget.screenHeight);
+                      }
+                    : () {
+                        if (selectedMarket == "시장") {
+                          ToastService().showToastMessage("시장을 선택해 주세요.");
+                        } else if (isLoading) {
+                          ToastService().showToastMessage("잠시만 기다려주세요.");
+                        } else if (isCooldownActive) {
+                          ToastService().showToastMessage(
+                              "$remainingTimeInSeconds초 후 재검색이 가능합니다.");
+                        } else if (!containsNumber(9, openPrices, closePrices,
+                            highPrices, lowPrices)) {
+                          ToastService()
+                              .showToastMessage("하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
+                        } else if (!containsNumber(0, openPrices, closePrices,
+                            highPrices, lowPrices)) {
+                          ToastService()
+                              .showToastMessage("하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
+                        } else {
+                          ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                        }
+                      },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          return Stack(
-            children: [
-              Column(
+          body: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return Stack(
                 children: [
-                  GestureDetector(
-                    onTapDown: (TapDownDetails details) {
-                      RenderBox box = context.findRenderObject() as RenderBox;
-                      Offset localPosition = box.globalToLocal(details.globalPosition);
+                  Column(
+                    children: [
+                      GestureDetector(
+                        onTapDown: (TapDownDetails details) {
+                          RenderBox box =
+                              context.findRenderObject() as RenderBox;
+                          Offset localPosition =
+                              box.globalToLocal(details.globalPosition);
 
-                      // 모눈의 영역 계산
-                      double leftMargin = (constraints.maxWidth - chartWidth) / 2;
+                          // 모눈의 영역 계산
+                          double leftMargin =
+                              (constraints.maxWidth - chartWidth) / 2;
 
-                      if (localPosition.dx >= leftMargin &&
-                          localPosition.dx <= screenWidth - leftMargin) {
-                        setState(() {
-                          selectedCandleIndex = ((localPosition.dx - leftMargin) / gridWidth).floor() ~/ 2;
-                          selectedPriceType = null;
+                          if (localPosition.dx >= leftMargin &&
+                              localPosition.dx <= screenWidth - leftMargin) {
+                            setState(() {
+                              selectedCandleIndex =
+                                  ((localPosition.dx - leftMargin) / gridWidth)
+                                          .floor() ~/
+                                      2;
+                              selectedPriceType = null;
 
-                          // 터치한 위치와 시가/종가/고가/저가의 위치를 비교하여 선택된 항목 설정
-                          double openPriceY = chartHeight - openPrices[selectedCandleIndex] * gridHeight - heightMargin;
-                          double closePriceY = chartHeight - closePrices[selectedCandleIndex] * gridHeight - heightMargin;
-                          double highPriceY = chartHeight - highPrices[selectedCandleIndex] * gridHeight - heightMargin;
-                          double lowPriceY = chartHeight - lowPrices[selectedCandleIndex] * gridHeight - heightMargin;
+                              // 터치한 위치와 시가/종가/고가/저가의 위치를 비교하여 선택된 항목 설정
+                              double openPriceY = chartHeight -
+                                  openPrices[selectedCandleIndex] * gridHeight -
+                                  heightMargin;
+                              double closePriceY = chartHeight -
+                                  closePrices[selectedCandleIndex] *
+                                      gridHeight -
+                                  heightMargin;
+                              double highPriceY = chartHeight -
+                                  highPrices[selectedCandleIndex] * gridHeight -
+                                  heightMargin;
+                              double lowPriceY = chartHeight -
+                                  lowPrices[selectedCandleIndex] * gridHeight -
+                                  heightMargin;
 
-                          if (localPosition.dy >= openPriceY - heightMargin &&
-                              localPosition.dy < openPriceY + heightMargin) {
-                            selectedPriceType = PriceType.open;
-                          } else if (localPosition.dy >= closePriceY - heightMargin &&
-                              localPosition.dy < closePriceY + heightMargin) {
-                            selectedPriceType = PriceType.close;
-                          } else if (localPosition.dy >= highPriceY - heightMargin &&
-                              localPosition.dy < highPriceY + heightMargin) {
-                            selectedPriceType = PriceType.high;
-                          } else if (localPosition.dy >= lowPriceY - heightMargin &&
-                              localPosition.dy < lowPriceY + heightMargin) {
-                            selectedPriceType = PriceType.low;
+                              if (localPosition.dy >=
+                                      openPriceY - heightMargin &&
+                                  localPosition.dy <
+                                      openPriceY + heightMargin) {
+                                selectedPriceType = PriceType.open;
+                              } else if (localPosition.dy >=
+                                      closePriceY - heightMargin &&
+                                  localPosition.dy <
+                                      closePriceY + heightMargin) {
+                                selectedPriceType = PriceType.close;
+                              } else if (localPosition.dy >=
+                                      highPriceY - heightMargin &&
+                                  localPosition.dy <
+                                      highPriceY + heightMargin) {
+                                selectedPriceType = PriceType.high;
+                              } else if (localPosition.dy >=
+                                      lowPriceY - heightMargin &&
+                                  localPosition.dy < lowPriceY + heightMargin) {
+                                selectedPriceType = PriceType.low;
+                              }
+                            });
                           }
-                        });
-                      }
-                      setState(() {
-                        highlightedRowIndex = ((chartHeight - localPosition.dy + heightMargin) / gridHeight).floor();
-                      });
-                    },
-                    onPanUpdate: (DragUpdateDetails details) {
-                      RenderBox box = context.findRenderObject() as RenderBox;
-                      Offset localPosition = box.globalToLocal(details.globalPosition);
-                      double margin = gridHeight / 2; // 상단 여백, 필요시 조정
-                      int touchedRow = max(0, min(9, ((chartHeight - localPosition.dy + margin) / gridHeight).floor()));
-                      setState(() {
-                        highlightedRowIndex = touchedRow;
-                      });
-                      // 드래그 중인 경우
-                      if (selectedPriceType != null &&
-                          localPosition.dy >= 0 &&
-                          localPosition.dy <= chartHeight) {
-                        setState(() {
-                          if (selectedPriceType == PriceType.open) {
-                            openPrices[selectedCandleIndex] = touchedRow;
-                          } else if (selectedPriceType == PriceType.close) {
-                            closePrices[selectedCandleIndex] = touchedRow;
-                          } else if (selectedPriceType == PriceType.high) {
-                            highPrices[selectedCandleIndex] = touchedRow;
-                          } else if (selectedPriceType == PriceType.low) {
-                            lowPrices[selectedCandleIndex] = touchedRow;
-                          }
-                        });
-                        adjustPrices(selectedCandleIndex, selectedPriceType!);
-                      }
-                    },
-                    onPanEnd: (DragEndDetails details) {
-                      selectedPriceType = null;
-                      highlightedRowIndex = null;
-                    },
-                    child: Container(
-                      height: chartHeight,
-                      color: AppColors.secondaryColor,
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Container(
-                              width: chartWidth,
-                              height: chartHeight,
-                              color: Colors.white, // 배경색을 하얀색으로 설정
-                              child: RepaintBoundary(
-                                key: repaintBoundaryKey,
-                                child: CustomPaint(
-                                  painter: CandlestickChartPainter(
-                                    openPrices: openPrices,
-                                    closePrices: closePrices,
-                                    highPrices: highPrices,
-                                    lowPrices: lowPrices,
-                                    selectedCandleIndex: selectedCandleIndex,
-                                    lang: lang, // 추가
-                                  ),
-                                  child: Container(),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0, // 오른쪽에서 약간의 여백을 둠
-                            top: 8, // 차트 높이의 절반 위치
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  // 시가와 종가 값을 바꾸는 로직
-                                  int temp = openPrices[selectedCandleIndex];
-                                  openPrices[selectedCandleIndex] = closePrices[selectedCandleIndex];
-                                  closePrices[selectedCandleIndex] = temp;
-                                  adjustPrices(selectedCandleIndex, PriceType.open);
-                                  adjustPrices(selectedCandleIndex, PriceType.close);
-                                });
-
-                                ToastService().showToastMessage("시가 종가 반전");
-                              },
-                              style: ElevatedButton.styleFrom(
-                                shape: CircleBorder(),
-                                padding: EdgeInsets.all(8), // 버튼 크기 조절
-                              ),
-                              child: CustomPaint(
-                                size: Size(24, 24), // 원형 버튼의 크기
-                                painter: HalfRedHalfBluePainter(lang: lang),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0, // 오른쪽에서 약간의 여백을 둠
-                            top: 60, // 차트 높이의 절반 위치
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  highPrices[selectedCandleIndex] = max(openPrices[selectedCandleIndex], closePrices[selectedCandleIndex]);
-                                  lowPrices[selectedCandleIndex] = min(openPrices[selectedCandleIndex], closePrices[selectedCandleIndex]);
-                                  adjustPrices(selectedCandleIndex, PriceType.open);
-                                });
-
-                                ToastService().showToastMessage("꼬리 제거");
-                              },
-                              style: ElevatedButton.styleFrom(
-                                shape: CircleBorder(),
-                                padding: EdgeInsets.all(8), // 버튼 크기 조절
-                              ),
-                              child: Image.asset(
-                                'assets/not_tail.png',
-                                width: 24.0,
-                                height: 24.0,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            right: 0, // 오른쪽에서 약간의 여백을 둠
-                            top: 8, // 차트 높이의 절반 위치
-                            child: ElevatedButton(
-                                onPressed: () {
-                                  if (highPrices[selectedCandleIndex] < 9) {
-                                    setState(() {
-                                      // 시가와 종가 값을 바꾸는 로직
-                                      openPrices[selectedCandleIndex]++;
-                                      closePrices[selectedCandleIndex]++;
-                                      highPrices[selectedCandleIndex]++;
-                                      lowPrices[selectedCandleIndex]++;
-                                    });
-                                  }
-
-                                  ToastService().showToastMessage("전체 한칸 위로");
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  shape: CircleBorder(),
-                                  padding: EdgeInsets.all(8), // 버튼 크기 조절
-                                ),
-                                child: Icon(Icons.arrow_circle_up)
-                            ),
-                          ),
-                          Positioned(
-                            right: 0, // 오른쪽에서 약간의 여백을 둠
-                            top: 60, // 차트 높이의 절반 위치
-                            child: ElevatedButton(
-                                onPressed: () {
-                                  if (0 < lowPrices[selectedCandleIndex]) {
-                                    setState(() {
-                                      // 시가와 종가 값을 바꾸는 로직
-                                      openPrices[selectedCandleIndex]--;
-                                      closePrices[selectedCandleIndex]--;
-                                      highPrices[selectedCandleIndex]--;
-                                      lowPrices[selectedCandleIndex]--;
-                                    });
-                                  }
-
-                                  ToastService().showToastMessage("전체 한칸 아래로");
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  shape: CircleBorder(),
-                                  padding: EdgeInsets.all(8), // 버튼 크기 조절
-                                ),
-                                child: Icon(Icons.arrow_circle_down)
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: inputHeight * 0.05), // 5% 패딩 추가
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(4, (index) {
-                      return ElevatedButton(
-                        onPressed: () {
                           setState(() {
-                            selectedCandleIndex = index;
+                            highlightedRowIndex = ((chartHeight -
+                                        localPosition.dy +
+                                        heightMargin) /
+                                    gridHeight)
+                                .floor();
                           });
                         },
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.all(8), // 버튼 크기 조절
-                          backgroundColor: selectedCandleIndex == index
-                              ? Colors.black26
-                              : Colors.white70, // 선택된 버튼 색상 변경
-                        ),
-                        child: Text(
-                          (index + 1).toString(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, // 텍스트 굵게
-                            color: selectedCandleIndex == index
-                                ? Colors.white
-                                : Colors.black, // 선택된 버튼 텍스트 색상 변경
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        buildPriceInputRow(PriceType.open, openPrices, PriceType.close, closePrices, selectedCandleIndex),
-                        Container(
-                          margin: EdgeInsets.zero,
-                          height: 1.0,
-                          color: Colors.black12,
-                        ),
-                        buildPriceInputRow(PriceType.high, highPrices, PriceType.low, lowPrices, selectedCandleIndex),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.white.withOpacity(0.0),
-                    child: Center(
-                      child: FutureBuilder<String>(
-                        future: LanguagePreference.getLanguageSetting(),
-                        builder:
-                            (BuildContext context, AsyncSnapshot<String> snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const CircularProgressIndicator();
-                          } else if (snapshot.hasData) {
-                            String lang = snapshot.data!;
-                            return Image.asset(lang == 'ko'
-                                ? 'assets/loading_image.gif'
-                                : 'assets/loading_image_en.gif');
-                          } else {
-                            return const Text('로딩 이미지를 불러올 수 없습니다.');
+                        onPanUpdate: (DragUpdateDetails details) {
+                          RenderBox box =
+                              context.findRenderObject() as RenderBox;
+                          Offset localPosition =
+                              box.globalToLocal(details.globalPosition);
+                          double margin = gridHeight / 2; // 상단 여백, 필요시 조정
+                          int touchedRow = max(
+                              0,
+                              min(
+                                  9,
+                                  ((chartHeight - localPosition.dy + margin) /
+                                          gridHeight)
+                                      .floor()));
+                          setState(() {
+                            highlightedRowIndex = touchedRow;
+                          });
+                          // 드래그 중인 경우
+                          if (selectedPriceType != null &&
+                              localPosition.dy >= 0 &&
+                              localPosition.dy <= chartHeight) {
+                            setState(() {
+                              if (selectedPriceType == PriceType.open) {
+                                openPrices[selectedCandleIndex] = touchedRow;
+                              } else if (selectedPriceType == PriceType.close) {
+                                closePrices[selectedCandleIndex] = touchedRow;
+                              } else if (selectedPriceType == PriceType.high) {
+                                highPrices[selectedCandleIndex] = touchedRow;
+                              } else if (selectedPriceType == PriceType.low) {
+                                lowPrices[selectedCandleIndex] = touchedRow;
+                              }
+                            });
+                            adjustPrices(
+                                selectedCandleIndex, selectedPriceType!);
                           }
                         },
+                        onPanEnd: (DragEndDetails details) {
+                          selectedPriceType = null;
+                          highlightedRowIndex = null;
+                        },
+                        child: Container(
+                          height: chartHeight,
+                          color: AppColors.secondaryColor,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: chartWidth,
+                                  height: chartHeight,
+                                  color: Colors.white, // 배경색을 하얀색으로 설정
+                                  child: RepaintBoundary(
+                                    key: repaintBoundaryKey,
+                                    child: CustomPaint(
+                                      painter: CandlestickChartPainter(
+                                        openPrices: openPrices,
+                                        closePrices: closePrices,
+                                        highPrices: highPrices,
+                                        lowPrices: lowPrices,
+                                        selectedCandleIndex:
+                                            selectedCandleIndex,
+                                        lang: lang, // 추가
+                                      ),
+                                      child: Container(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                top: 8, // 차트 높이의 절반 위치
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      // 시가와 종가 값을 바꾸는 로직
+                                      int temp =
+                                          openPrices[selectedCandleIndex];
+                                      openPrices[selectedCandleIndex] =
+                                          closePrices[selectedCandleIndex];
+                                      closePrices[selectedCandleIndex] = temp;
+                                      adjustPrices(
+                                          selectedCandleIndex, PriceType.open);
+                                      adjustPrices(
+                                          selectedCandleIndex, PriceType.close);
+                                    });
+
+                                    ToastService().showToastMessage("시가 종가 반전");
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    shape: CircleBorder(),
+                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                  ),
+                                  child: CustomPaint(
+                                    size: Size(24, 24), // 원형 버튼의 크기
+                                    painter: HalfRedHalfBluePainter(lang: lang),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                top: 60, // 차트 높이의 절반 위치
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      highPrices[selectedCandleIndex] = max(
+                                          openPrices[selectedCandleIndex],
+                                          closePrices[selectedCandleIndex]);
+                                      lowPrices[selectedCandleIndex] = min(
+                                          openPrices[selectedCandleIndex],
+                                          closePrices[selectedCandleIndex]);
+                                      adjustPrices(
+                                          selectedCandleIndex, PriceType.open);
+                                    });
+
+                                    ToastService().showToastMessage("꼬리 제거");
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    shape: CircleBorder(),
+                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                  ),
+                                  child: Image.asset(
+                                    'assets/not_tail.png',
+                                    width: 24.0,
+                                    height: 24.0,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 0, // 오른쪽에서 약간의 여백을 둠
+                                top: 8, // 차트 높이의 절반 위치
+                                child: ElevatedButton(
+                                    onPressed: () {
+                                      if (highPrices[selectedCandleIndex] < 9) {
+                                        setState(() {
+                                          // 시가와 종가 값을 바꾸는 로직
+                                          openPrices[selectedCandleIndex]++;
+                                          closePrices[selectedCandleIndex]++;
+                                          highPrices[selectedCandleIndex]++;
+                                          lowPrices[selectedCandleIndex]++;
+                                        });
+                                      }
+
+                                      ToastService()
+                                          .showToastMessage("전체 한칸 위로");
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      shape: CircleBorder(),
+                                      padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                    ),
+                                    child: Icon(Icons.arrow_circle_up)),
+                              ),
+                              Positioned(
+                                right: 0, // 오른쪽에서 약간의 여백을 둠
+                                top: 60, // 차트 높이의 절반 위치
+                                child: ElevatedButton(
+                                    onPressed: () {
+                                      if (0 < lowPrices[selectedCandleIndex]) {
+                                        setState(() {
+                                          // 시가와 종가 값을 바꾸는 로직
+                                          openPrices[selectedCandleIndex]--;
+                                          closePrices[selectedCandleIndex]--;
+                                          highPrices[selectedCandleIndex]--;
+                                          lowPrices[selectedCandleIndex]--;
+                                        });
+                                      }
+
+                                      ToastService()
+                                          .showToastMessage("전체 한칸 아래로");
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      shape: CircleBorder(),
+                                      padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                    ),
+                                    child: Icon(Icons.arrow_circle_down)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: inputHeight * 0.05), // 5% 패딩 추가
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(4, (index) {
+                          return ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                selectedCandleIndex = index;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.all(8), // 버튼 크기 조절
+                              backgroundColor: selectedCandleIndex == index
+                                  ? Colors.black26
+                                  : Colors.white70, // 선택된 버튼 색상 변경
+                            ),
+                            child: Text(
+                              (index + 1).toString(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, // 텍스트 굵게
+                                color: selectedCandleIndex == index
+                                    ? Colors.white
+                                    : Colors.black, // 선택된 버튼 텍스트 색상 변경
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            buildPriceInputRow(
+                                PriceType.open,
+                                openPrices,
+                                PriceType.close,
+                                closePrices,
+                                selectedCandleIndex),
+                            Container(
+                              margin: EdgeInsets.zero,
+                              height: 1.0,
+                              color: Colors.black12,
+                            ),
+                            buildPriceInputRow(PriceType.high, highPrices,
+                                PriceType.low, lowPrices, selectedCandleIndex),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isLoading)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.white.withOpacity(0.0),
+                        child: Center(
+                          child: FutureBuilder<String>(
+                            future: LanguagePreference.getLanguageSetting(),
+                            builder: (BuildContext context,
+                                AsyncSnapshot<String> snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasData) {
+                                String lang = snapshot.data!;
+                                return Image.asset(lang == 'ko'
+                                    ? 'assets/loading_image.gif'
+                                    : 'assets/loading_image_en.gif');
+                              } else {
+                                return const Text('로딩 이미지를 불러올 수 없습니다.');
+                              }
+                            },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-      bottomNavigationBar: const BottomBannerAd(),
+                ],
+              );
+            },
+          ),
+          bottomNavigationBar: const BottomBannerAd(),
+        );
+      }),
     );
   }
 
@@ -620,6 +698,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   void sendPattern(double screenHeight) async {
     // 로딩 상태를 true로 설정
     ref.read(isPatternLoadingProvider.notifier).state = true;
+    savePrices();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedMarket', selectedMarket);
@@ -634,7 +713,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     String url = dotenv.env["PATTERN_SEARCH_API_URL"] ?? "";
     String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
     String lang = await LanguagePreference.getLanguageSetting();
-    String pattern = openPrices.join() + closePrices.join() + highPrices.join() + lowPrices.join();
+    String pattern = openPrices.join() +
+        closePrices.join() +
+        highPrices.join() +
+        lowPrices.join();
 
     Map<String, dynamic> body = {
       'pattern': pattern,
@@ -643,7 +725,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     };
 
     try {
-      http.Response response = await http.post(
+      http.Response response = await _httpClient!.post(
         Uri.parse(url),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
@@ -654,15 +736,11 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
       if (response.statusCode == 200) {
         List<dynamic> results = jsonDecode(response.body);
         PatternResultManager.initializePatternResult(
-            res: results,
-            pattern: encodedDrawing,
-            mkt: market,
-            language: lang);
+            res: results, pattern: encodedDrawing, mkt: market, language: lang);
 
         ref.read(isPatternLoadingProvider.notifier).state = false;
 
         PatternResultManager.showPatternResult(context);
-
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
@@ -784,8 +862,7 @@ class CandlestickChartPainter extends CustomPainter {
           ..style = PaintingStyle.fill
           ..color = Colors.yellow.withOpacity(0.3);
         canvas.drawRect(
-          Rect.fromLTWH(
-              x - marginWidth, marginHeight, gridWidth, chartHeight),
+          Rect.fromLTWH(x - marginWidth, marginHeight, gridWidth, chartHeight),
           backgroundPaint,
         );
       }
@@ -803,24 +880,23 @@ class CandlestickChartPainter extends CustomPainter {
       canvas.drawLine(Offset(x, low), Offset(x, high), wickPaint);
     }
 
-    if(!containsNumber(9, openPrices, closePrices, highPrices, lowPrices)) {
+    if (!containsNumber(9, openPrices, closePrices, highPrices, lowPrices)) {
       Paint backgroundPaint = Paint()
         ..style = PaintingStyle.fill
         ..color = Colors.red.withOpacity(0.05);
       canvas.drawRect(
-        Rect.fromLTWH(
-            marginWidth, marginHeight, gridWidth * 7, gridHeight),
+        Rect.fromLTWH(marginWidth, marginHeight, gridWidth * 7, gridHeight),
         backgroundPaint,
       );
     }
 
-    if(!containsNumber(0, openPrices, closePrices, highPrices, lowPrices)) {
+    if (!containsNumber(0, openPrices, closePrices, highPrices, lowPrices)) {
       Paint backgroundPaint = Paint()
         ..style = PaintingStyle.fill
         ..color = Colors.red.withOpacity(0.05);
       canvas.drawRect(
-        Rect.fromLTWH(
-            marginWidth, marginHeight + gridHeight * 8, gridWidth * 7, gridHeight),
+        Rect.fromLTWH(marginWidth, marginHeight + gridHeight * 8, gridWidth * 7,
+            gridHeight),
         backgroundPaint,
       );
     }
@@ -839,8 +915,7 @@ class HalfRedHalfBluePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     if (lang == 'ko') {
       // 왼쪽 반쪽을 빨간색으로 채움
@@ -891,6 +966,10 @@ class HalfRedHalfBluePainter extends CustomPainter {
   }
 }
 
-bool containsNumber(int num, List<int> openPrices, List<int> closePrices, List<int> highPrices, List<int> lowPrices) {
-  return openPrices.contains(num) || closePrices.contains(num) || highPrices.contains(num) || lowPrices.contains(num);
+bool containsNumber(int num, List<int> openPrices, List<int> closePrices,
+    List<int> highPrices, List<int> lowPrices) {
+  return openPrices.contains(num) ||
+      closePrices.contains(num) ||
+      highPrices.contains(num) ||
+      lowPrices.contains(num);
 }
