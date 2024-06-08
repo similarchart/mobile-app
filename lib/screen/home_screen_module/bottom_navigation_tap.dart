@@ -6,10 +6,10 @@ import 'package:web_view/services/preferences.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/screen/favorite_screen.dart';
 import 'package:web_view/screen/settings_screen.dart';
-import 'package:web_view/screen/drawing_board.dart';
-import 'package:web_view/screen/pattern_board.dart';
-import 'package:web_view/screen/drawing_result.dart';
-import 'package:web_view/screen/pattern_result.dart';
+import 'package:web_view/screen/drawing_search/drawing_board.dart';
+import 'package:web_view/screen/pattern_search/pattern_board.dart';
+import 'package:web_view/screen/drawing_search/drawing_result.dart';
+import 'package:web_view/screen/pattern_search/pattern_result.dart';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

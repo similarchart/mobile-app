@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/screen/drawing_result.dart';
+import 'package:web_view/screen/drawing_search/drawing_result.dart';
 import 'package:web_view/screen/home_screen_module/searching_timer.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
@@ -240,7 +240,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
               if (isLoading)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.white.withOpacity(0.0),
+                    color: Colors.black.withOpacity(0.2),
                     child: Center(
                       child: FutureBuilder<String>(
                         future: LanguagePreference.getLanguageSetting(),

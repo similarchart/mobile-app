@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui' as ui;
-import 'dart:convert';
-import 'dart:math';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/screen/pattern_result.dart';
+import 'package:web_view/screen/pattern_search/pattern_result.dart';
 import 'package:web_view/screen/home_screen_module/searching_timer.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 import 'package:web_view/component/interstitial_ad_manager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:ui' as ui;
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/providers/search_state_providers.dart';
+import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
+import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 
 enum PriceType { open, close, high, low }
-
-int? highlightedRowIndex;
 
 class PatternSearchBoard extends ConsumerStatefulWidget {
   final double screenHeight;
@@ -45,12 +47,14 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
   PriceType? selectedPriceType;
   GlobalKey repaintBoundaryKey = GlobalKey();
 
+  int? highlightedRowIndex;
+
   Client? _httpClient;
 
   @override
   void initState() {
     super.initState();
-    _httpClient = Client();
+    _httpClient = http.Client();
 
     loadPreferences();
     loadPrices(); // Load prices from SharedPreferences
@@ -67,24 +71,24 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       openPrices = (prefs
-              .getStringList('openPrices')
-              ?.map((e) => int.tryParse(e) ?? 0)
-              .toList() ??
+          .getStringList('openPrices')
+          ?.map((e) => int.tryParse(e) ?? 0)
+          .toList() ??
           [1, 3, 5, 7]);
       closePrices = (prefs
-              .getStringList('closePrices')
-              ?.map((e) => int.tryParse(e) ?? 0)
-              .toList() ??
+          .getStringList('closePrices')
+          ?.map((e) => int.tryParse(e) ?? 0)
+          .toList() ??
           [2, 4, 6, 8]);
       highPrices = (prefs
-              .getStringList('highPrices')
-              ?.map((e) => int.tryParse(e) ?? 0)
-              .toList() ??
+          .getStringList('highPrices')
+          ?.map((e) => int.tryParse(e) ?? 0)
+          .toList() ??
           [3, 5, 7, 9]);
       lowPrices = (prefs
-              .getStringList('lowPrices')
-              ?.map((e) => int.tryParse(e) ?? 0)
-              .toList() ??
+          .getStringList('lowPrices')
+          ?.map((e) => int.tryParse(e) ?? 0)
+          .toList() ??
           [0, 2, 4, 6]);
     });
   }
@@ -134,7 +138,6 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
         double chartWidth = chartHeight;
         double gridWidth = chartWidth / 8;
         double gridHeight = chartHeight / 10;
-        double widthMargin = gridWidth / 2; // 상단 여백
         double heightMargin = gridHeight / 2; // 상단 여백
         final inputHeight = screenWidth - chartHeight;
 
@@ -156,13 +159,13 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                 onChanged: isLoading
                     ? null
                     : (String? newValue) async {
-                        setState(() {
-                          selectedMarket = newValue!;
-                        });
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        await prefs.setString('selectedMarket', selectedMarket);
-                      },
+                  setState(() {
+                    selectedMarket = newValue!;
+                  });
+                  SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
+                  await prefs.setString('selectedMarket', selectedMarket);
+                },
                 style: const TextStyle(color: AppColors.textColor),
                 dropdownColor: AppColors.primaryColor,
                 items: countries.map<DropdownMenuItem<String>>((String value) {
@@ -176,50 +179,51 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                   );
                 }).toList(),
               ),
+              const SizedBox(width: 10.0),
               IconButton(
                 icon: Icon(
                   Icons.send,
                   color: (selectedMarket != "시장" &&
-                          !isLoading &&
-                          !isCooldownActive &&
-                          containsNumber(9, openPrices, closePrices, highPrices,
-                              lowPrices) &&
-                          containsNumber(0, openPrices, closePrices, highPrices,
-                              lowPrices))
+                      !isLoading &&
+                      !isCooldownActive &&
+                      containsNumber(9, openPrices, closePrices, highPrices,
+                          lowPrices) &&
+                      containsNumber(0, openPrices, closePrices, highPrices,
+                          lowPrices))
                       ? AppColors.textColor
                       : AppColors.secondaryColor,
                 ),
                 onPressed: (selectedMarket != "시장" &&
-                        !isLoading &&
-                        !isCooldownActive &&
-                        containsNumber(9, openPrices, closePrices, highPrices,
-                            lowPrices) &&
-                        containsNumber(
-                            0, openPrices, closePrices, highPrices, lowPrices))
+                    !isLoading &&
+                    !isCooldownActive &&
+                    containsNumber(9, openPrices, closePrices, highPrices,
+                        lowPrices) &&
+                    containsNumber(
+                        0, openPrices, closePrices, highPrices, lowPrices))
                     ? () {
-                        SearchingTimer(ref).startTimer(10);
-                        sendPattern(widget.screenHeight);
-                      }
+                  SearchingTimer(ref).startTimer(10);
+                  sendPattern(widget.screenHeight);
+                }
                     : () {
-                        if (selectedMarket == "시장") {
-                          ToastService().showToastMessage("시장을 선택해 주세요.");
-                        } else if (isLoading) {
-                          ToastService().showToastMessage("잠시만 기다려주세요.");
-                        } else if (isCooldownActive) {
-                          ToastService().showToastMessage(
-                              "$remainingTimeInSeconds초 후 재검색이 가능합니다.");
-                        } else if (!containsNumber(9, openPrices, closePrices,
-                            highPrices, lowPrices)) {
-                          ToastService()
-                              .showToastMessage("하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
-                        } else if (!containsNumber(0, openPrices, closePrices,
-                            highPrices, lowPrices)) {
-                          ToastService()
-                              .showToastMessage("하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
-                        } else {
-                          ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
-                        }
-                      },
+                  if (selectedMarket == "시장") {
+                    ToastService().showToastMessage("시장을 선택해 주세요.");
+                  } else if (isLoading) {
+                    ToastService().showToastMessage("잠시만 기다려주세요.");
+                  } else if (isCooldownActive) {
+                    ToastService().showToastMessage(
+                        "$remainingTimeInSeconds초 후 재검색이 가능합니다.");
+                  } else if (!containsNumber(9, openPrices, closePrices,
+                      highPrices, lowPrices)) {
+                    ToastService()
+                        .showToastMessage("하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
+                  } else if (!containsNumber(0, openPrices, closePrices,
+                      highPrices, lowPrices)) {
+                    ToastService()
+                        .showToastMessage("하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
+                  } else {
+                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                  }
+                },
               ),
             ],
           ),
@@ -232,9 +236,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                       GestureDetector(
                         onTapDown: (TapDownDetails details) {
                           RenderBox box =
-                              context.findRenderObject() as RenderBox;
+                          context.findRenderObject() as RenderBox;
                           Offset localPosition =
-                              box.globalToLocal(details.globalPosition);
+                          box.globalToLocal(details.globalPosition);
 
                           // 모눈의 영역 계산
                           double leftMargin =
@@ -245,7 +249,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                             setState(() {
                               selectedCandleIndex =
                                   ((localPosition.dx - leftMargin) / gridWidth)
-                                          .floor() ~/
+                                      .floor() ~/
                                       2;
                               selectedPriceType = null;
 
@@ -265,47 +269,46 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                   heightMargin;
 
                               if (localPosition.dy >=
-                                      openPriceY - heightMargin &&
+                                  openPriceY - heightMargin &&
                                   localPosition.dy <
                                       openPriceY + heightMargin) {
                                 selectedPriceType = PriceType.open;
                               } else if (localPosition.dy >=
-                                      closePriceY - heightMargin &&
+                                  closePriceY - heightMargin &&
                                   localPosition.dy <
                                       closePriceY + heightMargin) {
                                 selectedPriceType = PriceType.close;
                               } else if (localPosition.dy >=
-                                      highPriceY - heightMargin &&
+                                  highPriceY - heightMargin &&
                                   localPosition.dy <
                                       highPriceY + heightMargin) {
                                 selectedPriceType = PriceType.high;
                               } else if (localPosition.dy >=
-                                      lowPriceY - heightMargin &&
+                                  lowPriceY - heightMargin &&
                                   localPosition.dy < lowPriceY + heightMargin) {
                                 selectedPriceType = PriceType.low;
                               }
+
+                              highlightedRowIndex = ((chartHeight -
+                                  localPosition.dy +
+                                  heightMargin) /
+                                  gridHeight)
+                                  .floor();
                             });
                           }
-                          setState(() {
-                            highlightedRowIndex = ((chartHeight -
-                                        localPosition.dy +
-                                        heightMargin) /
-                                    gridHeight)
-                                .floor();
-                          });
                         },
                         onPanUpdate: (DragUpdateDetails details) {
                           RenderBox box =
-                              context.findRenderObject() as RenderBox;
+                          context.findRenderObject() as RenderBox;
                           Offset localPosition =
-                              box.globalToLocal(details.globalPosition);
+                          box.globalToLocal(details.globalPosition);
                           double margin = gridHeight / 2; // 상단 여백, 필요시 조정
                           int touchedRow = max(
                               0,
                               min(
                                   9,
                                   ((chartHeight - localPosition.dy + margin) /
-                                          gridHeight)
+                                      gridHeight)
                                       .floor()));
                           setState(() {
                             highlightedRowIndex = touchedRow;
@@ -330,8 +333,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                           }
                         },
                         onPanEnd: (DragEndDetails details) {
-                          selectedPriceType = null;
-                          highlightedRowIndex = null;
+                          setState(() {
+                            selectedPriceType = null;
+                            highlightedRowIndex = null;
+                          });
                         },
                         child: Container(
                           height: chartHeight,
@@ -352,8 +357,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         highPrices: highPrices,
                                         lowPrices: lowPrices,
                                         selectedCandleIndex:
-                                            selectedCandleIndex,
+                                        selectedCandleIndex,
                                         lang: lang, // 추가
+                                        highlightedRowIndex:
+                                        highlightedRowIndex, // 추가
                                       ),
                                       child: Container(),
                                     ),
@@ -368,9 +375,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                     setState(() {
                                       // 시가와 종가 값을 바꾸는 로직
                                       int temp =
-                                          openPrices[selectedCandleIndex];
+                                      openPrices[selectedCandleIndex];
                                       openPrices[selectedCandleIndex] =
-                                          closePrices[selectedCandleIndex];
+                                      closePrices[selectedCandleIndex];
                                       closePrices[selectedCandleIndex] = temp;
                                       adjustPrices(
                                           selectedCandleIndex, PriceType.open);
@@ -378,7 +385,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                           selectedCandleIndex, PriceType.close);
                                     });
 
-                                    ToastService().showToastMessage("시가 종가 반전");
+                                    ToastService().showToastMessage("시가 종가 반전",
+                                        durationInSeconds: 0.5,
+                                        gravity: ToastGravity.CENTER);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     shape: CircleBorder(),
@@ -386,7 +395,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                   ),
                                   child: CustomPaint(
                                     size: Size(24, 24), // 원형 버튼의 크기
-                                    painter: HalfRedHalfBluePainter(lang: lang),
+                                    painter: HalfCirclePainter(lang: lang),
                                   ),
                                 ),
                               ),
@@ -406,7 +415,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                           selectedCandleIndex, PriceType.open);
                                     });
 
-                                    ToastService().showToastMessage("꼬리 제거");
+                                    ToastService().showToastMessage("꼬리 제거",
+                                        durationInSeconds: 0.5,
+                                        gravity: ToastGravity.CENTER);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     shape: CircleBorder(),
@@ -414,6 +425,37 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                   ),
                                   child: Image.asset(
                                     'assets/not_tail.png',
+                                    width: 24.0,
+                                    height: 24.0,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                top: 112, // 차트 높이의 절반 위치
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      openPrices[selectedCandleIndex] = 4;
+                                      closePrices[selectedCandleIndex] = 5;
+                                      highPrices[selectedCandleIndex] = 6;
+                                      lowPrices[selectedCandleIndex] = 3;
+                                      adjustPrices(
+                                          selectedCandleIndex, PriceType.open);
+                                    });
+
+                                    ToastService().showToastMessage("기본 캔들",
+                                        durationInSeconds: 0.5,
+                                        gravity: ToastGravity.CENTER);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    shape: CircleBorder(),
+                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                  ),
+                                  child: Image.asset(
+                                    lang == 'ko'
+                                        ? 'assets/default_red.png'
+                                        : 'assets/default_green.png',
                                     width: 24.0,
                                     height: 24.0,
                                   ),
@@ -434,8 +476,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         });
                                       }
 
-                                      ToastService()
-                                          .showToastMessage("전체 한칸 위로");
+                                      ToastService().showToastMessage("전체 한칸 위",
+                                          durationInSeconds: 0.5,
+                                          gravity: ToastGravity.CENTER);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       shape: CircleBorder(),
@@ -458,8 +501,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         });
                                       }
 
-                                      ToastService()
-                                          .showToastMessage("전체 한칸 아래로");
+                                      ToastService().showToastMessage(
+                                          "전체 한칸 아래",
+                                          durationInSeconds: 0.5,
+                                          gravity: ToastGravity.CENTER);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       shape: CircleBorder(),
@@ -524,7 +569,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                   if (isLoading)
                     Positioned.fill(
                       child: Container(
-                        color: Colors.white.withOpacity(0.0),
+                        color: Colors.black.withOpacity(0.4),
                         child: Center(
                           child: FutureBuilder<String>(
                             future: LanguagePreference.getLanguageSetting(),
@@ -752,224 +797,4 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
       ref.read(isPatternLoadingProvider.notifier).state = false;
     }
   }
-}
-
-class CandlestickChartPainter extends CustomPainter {
-  final List<int> openPrices;
-  final List<int> closePrices;
-  final List<int> highPrices;
-  final List<int> lowPrices;
-  final int selectedCandleIndex;
-  final String lang;
-
-  CandlestickChartPainter({
-    required this.openPrices,
-    required this.closePrices,
-    required this.highPrices,
-    required this.lowPrices,
-    required this.selectedCandleIndex,
-    required this.lang,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    double gridWidth = size.width / 8;
-    double marginWidth = gridWidth / 2;
-    double totalHeight = size.height;
-    double chartHeight = totalHeight * 0.9; // 차트 높이를 90%로 설정하여 위아래에 공백 추가
-    double marginHeight = (totalHeight - chartHeight) / 2; // 위아래 공백
-    double gridHeight = chartHeight / 9; // 10개의 그리드 라인
-
-    double minHeight = 1.0; // 최소 높이 설정
-
-    Paint axisPaint = Paint()
-      ..color = Colors.black12
-      ..strokeWidth = 1;
-
-    TextPainter textPainter = TextPainter(
-      textAlign: TextAlign.right,
-      textDirection: TextDirection.ltr,
-    );
-
-    for (int i = 0; i <= 9; i++) {
-      double y = totalHeight - marginHeight - i * gridHeight;
-
-      // 높이 숫자 표기 (0, 3, 6, 9에만 숫자 표시)
-      if (i % 3 == 0) {
-        textPainter.text = TextSpan(
-          text: '$i',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-          ),
-        );
-        textPainter.layout();
-        textPainter.paint(canvas, Offset(2, y - 8));
-      }
-
-      // 회색 실선 그리기
-      if (highlightedRowIndex != null && highlightedRowIndex == i) {
-        axisPaint.color = Colors.orange; // 드래그 중인 가로선 색상 변경
-      } else {
-        axisPaint.color = Colors.black12; // 기본 색상
-      }
-      canvas.drawLine(
-          Offset(15, y), Offset(size.width - marginWidth, y), axisPaint);
-    }
-
-    axisPaint.color = Colors.black12;
-    for (int i = 1; i <= 8; i++) {
-      double x = i * gridWidth - marginWidth;
-
-      // 세로선 그리기
-      canvas.drawLine(Offset(x, marginHeight),
-          Offset(x, totalHeight - marginHeight), axisPaint);
-    }
-
-    for (int i = 0; i < 4; i++) {
-      double x = (i * 2 + 1) * gridWidth;
-      double open = totalHeight - marginHeight - openPrices[i] * gridHeight;
-      double close = totalHeight - marginHeight - closePrices[i] * gridHeight;
-      double high = totalHeight - marginHeight - highPrices[i] * gridHeight;
-      double low = totalHeight - marginHeight - lowPrices[i] * gridHeight;
-
-      Color candleColor;
-      if (lang == 'ko') {
-        candleColor = close <= open ? Colors.red : Colors.blue;
-      } else {
-        candleColor = close <= open ? Colors.red : Colors.green;
-      }
-
-      Paint candlePaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = candleColor;
-
-      Paint wickPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = candleColor; // 꼬리 색을 캔들 색과 맞춤
-
-      double top = min(open, close);
-      double bottom = max(open, close);
-
-      if (bottom - top < minHeight) {
-        bottom = top + minHeight;
-      }
-
-      // 선택된 캔들스틱의 배경을 노란색으로 설정
-      if (i == selectedCandleIndex) {
-        Paint backgroundPaint = Paint()
-          ..style = PaintingStyle.fill
-          ..color = Colors.yellow.withOpacity(0.3);
-        canvas.drawRect(
-          Rect.fromLTWH(x - marginWidth, marginHeight, gridWidth, chartHeight),
-          backgroundPaint,
-        );
-      }
-
-      // 캔들 바디 그리기
-      canvas.drawRect(
-        Rect.fromPoints(
-          Offset(x - marginWidth, top),
-          Offset(x + marginWidth, bottom),
-        ),
-        candlePaint,
-      );
-
-      // 꼬리 그리기
-      canvas.drawLine(Offset(x, low), Offset(x, high), wickPaint);
-    }
-
-    if (!containsNumber(9, openPrices, closePrices, highPrices, lowPrices)) {
-      Paint backgroundPaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = Colors.red.withOpacity(0.05);
-      canvas.drawRect(
-        Rect.fromLTWH(marginWidth, marginHeight, gridWidth * 7, gridHeight),
-        backgroundPaint,
-      );
-    }
-
-    if (!containsNumber(0, openPrices, closePrices, highPrices, lowPrices)) {
-      Paint backgroundPaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = Colors.red.withOpacity(0.05);
-      canvas.drawRect(
-        Rect.fromLTWH(marginWidth, marginHeight + gridHeight * 8, gridWidth * 7,
-            gridHeight),
-        backgroundPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-class HalfRedHalfBluePainter extends CustomPainter {
-  final String lang;
-
-  HalfRedHalfBluePainter({required this.lang});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    if (lang == 'ko') {
-      // 왼쪽 반쪽을 빨간색으로 채움
-      paint.color = Colors.red;
-      canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        -pi / 2, // 시작 각도
-        pi, // sweep 각도
-        true, // 중심을 채움
-        paint,
-      );
-
-      // 오른쪽 반쪽을 파란색으로 채움
-      paint.color = Colors.blue;
-      canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        pi / 2, // 시작 각도
-        pi, // sweep 각도
-        true, // 중심을 채움
-        paint,
-      );
-    } else if (lang == 'en') {
-      // 왼쪽 반쪽을 초록색으로 채움
-      paint.color = Colors.green;
-      canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        -pi / 2, // 시작 각도
-        pi, // sweep 각도
-        true, // 중심을 채움
-        paint,
-      );
-
-      // 오른쪽 반쪽을 빨간색으로 채움
-      paint.color = Colors.red;
-      canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        pi / 2, // 시작 각도
-        pi, // sweep 각도
-        true, // 중심을 채움
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return false; // static한 페인터이므로 다시 그릴 필요가 없음
-  }
-}
-
-bool containsNumber(int num, List<int> openPrices, List<int> closePrices,
-    List<int> highPrices, List<int> lowPrices) {
-  return openPrices.contains(num) ||
-      closePrices.contains(num) ||
-      highPrices.contains(num) ||
-      lowPrices.contains(num);
 }
