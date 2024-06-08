@@ -124,7 +124,7 @@ class BottomNavigationTap {
           child: SizedBox(
             width: width,
             height: height,
-            child: PatternSearchBoard(
+            child: PatternBoard(
               screenHeight: height - appBarHeight,
             ),
           ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui' as ui;
-import 'dart:convert';
-import 'dart:math';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,14 +12,17 @@ import 'package:web_view/services/preferences.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 import 'package:web_view/component/interstitial_ad_manager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/providers/search_state_providers.dart';
+import 'package:web_view/screen/drawing_search/drawing_painter.dart';
+import 'package:web_view/screen/drawing_search/drawing_utils.dart';
+import 'dart:ui' as ui;
+import 'dart:convert';
 
 class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
 
-  DrawingBoard({Key? key, required this.screenHeight}) : super(key: key);
+  const DrawingBoard({super.key, required this.screenHeight});
 
   @override
   _DrawingBoardState createState() => _DrawingBoardState();
@@ -46,7 +47,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
   @override
   void initState() {
     super.initState();
-    _httpClient = Client();
+    _httpClient = http.Client();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
@@ -299,10 +300,10 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   void makeReadyToSend() {
     setState(() {
-      validatePoints();
+      validatePoints(originalPoints, points);
       if (points.isNotEmpty) {
-        stretchGraphToFullWidth();
-        interpolatePoints();
+        stretchGraphToFullWidth(context, points);
+        interpolatePoints(selectedSize, points);
         drawingEnabled = false;
       }
       if (points.any((point) => point.dx.isNaN || point.dy.isNaN)) {
@@ -310,70 +311,6 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
         drawingEnabled = true;
       }
     });
-  }
-
-  void validatePoints() {
-    List<Offset> result = [];
-    double? prevX;
-
-    for (Offset point in originalPoints) {
-      double currentX = point.dx;
-      if (prevX == null || currentX > prevX) {
-        result.add(point);
-        prevX = currentX;
-      }
-    }
-
-    points = result;
-  }
-
-  void stretchGraphToFullWidth() {
-    double minX = points.reduce((a, b) => a.dx < b.dx ? a : b).dx;
-    double maxX = points.reduce((a, b) => a.dx > b.dx ? a : b).dx;
-    double width = context.size!.width;
-
-    for (var i = 0; i < points.length; i++) {
-      double normalizedX = (points[i].dx - minX) / (maxX - minX);
-      points[i] = Offset(normalizedX * width, points[i].dy);
-    }
-
-    double minY = points.reduce((a, b) => a.dy < b.dy ? a : b).dy;
-    double maxY = points.reduce((a, b) => a.dy > b.dy ? a : b).dy;
-    double height = width;
-
-    double marginTop =
-        height - maxY > 0.2 * height ? 0.2 * height : height - maxY;
-    double marginBottom = minY > 0.2 * height ? 0.2 * height : minY;
-
-    for (var i = 0; i < points.length; i++) {
-      double normalizedY = (points[i].dy - minY) / (maxY - minY);
-
-      points[i] = Offset(points[i].dx,
-          (normalizedY * (height - marginTop - marginBottom) + marginBottom));
-    }
-  }
-
-  void interpolatePoints() {
-    double minX = points.map((p) => p.dx).reduce(min);
-    double maxX = points.map((p) => p.dx).reduce(max);
-    int numPoints = int.tryParse(selectedSize) ?? 128;
-    double interval = (maxX - minX) / (numPoints - 1);
-
-    List<Offset> newPoints = [points.first];
-    for (int i = 1; i < numPoints - 1; i++) {
-      double newX = minX + i * interval;
-      Offset p1 =
-          points.lastWhere((p) => p.dx <= newX, orElse: () => points.first);
-      Offset p2 =
-          points.firstWhere((p) => p.dx >= newX, orElse: () => points.last);
-
-      double slope = (p2.dy - p1.dy) / (p2.dx - p1.dx);
-      double newY = p1.dy + slope * (newX - p1.dx);
-      newPoints.add(Offset(newX, newY));
-    }
-    newPoints.add(points.last);
-
-    points = newPoints;
   }
 
   void sendDrawing(double screenHeight) async {
@@ -443,52 +380,5 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       // 로딩 상태를 false로 설정
       ref.read(isDrawingLoadingProvider.notifier).state = false;
     }
-  }
-}
-
-class DrawingPainter extends CustomPainter {
-  final List<Offset> points;
-  final bool drawingEnabled;
-  DrawingPainter(this.points, this.drawingEnabled);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 기존 그리기 설정
-    Paint paint = Paint()
-      ..color = drawingEnabled ? Colors.black : AppColors.secondaryColor
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0;
-
-    // 점들을 연결하여 선을 그림
-    for (int i = 0; i < points.length - 1; i++) {
-      canvas.drawLine(points[i], points[i + 1], paint);
-    }
-
-    // 반투명 회색으로 화면 전체를 채우는 네모를 추가
-    paint
-      ..color = Colors.grey.withOpacity(0.15) // 색상과 투명도 설정
-      ..style = PaintingStyle.fill; // 채우기 스타일로 변경
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-
-    // 가이드 라인 추가
-    paint
-      ..color = Colors.grey.withOpacity(0.4)
-      ..strokeWidth = 2.0;
-    canvas.drawLine(Offset(0, size.height * 0.2),
-        Offset(size.width, size.height * 0.2), paint);
-    canvas.drawLine(Offset(0, size.height * 0.8),
-        Offset(size.width, size.height * 0.8), paint);
-
-    // 화면 테두리 그리기
-    paint
-      ..color = Colors.grey.withOpacity(0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
   }
 }

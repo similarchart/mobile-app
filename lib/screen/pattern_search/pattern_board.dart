@@ -24,16 +24,16 @@ import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 
 enum PriceType { open, close, high, low }
 
-class PatternSearchBoard extends ConsumerStatefulWidget {
+class PatternBoard extends ConsumerStatefulWidget {
   final double screenHeight;
 
-  PatternSearchBoard({Key? key, required this.screenHeight}) : super(key: key);
+  const PatternBoard({super.key, required this.screenHeight});
 
   @override
-  _PatternSearchBoardState createState() => _PatternSearchBoardState();
+  _PatternBoardState createState() => _PatternBoardState();
 }
 
-class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
+class _PatternBoardState extends ConsumerState<PatternBoard>
     with SingleTickerProviderStateMixin {
   final InterstitialAdManager _adManager = InterstitialAdManager();
   List<int> openPrices = [1, 3, 5, 7];
@@ -153,7 +153,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
             ),
             automaticallyImplyLeading: false,
             actions: [
-              SizedBox(width: 10.0),
+              const SizedBox(width: 10.0),
               DropdownButton<String>(
                 value: selectedMarket,
                 onChanged: isLoading
@@ -390,11 +390,11 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         gravity: ToastGravity.CENTER);
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    shape: CircleBorder(),
-                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                    shape: const CircleBorder(),
+                                    padding: const EdgeInsets.all(8), // 버튼 크기 조절
                                   ),
                                   child: CustomPaint(
-                                    size: Size(24, 24), // 원형 버튼의 크기
+                                    size: const Size(24, 24), // 원형 버튼의 크기
                                     painter: HalfCirclePainter(lang: lang),
                                   ),
                                 ),
@@ -420,8 +420,8 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         gravity: ToastGravity.CENTER);
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    shape: CircleBorder(),
-                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                    shape: const CircleBorder(),
+                                    padding: const EdgeInsets.all(8), // 버튼 크기 조절
                                   ),
                                   child: Image.asset(
                                     'assets/not_tail.png',
@@ -449,8 +449,8 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                         gravity: ToastGravity.CENTER);
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    shape: CircleBorder(),
-                                    padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                    shape: const CircleBorder(),
+                                    padding: const EdgeInsets.all(8), // 버튼 크기 조절
                                   ),
                                   child: Image.asset(
                                     lang == 'ko'
@@ -481,10 +481,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                           gravity: ToastGravity.CENTER);
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      shape: CircleBorder(),
-                                      padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                      shape: const CircleBorder(),
+                                      padding: const EdgeInsets.all(8), // 버튼 크기 조절
                                     ),
-                                    child: Icon(Icons.arrow_circle_up)),
+                                    child: const Icon(Icons.arrow_circle_up)),
                               ),
                               Positioned(
                                 right: 0, // 오른쪽에서 약간의 여백을 둠
@@ -507,10 +507,10 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                                           gravity: ToastGravity.CENTER);
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      shape: CircleBorder(),
-                                      padding: EdgeInsets.all(8), // 버튼 크기 조절
+                                      shape: const CircleBorder(),
+                                      padding: const EdgeInsets.all(8), // 버튼 크기 조절
                                     ),
-                                    child: Icon(Icons.arrow_circle_down)),
+                                    child: const Icon(Icons.arrow_circle_down)),
                               ),
                             ],
                           ),
@@ -609,7 +609,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
         buildSinglePriceInput(type1, prices1, index),
         Container(
           height: 30, // Divider의 높이를 지정
-          child: VerticalDivider(
+          child: const VerticalDivider(
             color: Colors.black12,
             thickness: 1,
           ),
@@ -648,7 +648,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
             color: textColor,
           ),
         ),
-        SizedBox(
+        const SizedBox(
           width: 16,
         ), // 텍스트와 아이콘 사이의 간격 조절
         Row(
@@ -662,9 +662,9 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                   }
                 });
               },
-              child: Icon(Icons.arrow_circle_up),
+              child: const Icon(Icons.arrow_circle_up),
             ),
-            SizedBox(width: 10), // 아이콘 사이의 간격을 좁게 설정
+            const SizedBox(width: 10), // 아이콘 사이의 간격을 좁게 설정
             InkWell(
               onTap: () {
                 setState(() {
@@ -674,7 +674,7 @@ class _PatternSearchBoardState extends ConsumerState<PatternSearchBoard>
                   }
                 });
               },
-              child: Icon(Icons.arrow_circle_down),
+              child: const Icon(Icons.arrow_circle_down),
             ),
           ],
         ),

@@ -1,4 +1,3 @@
-// pattern_result.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
@@ -10,13 +9,12 @@ class PatternResult extends StatelessWidget {
   final String market;
   final String lang;
 
-  PatternResult(
-      {Key? key,
+  const PatternResult(
+      {super.key,
         required this.results,
         required this.userPattern,
         required this.market,
-        required this.lang})
-      : super(key: key);
+        required this.lang});
 
   String createResultUrl(String code, String date) {
     return 'https://www.similarchart.com/stock_info/?code=$code&lang=$lang';
@@ -29,11 +27,11 @@ class PatternResult extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('패턴검색 결과', style: TextStyle(color: AppColors.textColor)),
+        title: const Text('패턴검색 결과', style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop(); // 현재 PatternResult 화면 닫기
           },
@@ -57,7 +55,7 @@ class PatternResult extends StatelessWidget {
             padding: EdgeInsets.all(10),
             child: Text(
               results.isEmpty ? "비슷한 패턴을 찾지 못했습니다" : "원하는 패턴을 선택하세요",
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.textColor,
               ),
@@ -67,7 +65,7 @@ class PatternResult extends StatelessWidget {
           Expanded(
             flex: 6,
             child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 10.0,
                 mainAxisSpacing: 10.0,
@@ -92,7 +90,7 @@ class PatternResult extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'dart:math';
-import 'package:web_view/constants/colors.dart';
 
 class CandlestickChartPainter extends CustomPainter {
   final List<int> openPrices;
@@ -49,7 +48,7 @@ class CandlestickChartPainter extends CustomPainter {
       if (i % 3 == 0) {
         textPainter.text = TextSpan(
           text: '$i',
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 14,
           ),
