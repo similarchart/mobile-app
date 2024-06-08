@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 
+import '../../services/preferences.dart';
+
 class PatternResult extends StatelessWidget {
   final List<dynamic> results;
   final String userPattern;
   final String market;
-  final String lang;
 
   const PatternResult(
       {super.key,
         required this.results,
         required this.userPattern,
-        required this.market,
-        required this.lang});
+        required this.market});
 
-  String createResultUrl(String code, String date) {
-    return 'https://www.similarchart.com/stock_info/?code=$code&lang=$lang';
+  String createResultUrl(String code, String date, String lang) {
+    return 'https://www.similarchart.com/pattern_search/?code=$code&base_date=$date&market=$market&lang=$lang';
   }
 
   @override
@@ -34,6 +34,7 @@ class PatternResult extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop(); // 현재 PatternResult 화면 닫기
+            Navigator.of(context).pop(); // 최초 다이얼로그 화면 닫기
           },
         ),
       ),
@@ -75,8 +76,9 @@ class PatternResult extends StatelessWidget {
                 var result = results[index];
                 var image = base64Decode(result['img']);
                 return InkWell(
-                  onTap: () {
-                    String url = createResultUrl(result['code'], result['date']);
+                  onTap: () async {
+                    String lang = await LanguagePreference.getLanguageSetting();
+                    String url = createResultUrl(result['code'], result['date'], lang);
                     Navigator.pop(context, url);
                   },
                   child: Ink.image(
@@ -115,18 +117,15 @@ class PatternResultManager {
   static List<dynamic> results = [];
   static String userPattern = '';
   static String market = '';
-  static String lang = '';
   static bool isScreenDisplayed = false;
 
   static void initializePatternResult(
       {required List<dynamic> res,
         required String pattern,
-        required String mkt,
-        required String language}) {
+        required String mkt}) {
     results = res;
     userPattern = pattern;
     market = mkt;
-    lang = language;
     isScreenDisplayed = true;
   }
 
@@ -134,7 +133,6 @@ class PatternResultManager {
     results.clear();
     userPattern = '';
     market = '';
-    lang = '';
     isScreenDisplayed = false;
   }
 
@@ -153,8 +151,7 @@ class PatternResultManager {
         builder: (context) => PatternResult(
             results: results,
             userPattern: userPattern,
-            market: market,
-            lang: lang),
+            market: market),
       ),
     );
 

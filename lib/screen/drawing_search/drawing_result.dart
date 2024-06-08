@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 
+import '../../services/preferences.dart';
+
 class DrawingResult extends StatelessWidget {
   final List<dynamic> results;
   final String userDrawing;
   final String market;
   final String size;
-  final String lang;
 
   void initState() {
 
@@ -19,11 +20,10 @@ class DrawingResult extends StatelessWidget {
       required this.results,
       required this.userDrawing,
       required this.market,
-      required this.size,
-      required this.lang})
+      required this.size})
       : super(key: key);
 
-  String createResultUrl(String code, String date) {
+  String createResultUrl(String code, String date, String lang) {
     return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$lang';
   }
 
@@ -85,9 +85,10 @@ class DrawingResult extends StatelessWidget {
                 var result = results[index];
                 var image = base64Decode(result['img']);
                 return InkWell(
-                  onTap: () {
+                  onTap: () async {
+                    String lang = await LanguagePreference.getLanguageSetting();
                     String url =
-                        createResultUrl(result['code'], result['date']);
+                        createResultUrl(result['code'], result['date'], lang);
                     Navigator.pop(context, url);
                   },
                   child: Ink.image(
@@ -101,17 +102,17 @@ class DrawingResult extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 DrawingResultManager.clearData();
               },
-              child: Text('다시 검색하기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondaryColor,
                 foregroundColor: AppColors.textColor,
               ),
+              child: const Text('다시 검색하기'),
             ),
           ),
           const BottomBannerAd(),
@@ -127,20 +128,17 @@ class DrawingResultManager {
   static String userDrawing = '';
   static String market = '';
   static String size = '';
-  static String lang = '';
   static bool isScreenDisplayed = false;
 
   static void initializeDrawingResult(
       {required List<dynamic> res,
       required String drawing,
       required String mkt,
-      required String sz,
-      required String language}) async {
+      required String sz}) async {
     results = res;
     userDrawing = drawing;
     market = mkt;
     size = sz;
-    lang = language;
     isScreenDisplayed = true;
   }
 
@@ -149,7 +147,6 @@ class DrawingResultManager {
     userDrawing = '';
     market = '';
     size = '';
-    lang = '';
     isScreenDisplayed = false;
   }
 
@@ -169,8 +166,7 @@ class DrawingResultManager {
             results: results,
             userDrawing: userDrawing,
             market: market,
-            size: size,
-            lang: lang),
+            size: size),
       ),
     );
 

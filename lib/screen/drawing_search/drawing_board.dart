@@ -66,6 +66,10 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+
+    if (!DrawingResultManager.isResultExist()) {
+      ToastService().showToastMessage("원하는 차트를 그려보세요!");
+    }
   }
 
   void loadPreferences() async {
@@ -358,8 +362,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
             res: results,
             drawing: encodedDrawing,
             mkt: market,
-            sz: selectedSize,
-            language: lang);
+            sz: selectedSize);
 
         ref.read(isDrawingLoadingProvider.notifier).state = false;
 

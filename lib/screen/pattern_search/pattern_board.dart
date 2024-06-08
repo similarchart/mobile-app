@@ -65,6 +65,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    if (!PatternResultManager.isResultExist()) {
+      ToastService().showToastMessage("원하는 패턴을 그려보세요!");
+    }
   }
 
   void loadPrices() async {
@@ -781,7 +784,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       if (response.statusCode == 200) {
         List<dynamic> results = jsonDecode(response.body);
         PatternResultManager.initializePatternResult(
-            res: results, pattern: encodedDrawing, mkt: market, language: lang);
+            res: results, pattern: encodedDrawing, mkt: market);
 
         ref.read(isPatternLoadingProvider.notifier).state = false;
 
