@@ -66,7 +66,7 @@ class DrawingResult extends StatelessWidget {
             child: Text(
               results.isEmpty ? "비슷한 차트를 찾지 못했습니다" : "원하는 차트를 선택하세요",
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 color: AppColors.textColor,
               ),
               textAlign: TextAlign.center,

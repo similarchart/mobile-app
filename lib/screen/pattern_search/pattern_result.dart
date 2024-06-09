@@ -54,11 +54,11 @@ class PatternResult extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             child: Text(
-              results.isEmpty ? "비슷한 패턴을 찾지 못했습니다" : "원하는 패턴을 선택하세요",
+              results.isEmpty ? "비슷한 패턴을 찾지 못했습니다" : "비슷한 패턴 : 초록색 배경의 4개 캔들\n원하는 패턴을 선택하세요",
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 color: AppColors.textColor,
               ),
               textAlign: TextAlign.center,

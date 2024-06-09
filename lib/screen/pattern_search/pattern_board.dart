@@ -24,6 +24,8 @@ import 'package:web_view/providers/search_state_providers.dart';
 import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
 import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 
+import 'example_candle_painter.dart';
+
 enum PriceType { open, close, high, low }
 
 class PatternBoard extends ConsumerStatefulWidget {
@@ -60,6 +62,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
     loadPreferences();
     loadPrices(); // Load prices from SharedPreferences
     loadLanguagePreference(); // 언어 설정 로드
+    checkFirstLaunch();
 
     // 페이지가 초기화될 때 세로 모드로 설정
     SystemChrome.setPreferredOrientations([
@@ -69,6 +72,63 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
     if (!PatternResultManager.isResultExist()) {
       ToastService().showToastMessage("원하는 패턴을 그려보세요!");
     }
+  }
+
+  Future<void> loadPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedMarket = prefs.getString('selectedMarket') ?? '시장';
+    });
+  }
+
+  Future<void> checkFirstLaunch() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool hasLaunchedBefore = prefs.getBool('hasLaunchedBefore') ?? false;
+    if (!hasLaunchedBefore) {
+      showCandleGuideDialog();
+      await prefs.setBool('hasLaunchedBefore', true);
+    }
+  }
+
+  void showCandleGuideDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(
+            child: Text(
+              '캔들스틱 그리는 방법',
+              style: TextStyle(fontSize: 22),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 13),
+              SizedBox(
+                height: 130,
+                width: 130,
+                child: CustomPaint(
+                  painter: ExampleCandlePainter(),
+                ),
+              ),
+              const Text(
+                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n각 부분 중 하나를 터치하여 드래그하면 캔들스틱 차트를 그릴 수 있습니다.\n\n하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void loadPrices() async {
@@ -94,13 +154,6 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
           ?.map((e) => int.tryParse(e) ?? 0)
           .toList() ??
           [0, 2, 4, 6]);
-    });
-  }
-
-  void loadPreferences() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      selectedMarket = prefs.getString('selectedMarket') ?? '시장';
     });
   }
 
@@ -148,11 +201,18 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
             backgroundColor: AppColors.primaryColor,
-            title: const Text(
-              '캔들패턴검색',
-              style: TextStyle(
-                color: AppColors.textColor,
-              ),
+            title: Row(
+              children: [
+                const Text(
+                  '캔들패턴검색',
+                  style: TextStyle(color: AppColors.textColor),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: showCandleGuideDialog,
+                  color: AppColors.textColor,
+                ),
+              ],
             ),
             automaticallyImplyLeading: false,
             actions: [
