@@ -16,6 +16,8 @@ import 'dart:io';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/main.dart';
 
+import 'loading_overlay.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -129,10 +131,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLoading = ref.watch(isLoadingProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isLoading) {
+        LoadingOverlay().show(context);
+      } else {
+        LoadingOverlay().hide();
+      }
+    });
+
     final bool isFirstLoad = ref.watch(isFirstLoadProvider);
     final bool showFloatingActionButton =
-        ref.watch(showFloatingActionButtonProvider);
-    final bool isLoading = ref.watch(isLoadingProvider);
+    ref.watch(showFloatingActionButtonProvider);
     final bool didScrollDown = ref.watch(didScrollDownProvider);
     final bool bottomBarFixedPref = ref.watch(bottomBarFixedPrefProvider);
     final double startY = ref.watch(startYProvider);
@@ -188,71 +198,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               resizeToAvoidBottomInset: false,
               body: bottomBarFixedPref
                   ? Column(
-                      children: [
-                        Expanded(
-                          child: createWebView(),
-                        ),
-                        SizedBox(
-                            height: bottomNavigationBarHeight,
-                            child: _buildBottomNavigationBar())
-                      ],
-                    )
+                children: [
+                  Expanded(
+                    child: createWebView(),
+                  ),
+                  SizedBox(
+                      height: bottomNavigationBarHeight,
+                      child: _buildBottomNavigationBar())
+                ],
+              )
                   : Stack(
-                      children: [
-                        // 웹뷰를 Stack의 바닥에 위치시키기
-                        Positioned.fill(
-                          child: Listener(
-                            onPointerDown: (PointerDownEvent event) {
-                              ref.read(startYProvider.notifier).state =
-                                  event.position.dy; // 시작 지점 저장
-                              ref.read(isDraggingProvider.notifier).state =
-                                  true; // 드래그 시작
-                            },
-                            onPointerMove: (PointerMoveEvent event) {
-                              if (isDragging) {
-                                double distance =
-                                    startY - event.position.dy; // 이동 거리 계산
-                                if (distance > 70) {
-                                  // 50픽셀 이상 위로 드래그
-                                  ref
-                                      .read(didScrollDownProvider.notifier)
-                                      .state = false;
-                                  ref.read(isDraggingProvider.notifier).state =
-                                      false; // 드래그 중지
-                                } else if (distance < -70) {
-                                  // 50픽셀 이상 아래로 드래그
-                                  ref
-                                      .read(didScrollDownProvider.notifier)
-                                      .state = true;
-                                  ref.read(isDraggingProvider.notifier).state =
-                                      false; // 드래그 중지
-                                }
-                              }
-                            },
-                            onPointerUp: (PointerUpEvent event) {
-                              ref.read(isDraggingProvider.notifier).state =
-                                  false; // 드래그 종료
-                            },
-                            child: createWebView(),
-                          ),
-                        ),
-                        // 하단바를 웹뷰 위에 배치하기
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 500),
-                            height: bottomNavigationBarHeight,
-                            transform: Matrix4.translationValues(
-                                0.0,
-                                didScrollDown ? 0.0 : bottomNavigationBarHeight,
-                                0.0),
-                            child: _buildBottomNavigationBar(),
-                          ),
-                        ),
-                      ],
+                children: [
+                  // 웹뷰를 Stack의 바닥에 위치시키기
+                  Positioned.fill(
+                    child: Listener(
+                      onPointerDown: (PointerDownEvent event) {
+                        ref.read(startYProvider.notifier).state =
+                            event.position.dy; // 시작 지점 저장
+                        ref.read(isDraggingProvider.notifier).state =
+                        true; // 드래그 시작
+                      },
+                      onPointerMove: (PointerMoveEvent event) {
+                        if (isDragging) {
+                          double distance =
+                              startY - event.position.dy; // 이동 거리 계산
+                          if (distance > 70) {
+                            // 50픽셀 이상 위로 드래그
+                            ref
+                                .read(didScrollDownProvider.notifier)
+                                .state = false;
+                            ref.read(isDraggingProvider.notifier).state =
+                            false; // 드래그 중지
+                          } else if (distance < -70) {
+                            // 50픽셀 이상 아래로 드래그
+                            ref
+                                .read(didScrollDownProvider.notifier)
+                                .state = true;
+                            ref.read(isDraggingProvider.notifier).state =
+                            false; // 드래그 중지
+                          }
+                        }
+                      },
+                      onPointerUp: (PointerUpEvent event) {
+                        ref.read(isDraggingProvider.notifier).state =
+                        false; // 드래그 종료
+                      },
+                      child: createWebView(),
                     ),
+                  ),
+                  // 하단바를 웹뷰 위에 배치하기
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      height: bottomNavigationBarHeight,
+                      transform: Matrix4.translationValues(
+                          0.0,
+                          didScrollDown ? 0.0 : bottomNavigationBarHeight,
+                          0.0),
+                      child: _buildBottomNavigationBar(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -266,38 +276,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 ? fabManager.buildFloatingActionButton(true, ref)
                 : Container(),
           ),
-          isLoading
-              ? Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.5), // 반투명 오버레이
-                    child: Center(
-                      child: FutureBuilder<String>(
-                        future: LanguagePreference
-                            .getLanguageSetting(), // 현재 언어 설정을 가져옵니다.
-                        builder: (BuildContext context,
-                            AsyncSnapshot<String> snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const CircularProgressIndicator(); // 언어 설정을 로딩 중이면 기본 로딩 인디케이터 표시
-                          } else if (snapshot.hasData) {
-                            String lang = snapshot.data!;
-                            // 언어 설정에 따라 다른 GIF 이미지 로드
-                            return Image.asset(lang == 'ko'
-                                ? 'assets/loading_image.gif'
-                                : 'assets/loading_image_en.gif');
-                          } else {
-                            return const Text('로딩 이미지를 불러올 수 없습니다.');
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                )
-              : Container(),
         ],
       ),
     );
   }
+
 
   Widget createWebView() {
     return InAppWebView(

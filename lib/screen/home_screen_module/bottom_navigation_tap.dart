@@ -74,71 +74,87 @@ class BottomNavigationTap {
 
   void onDrawingSearchTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) {
-    double width = min(
-        MediaQuery.of(context).size.height, MediaQuery.of(context).size.width);
-    double appBarHeight = AppBar().preferredSize.height;
-    double adHeight = 60;
-    double height = width + appBarHeight + adHeight;
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(0),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: DrawingBoard(
-              screenHeight: height - appBarHeight,
-            ),
-          ),
-        );
-      },
-    ).then((url) {
-      if (url != null) {
-        ref.read(isLoadingProvider.notifier).state = true;
-        WebViewManager.loadUrl(webViewController, url);
-      }
-    });
-
     if (DrawingResultManager.isResultExist()) {
-      DrawingResultManager.showDrawingResult(context);
+      DrawingResultManager.showDrawingResult(context).then((url) {
+        if (url != null) {
+          ref.read(isLoadingProvider.notifier).state = true;
+          WebViewManager.loadUrl(webViewController, url);
+        }
+      });
+    }
+    else {
+      double width = min(
+          MediaQuery
+              .of(context)
+              .size
+              .height, MediaQuery
+          .of(context)
+          .size
+          .width);
+      double appBarHeight = AppBar().preferredSize.height;
+      double adHeight = 60;
+      double height = width + appBarHeight + adHeight;
+
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(0),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: DrawingBoard(
+                screenHeight: height - appBarHeight,
+              ),
+            ),
+          );
+        },
+      ).then((url) {
+        if (url != null) {
+          ref
+              .read(isLoadingProvider.notifier)
+              .state = true;
+          WebViewManager.loadUrl(webViewController, url);
+        }
+      });
     }
   }
 
   void onPatternSearchTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) {
-    double width = min(
-        MediaQuery.of(context).size.height, MediaQuery.of(context).size.width);
-    double appBarHeight = AppBar().preferredSize.height;
-    double adHeight = 60;
-    double height = width + appBarHeight + adHeight;
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(0),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: PatternBoard(
-              screenHeight: height - appBarHeight,
-            ),
-          ),
-        );
-      },
-    ).then((url) {
-      if (url != null) {
-        ref.read(isLoadingProvider.notifier).state = true;
-        WebViewManager.loadUrl(webViewController, url);
-      }
-    });
-
     if (PatternResultManager.isResultExist()) {
-      PatternResultManager.showPatternResult(context);
+      PatternResultManager.showPatternResult(context).then((url) {
+        if (url != null) {
+          ref.read(isLoadingProvider.notifier).state = true;
+          WebViewManager.loadUrl(webViewController, url);
+        }
+      });
+    } else {
+      double width = min(MediaQuery.of(context).size.height,
+          MediaQuery.of(context).size.width);
+      double height = MediaQuery.of(context).size.height * 0.75;
+
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(0),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: PatternBoard(
+              ),
+            ),
+          );
+        },
+      ).then((url) {
+        if (url != null) {
+          ref.read(isLoadingProvider.notifier).state = true;
+          WebViewManager.loadUrl(webViewController, url);
+        }
+      });
     }
   }
 

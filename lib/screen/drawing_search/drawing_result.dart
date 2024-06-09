@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 
 import '../../services/preferences.dart';
+import 'drawing_board.dart';
 
 class DrawingResult extends StatelessWidget {
   final List<dynamic> results;
@@ -40,9 +42,7 @@ class DrawingResult extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            // 두 번째 pop을 추가하여 다이얼로그까지 닫기
-            Navigator.of(context).pop(); // 현재 DrawingResult 화면 닫기
-            Navigator.of(context).pop(); // 최초 다이얼로그 화면 닫기
+            Navigator.of(context).pop();
           },
         ),
       ),
@@ -107,6 +107,35 @@ class DrawingResult extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 DrawingResultManager.clearData();
+
+                double width = min(
+                    MediaQuery
+                        .of(context)
+                        .size
+                        .height, MediaQuery
+                    .of(context)
+                    .size
+                    .width);
+                double appBarHeight = AppBar().preferredSize.height;
+                double adHeight = 60;
+                double height = width + appBarHeight + adHeight;
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (BuildContext context) {
+                    return Dialog(
+                      insetPadding: const EdgeInsets.all(0),
+                      child: SizedBox(
+                        width: width,
+                        height: height,
+                        child: DrawingBoard(
+                          screenHeight: height - appBarHeight,
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondaryColor,
@@ -154,24 +183,21 @@ class DrawingResultManager {
     return isScreenDisplayed;
   }
 
-  static void showDrawingResult(BuildContext context) async {
+  static Future<String?> showDrawingResult(BuildContext context) async {
     if (!isScreenDisplayed) {
-      return;
+      return null;
     }
 
-    String? url = await Navigator.push(
+    return await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => DrawingResult(
-            results: results,
-            userDrawing: userDrawing,
-            market: market,
-            size: size),
+          results: results,
+          userDrawing: userDrawing,
+          market: market,
+          size: size,
+        ),
       ),
     );
-
-    if (url != null) {
-      Navigator.pop(context, url);
-    }
   }
 }

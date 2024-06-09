@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
@@ -16,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:math';
-
+import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/providers/search_state_providers.dart';
 import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
@@ -25,9 +27,8 @@ import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 enum PriceType { open, close, high, low }
 
 class PatternBoard extends ConsumerStatefulWidget {
-  final double screenHeight;
 
-  const PatternBoard({super.key, required this.screenHeight});
+  const PatternBoard({super.key});
 
   @override
   _PatternBoardState createState() => _PatternBoardState();
@@ -127,29 +128,28 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvoked: (bool value) {
-        ref.read(isPatternLoadingProvider.notifier).state = false;
+        ref.read(isLoadingProvider.notifier).state = false;
       },
       child: Consumer(builder: (context, ref, child) {
-        final isLoading = ref.watch(isPatternLoadingProvider);
+        final isLoading = ref.watch(isLoadingProvider);
         final isCooldownCompleted = ref.watch(isCooldownCompletedProvider);
         final remainingTimeInSeconds = ref.watch(cooldownDurationProvider);
 
         bool isCooldownActive = !isCooldownCompleted;
 
         double screenWidth = MediaQuery.of(context).size.width;
-        double chartHeight = widget.screenHeight / 2;
-        double chartWidth = chartHeight;
-        double gridWidth = chartWidth / 8;
+        double chartHeight = screenWidth - 110;
+        double chartWidth = screenWidth - 110;
         double gridHeight = chartHeight / 10;
+        double gridWidth = chartWidth / 8;
         double heightMargin = gridHeight / 2; // 상단 여백
-        final inputHeight = screenWidth - chartHeight;
 
         return Scaffold(
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
             backgroundColor: AppColors.primaryColor,
             title: const Text(
-              '패턴검색',
+              '캔들패턴검색',
               style: TextStyle(
                 color: AppColors.textColor,
               ),
@@ -205,7 +205,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                         0, openPrices, closePrices, highPrices, lowPrices))
                     ? () {
                   SearchingTimer(ref).startTimer(10);
-                  sendPattern(widget.screenHeight);
+                  sendPattern();
                 }
                     : () {
                   if (selectedMarket == "시장") {
@@ -217,12 +217,12 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                         "$remainingTimeInSeconds초 후 재검색이 가능합니다.");
                   } else if (!containsNumber(9, openPrices, closePrices,
                       highPrices, lowPrices)) {
-                    ToastService()
-                        .showToastMessage("하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
+                    ToastService().showToastMessage(
+                        "하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
                   } else if (!containsNumber(0, openPrices, closePrices,
                       highPrices, lowPrices)) {
-                    ToastService()
-                        .showToastMessage("하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
+                    ToastService().showToastMessage(
+                        "하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
                   } else {
                     ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
                   }
@@ -371,7 +371,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                 ),
                               ),
                               Positioned(
-                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                left: -5, // 오른쪽에서 약간의 여백을 둠
                                 top: 8, // 차트 높이의 절반 위치
                                 child: ElevatedButton(
                                   onPressed: () {
@@ -403,7 +403,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                 ),
                               ),
                               Positioned(
-                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                left: -5,
                                 top: 60, // 차트 높이의 절반 위치
                                 child: ElevatedButton(
                                   onPressed: () {
@@ -434,7 +434,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                 ),
                               ),
                               Positioned(
-                                left: 0, // 오른쪽에서 약간의 여백을 둠
+                                left: -5, // 오른쪽에서 약간의 여백을 둠
                                 top: 112, // 차트 높이의 절반 위치
                                 child: ElevatedButton(
                                   onPressed: () {
@@ -465,7 +465,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                 ),
                               ),
                               Positioned(
-                                right: 0, // 오른쪽에서 약간의 여백을 둠
+                                right: -5, // 오른쪽에서 약간의 여백을 둠
                                 top: 8, // 차트 높이의 절반 위치
                                 child: ElevatedButton(
                                     onPressed: () {
@@ -490,7 +490,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                     child: const Icon(Icons.arrow_circle_up)),
                               ),
                               Positioned(
-                                right: 0, // 오른쪽에서 약간의 여백을 둠
+                                right: -5, // 오른쪽에서 약간의 여백을 둠
                                 top: 60, // 차트 높이의 절반 위치
                                 child: ElevatedButton(
                                     onPressed: () {
@@ -519,38 +519,37 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                           ),
                         ),
                       ),
-                      SizedBox(height: inputHeight * 0.05), // 5% 패딩 추가
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(4, (index) {
-                          return ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                selectedCandleIndex = index;
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.all(8), // 버튼 크기 조절
-                              backgroundColor: selectedCandleIndex == index
-                                  ? Colors.black26
-                                  : Colors.white70, // 선택된 버튼 색상 변경
-                            ),
-                            child: Text(
-                              (index + 1).toString(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold, // 텍스트 굵게
-                                color: selectedCandleIndex == index
-                                    ? Colors.white
-                                    : Colors.black, // 선택된 버튼 텍스트 색상 변경
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
                       Expanded(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: List.generate(4, (index) {
+                                return ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      selectedCandleIndex = index;
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.all(8), // 버튼 크기 조절
+                                    backgroundColor: selectedCandleIndex == index
+                                        ? Colors.black26
+                                        : Colors.white70, // 선택된 버튼 색상 변경
+                                  ),
+                                  child: Text(
+                                    (index + 1).toString(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold, // 텍스트 굵게
+                                      color: selectedCandleIndex == index
+                                          ? Colors.white
+                                          : Colors.black, // 선택된 버튼 텍스트 색상 변경
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
                             buildPriceInputRow(
                                 PriceType.open,
                                 openPrices,
@@ -569,31 +568,6 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                       ),
                     ],
                   ),
-                  if (isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withOpacity(0.4),
-                        child: Center(
-                          child: FutureBuilder<String>(
-                            future: LanguagePreference.getLanguageSetting(),
-                            builder: (BuildContext context,
-                                AsyncSnapshot<String> snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const CircularProgressIndicator();
-                              } else if (snapshot.hasData) {
-                                String lang = snapshot.data!;
-                                return Image.asset(lang == 'ko'
-                                    ? 'assets/loading_image.gif'
-                                    : 'assets/loading_image_en.gif');
-                              } else {
-                                return const Text('로딩 이미지를 불러올 수 없습니다.');
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               );
             },
@@ -649,10 +623,11 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: textColor,
+            fontSize: 17
           ),
         ),
         const SizedBox(
-          width: 16,
+          width: 14,
         ), // 텍스트와 아이콘 사이의 간격 조절
         Row(
           children: [
@@ -665,7 +640,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                   }
                 });
               },
-              child: const Icon(Icons.arrow_circle_up),
+              child: const Icon(Icons.arrow_circle_up, size: 34,),
             ),
             const SizedBox(width: 10), // 아이콘 사이의 간격을 좁게 설정
             InkWell(
@@ -677,7 +652,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                   }
                 });
               },
-              child: const Icon(Icons.arrow_circle_down),
+              child: const Icon(Icons.arrow_circle_down, size: 34,),
             ),
           ],
         ),
@@ -743,9 +718,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
         'lowPrices', lowPrices.map((e) => e.toString()).toList());
   }
 
-  void sendPattern(double screenHeight) async {
+  void sendPattern() async {
     // 로딩 상태를 true로 설정
-    ref.read(isPatternLoadingProvider.notifier).state = true;
+    ref.read(isLoadingProvider.notifier).state = true;
     savePrices();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -786,9 +761,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
         PatternResultManager.initializePatternResult(
             res: results, pattern: encodedDrawing, mkt: market);
 
-        ref.read(isPatternLoadingProvider.notifier).state = false;
-
-        PatternResultManager.showPatternResult(context);
+        ref.read(isLoadingProvider.notifier).state = false;
+        String? resultUrl = await PatternResultManager.showPatternResult(context);
+        Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
@@ -797,7 +772,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       print('Error sending data to the API: $e');
     } finally {
       // 로딩 상태를 false로 설정
-      ref.read(isPatternLoadingProvider.notifier).state = false;
+      ref.read(isLoadingProvider.notifier).state = false;
     }
   }
 }

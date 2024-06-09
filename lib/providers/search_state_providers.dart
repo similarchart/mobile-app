@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
-// Loading state providers
-final isDrawingLoadingProvider = StateProvider<bool>((ref) => false);
-final isPatternLoadingProvider = StateProvider<bool>((ref) => false);
 
 // Cooldown state management
 class CooldownNotifier extends StateNotifier<int> {

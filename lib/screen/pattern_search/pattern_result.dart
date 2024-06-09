@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
+import 'package:web_view/screen/pattern_search/pattern_board.dart';
 
 import '../../services/preferences.dart';
 
@@ -33,8 +35,7 @@ class PatternResult extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop(); // 현재 PatternResult 화면 닫기
-            Navigator.of(context).pop(); // 최초 다이얼로그 화면 닫기
+            Navigator.of(context).pop();
           },
         ),
       ),
@@ -97,6 +98,26 @@ class PatternResult extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 PatternResultManager.clearData();
+
+                double width = min(MediaQuery.of(context).size.height,
+                    MediaQuery.of(context).size.width);
+                double height = MediaQuery.of(context).size.height * 0.75;
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (BuildContext context) {
+                    return Dialog(
+                      insetPadding: const EdgeInsets.all(0),
+                      child: SizedBox(
+                        width: width,
+                        height: height,
+                        child: PatternBoard(
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
               child: Text('다시 검색하기'),
               style: ElevatedButton.styleFrom(
@@ -140,23 +161,20 @@ class PatternResultManager {
     return isScreenDisplayed;
   }
 
-  static void showPatternResult(BuildContext context) async {
+  static Future<String?> showPatternResult(BuildContext context) async {
     if (!isScreenDisplayed) {
-      return;
+      return null;
     }
 
-    String? url = await Navigator.push(
+    return await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => PatternResult(
-            results: results,
-            userPattern: userPattern,
-            market: market),
+          results: results,
+          userPattern: userPattern,
+          market: market,
+        ),
       ),
     );
-
-    if (url != null) {
-      Navigator.pop(context, url);
-    }
   }
 }

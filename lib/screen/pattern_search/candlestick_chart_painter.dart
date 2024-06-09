@@ -54,7 +54,7 @@ class CandlestickChartPainter extends CustomPainter {
           ),
         );
         textPainter.layout();
-        textPainter.paint(canvas, Offset(2, y - 8));
+        textPainter.paint(canvas, Offset(8, y - 8));
       }
 
       // 회색 실선 그리기
@@ -64,7 +64,7 @@ class CandlestickChartPainter extends CustomPainter {
         axisPaint.color = Colors.black12; // 기본 색상
       }
       canvas.drawLine(
-          Offset(15, y), Offset(size.width - marginWidth, y), axisPaint);
+          Offset(20, y), Offset(size.width - marginWidth, y), axisPaint);
     }
 
     axisPaint.color = Colors.black12;

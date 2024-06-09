@@ -18,6 +18,7 @@ import 'package:web_view/screen/drawing_search/drawing_painter.dart';
 import 'package:web_view/screen/drawing_search/drawing_utils.dart';
 import 'dart:ui' as ui;
 import 'dart:convert';
+import 'package:web_view/providers/home_screen_state_providers.dart';
 
 class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
@@ -100,10 +101,10 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvoked: (bool value) {
-        ref.read(isDrawingLoadingProvider.notifier).state = false;
+        ref.read(isLoadingProvider.notifier).state = false;
       },
       child: Consumer(builder: (context, ref, child) {
-        final isLoading = ref.watch(isDrawingLoadingProvider);
+        final isLoading = ref.watch(isLoadingProvider);
         final isCooldownCompleted = ref.watch(isCooldownCompletedProvider);
         final remainingTimeInSeconds = ref.watch(cooldownDurationProvider);
 
@@ -242,30 +243,6 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                   ),
                 );
               }),
-              if (isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.2),
-                    child: Center(
-                      child: FutureBuilder<String>(
-                        future: LanguagePreference.getLanguageSetting(),
-                        builder:
-                            (BuildContext context, AsyncSnapshot<String> snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const CircularProgressIndicator();
-                          } else if (snapshot.hasData) {
-                            String lang = snapshot.data!;
-                            return Image.asset(lang == 'ko'
-                                ? 'assets/loading_image.gif'
-                                : 'assets/loading_image_en.gif');
-                          } else {
-                            return const Text('로딩 이미지를 불러올 수 없습니다.');
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
           bottomNavigationBar: const BottomBannerAd(),
@@ -319,7 +296,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
   void sendDrawing(double screenHeight) async {
     // 로딩 상태를 true로 설정
-    ref.read(isDrawingLoadingProvider.notifier).state = true;
+    ref.read(isLoadingProvider.notifier).state = true;
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedSize', selectedSize);
@@ -364,9 +341,9 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
             mkt: market,
             sz: selectedSize);
 
-        ref.read(isDrawingLoadingProvider.notifier).state = false;
-
-        DrawingResultManager.showDrawingResult(context);
+        ref.read(isLoadingProvider.notifier).state = false;
+        String? resultUrl = await DrawingResultManager.showDrawingResult(context);
+        Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
 
         setState(() {
           points.clear();
@@ -381,7 +358,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       print('Error sending data to the API: $e');
     } finally {
       // 로딩 상태를 false로 설정
-      ref.read(isDrawingLoadingProvider.notifier).state = false;
+      ref.read(isLoadingProvider.notifier).state = false;
     }
   }
 }
