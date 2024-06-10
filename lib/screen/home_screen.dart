@@ -15,6 +15,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/main.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'loading_overlay.dart';
 
@@ -29,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   static const double bottomNavigationBarHeight = 55;
   final GlobalKey webViewKey = GlobalKey();
   late String homeUrl;
+  String? previousUrl;
   late final InAppWebViewController? webViewController;
   late WebViewManager webViewManager;
   late BottomNavigationTap bottomNavigationTap;
@@ -319,11 +321,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       // 페이지 로딩 시 수행 메서드 정의
       onLoadStart: (InAppWebViewController controller, url) async {
         ref.read(isPageLoadingProvider.notifier).state = true;
+        // URL이 변경될 때마다 이전 URL을 저장
+        previousUrl = url.toString();
       },
 
       // URL 로딩 제어
       shouldOverrideUrlLoading: (controller, navigationAction) async {
         Uri url = navigationAction.request.url!;
+
+        if (url.toString().startsWith('intent:kakaolink://send')) {
+          if (previousUrl != null) {
+            await shareUrl(previousUrl!);
+          }
+          return NavigationActionPolicy.CANCEL;
+        }
 
         // 외부 앱 실행 필요한 URL 스키마 처리
         if (!["http", "https", "file", "chrome", "data", "javascript", "about"]
@@ -369,6 +380,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         // 현재 페이지 로딩 상태 업데이트 (0~100%)
       },
     );
+  }
+
+  Future<void> shareUrl(String url) async {
+    try {
+      await Share.share(url);
+    } catch (e) {
+      print('URL 공유 중 오류 발생: $e');
+    }
   }
 
   void updateFloatingActionButtonVisibility(String url) {
