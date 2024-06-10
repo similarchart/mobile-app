@@ -126,7 +126,7 @@ class PatternResult extends StatelessWidget {
               ),
             ),
           ),
-          const BottomBannerAd(),
+          // const BottomBannerAd(),
         ],
       ),
     );

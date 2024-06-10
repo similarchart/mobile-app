@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -113,7 +115,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                 ),
               ),
               const Text(
-                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n각 부분 중 하나를 터치하여 드래그하면 캔들스틱 차트를 그릴 수 있습니다.\n\n하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요.',
+                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n4개의 부분 중 하나를 터치하여 드래그하면 캔들스틱을 그릴 수 있습니다.\n\n하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요.',
                 textAlign: TextAlign.center,
               ),
             ],
@@ -632,7 +634,8 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
               );
             },
           ),
-          bottomNavigationBar: const BottomBannerAd(),
+          // bottomNavigationBar: const BottomBannerAd(),
+          bottomNavigationBar: Container(height: 60, color: AppColors.primaryColor),
         );
       }),
     );
@@ -781,6 +784,24 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
   void sendPattern() async {
     // 로딩 상태를 true로 설정
     ref.read(isLoadingProvider.notifier).state = true;
+
+    // API 호출 결과를 저장하기 위한 Completer
+    Completer<Map<String, dynamic>> apiResultCompleter = Completer<Map<String, dynamic>>();
+
+    // 백그라운드에서 API 호출을 수행
+    _fetchPatternResult().then((apiResult) {
+      apiResultCompleter.complete(apiResult);
+    });
+
+    // 전면 광고를 먼저 보여줌
+    _adManager.showInterstitialAd(context, () async {
+      // 광고가 닫히면 호출되는 콜백
+      Map<String, dynamic> apiResult = await apiResultCompleter.future;
+      _handleApiResponse(context, apiResult);
+    });
+  }
+
+  Future<Map<String, dynamic>> _fetchPatternResult() async {
     savePrices();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -821,18 +842,27 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
         PatternResultManager.initializePatternResult(
             res: results, pattern: encodedDrawing, mkt: market);
 
-        ref.read(isLoadingProvider.notifier).state = false;
-        String? resultUrl = await PatternResultManager.showPatternResult(context);
-        Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
+        return {'success': true, 'results': results};
       } else {
         print('Failed to send data. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
+        return {'success': false, 'error': 'Failed to send data.'};
       }
     } catch (e) {
       print('Error sending data to the API: $e');
-    } finally {
-      // 로딩 상태를 false로 설정
-      ref.read(isLoadingProvider.notifier).state = false;
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  void _handleApiResponse(BuildContext context, Map<String, dynamic> response) async {
+    ref.read(isLoadingProvider.notifier).state = false;
+
+    if (response['success']) {
+      String? resultUrl = await PatternResultManager.showPatternResult(context);
+      Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
+    } else {
+      print('Error: ${response['error']}');
+      // 에러 메시지를 표시하는 로직 추가 가능
     }
   }
 }

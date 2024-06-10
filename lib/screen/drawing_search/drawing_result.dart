@@ -144,7 +144,7 @@ class DrawingResult extends StatelessWidget {
               child: const Text('다시 검색하기'),
             ),
           ),
-          const BottomBannerAd(),
+          // const BottomBannerAd(),
         ],
       ),
     );
