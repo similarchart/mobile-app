@@ -115,7 +115,15 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                 ),
               ),
               const Text(
-                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n4개의 부분 중 하나를 터치하여 드래그하면 캔들스틱을 그릴 수 있습니다.\n\n하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요.',
+                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n4개의 부분 중 하나를 터치하여 드래그하면 캔들스틱을 그릴 수 있습니다',
+                textAlign: TextAlign.center,
+              ),
+              Divider(
+                color: Colors.black,
+                thickness: 2,
+              ),
+              Text(
+                '하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요',
                 textAlign: TextAlign.center,
               ),
             ],
@@ -681,12 +689,15 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
 
     return Row(
       children: [
-        Text(
-          '$label : ${prices[index]}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            fontSize: 17
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0), // 왼쪽에 패딩 추가
+          child: Text(
+            '$label : ${prices[index]}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: textColor,
+              fontSize: 17,
+            ),
           ),
         ),
         const SizedBox(
@@ -694,34 +705,47 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
         ), // 텍스트와 아이콘 사이의 간격 조절
         Row(
           children: [
-            InkWell(
-              onTap: () {
-                setState(() {
-                  if (prices[index] < 9) {
-                    prices[index]++;
-                    adjustPrices(index, type);
-                  }
-                });
-              },
-              child: const Icon(Icons.arrow_circle_up, size: 34,),
+            Container(
+              width: 50, // 터치 영역 크기 설정
+              height: 50,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    if (prices[index] < 9) {
+                      prices[index]++;
+                      adjustPrices(index, type);
+                    }
+                  });
+                },
+                child: const Center(
+                  child: Icon(Icons.arrow_circle_up, size: 35), // 아이콘 크기 조정
+                ),
+              ),
             ),
-            const SizedBox(width: 10), // 아이콘 사이의 간격을 좁게 설정
-            InkWell(
-              onTap: () {
-                setState(() {
-                  if (prices[index] > 0) {
-                    prices[index]--;
-                    adjustPrices(index, type);
-                  }
-                });
-              },
-              child: const Icon(Icons.arrow_circle_down, size: 34,),
+            Container(
+              width: 50, // 터치 영역 크기 설정
+              height: 50,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    if (prices[index] > 0) {
+                      prices[index]--;
+                      adjustPrices(index, type);
+                    }
+                  });
+                },
+                child: const Center(
+                  child: Icon(Icons.arrow_circle_down, size: 35), // 아이콘 크기 조정
+                ),
+              ),
             ),
           ],
         ),
       ],
     );
   }
+
+
 
   void adjustPrices(int index, PriceType type) {
     if (index < 0) {
