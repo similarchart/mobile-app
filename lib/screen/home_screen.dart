@@ -17,7 +17,7 @@ import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/main.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:web_view/services/check_internet.dart';
-
+import 'package:web_view/system/logger.dart';
 import 'loading_overlay.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -363,7 +363,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     try {
       await Share.share(url);
     } catch (e) {
-      print('URL 공유 중 오류 발생: $e');
+      Log.instance.e('URL 공유 중 오류 발생: $e');
     }
   }
 

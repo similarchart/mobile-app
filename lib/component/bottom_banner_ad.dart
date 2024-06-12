@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:web_view/system/logger.dart';
 
 const int adHeight = 60;
 
 class BottomBannerAd extends StatefulWidget {
-  const BottomBannerAd({Key? key}) : super(key: key);
+  const BottomBannerAd({super.key});
 
   @override
   State<BottomBannerAd> createState() => _BottomBannerAdState();
@@ -36,11 +37,11 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
           });
         },
         onAdFailedToLoad: (ad, error) {
-          print('Ad failed to load: $error');
+          Log.instance.e('Ad failed to load: $error');
           ad.dispose();
         },
       ),
-      request: AdRequest(),
+      request: const AdRequest(),
     );
 
     banner!.load();

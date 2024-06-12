@@ -7,6 +7,7 @@ import 'package:web_view/screen/home_screen_module/floating_action_button_manage
 import 'package:web_view/model/history_item.dart';
 import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/constants/urls.dart';
+import 'package:web_view/system/logger.dart';
 
 class WebViewManager {
   late FloatingActionButtonManager fabManager;
@@ -109,9 +110,9 @@ class WebViewManager {
       try {
         stockName = (await webViewController.evaluateJavascript(source: jsCode))
             as String;
-        print("Text content of the element: $stockName");
+        Log.instance.i("Text content of the element: $stockName");
       } catch (e) {
-        print("JavaScript execution failed: $e");
+        Log.instance.e("JavaScript execution failed: $e");
       }
 
       if (stockName == 'Element not found') {

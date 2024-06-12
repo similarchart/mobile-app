@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:web_view/system/logger.dart';
 
 class InterstitialAdManager {
   InterstitialAd? _interstitialAd;
@@ -62,7 +63,7 @@ class InterstitialAdManager {
   // 전면 광고 관리 클래스 내 메서드 변경
   void showInterstitialAd(BuildContext context, Function onAdClosed) {
     if (_interstitialAd == null) {
-      print('Warning: attempt to show interstitial before loaded.');
+      Log.instance.w('Warning: attempt to show interstitial before loaded.');
       onAdClosed(); // 광고가 로드되지 않은 경우에도 로직 진행
       return;
     }

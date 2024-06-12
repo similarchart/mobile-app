@@ -26,7 +26,7 @@ import 'package:web_view/providers/search_state_providers.dart';
 import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
 import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 import 'package:web_view/services/check_internet.dart';
-
+import 'package:web_view/system/logger.dart';
 import 'example_candle_painter.dart';
 
 enum PriceType { open, close, high, low }
@@ -870,12 +870,12 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
 
         return {'success': true, 'results': results};
       } else {
-        print('Failed to send data. Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        Log.instance.e('Failed to send data. Status code: ${response.statusCode}');
+        Log.instance.i('Response body: ${response.body}');
         return {'success': false, 'error': 'Failed to send data.'};
       }
     } catch (e) {
-      print('Error sending data to the API: $e');
+      Log.instance.e('Error sending data to the API: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -887,7 +887,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       String? resultUrl = await PatternResultManager.showPatternResult(context);
       Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
     } else {
-      print('Error: ${response['error']}');
+      Log.instance.e('Error: ${response['error']}');
       // 에러 메시지를 표시하는 로직 추가 가능
     }
   }

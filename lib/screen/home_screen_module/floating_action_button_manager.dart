@@ -6,8 +6,8 @@ import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/constants/urls.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/providers/home_screen_state_providers.dart';
-
-import '../../services/check_internet.dart';
+import 'package:web_view/system/logger.dart';
+import 'package:web_view/services/check_internet.dart';
 
 class FloatingActionButtonManager {
   InAppWebViewController webViewController;
@@ -39,7 +39,7 @@ class FloatingActionButtonManager {
 
     WebUri? uri = await webViewController.getUrl();
     String currentUrl = uri.toString();
-    print("currentUrl = $currentUrl");
+    Log.instance.i("currentUrl = $currentUrl");
     if (currentUrl.startsWith(Urls.naverDomesticUrl) ||
         currentUrl.startsWith(Urls.naverWorldUrl)) {
       await _goStockInfoPage(ref);

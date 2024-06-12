@@ -22,6 +22,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/services/check_internet.dart';
+import 'package:web_view/system/logger.dart';
 
 class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
@@ -369,12 +370,12 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
         return {'success': true, 'results': results};
       } else {
-        print('Failed to send data. Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        Log.instance.e('Failed to send data. Status code: ${response.statusCode}');
+        Log.instance.i('Response body: ${response.body}');
         return {'success': false, 'error': 'Failed to send data.'};
       }
     } catch (e) {
-      print('Error sending data to the API: $e');
+      Log.instance.e('Error sending data to the API: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -392,7 +393,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
         drawingEnabled = true;
       });
     } else {
-      print('Error: ${response['error']}');
+      Log.instance.e('Error: ${response['error']}');
       // 에러 메시지를 표시하는 로직 추가 가능
     }
   }
