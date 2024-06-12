@@ -12,6 +12,7 @@ import 'package:web_view/screen/drawing_search/drawing_result.dart';
 import 'package:web_view/screen/pattern_search/pattern_result.dart';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_view/services/check_internet.dart';
 
 class BottomNavigationTap {
   Future<void> onFavoriteTap(BuildContext context, WidgetRef ref,
@@ -21,6 +22,8 @@ class BottomNavigationTap {
       MaterialPageRoute(builder: (context) => FavoriteScreen()),
     );
     if (url != null) {
+      if (!await checkInternetConnection()) return;
+
       ref.read(isLoadingProvider.notifier).state = true;
       WebViewManager.loadUrl(webViewController, url);
     }
@@ -28,12 +31,14 @@ class BottomNavigationTap {
 
   Future<void> onHomeTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) async {
+    if (!await checkInternetConnection()) return;
+
     ref.read(isLoadingProvider.notifier).state = true;
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       String lang = await LanguagePreference.getLanguageSetting();
       WebViewManager.loadUrl(
-          webViewController, 'https://www.similarchart.com?lang=$lang');
+          webViewController, 'https://www.similarchart.com?lang=$lang&app=1');
     } else if (page == 'naver') {
       WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
     }
@@ -47,6 +52,8 @@ class BottomNavigationTap {
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen()),
     );
+
+    if (!await checkInternetConnection()) return;
 
     String currentLang = await LanguagePreference.getLanguageSetting();
     if (url == null && originalLang == currentLang) {
@@ -75,8 +82,10 @@ class BottomNavigationTap {
   void onDrawingSearchTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) {
     if (DrawingResultManager.isResultExist()) {
-      DrawingResultManager.showDrawingResult(context).then((url) {
+      DrawingResultManager.showDrawingResult(context).then((url) async {
         if (url != null) {
+          if (!await checkInternetConnection()) return;
+
           ref.read(isLoadingProvider.notifier).state = true;
           WebViewManager.loadUrl(webViewController, url);
         }
@@ -110,11 +119,11 @@ class BottomNavigationTap {
             ),
           );
         },
-      ).then((url) {
+      ).then((url) async {
         if (url != null) {
-          ref
-              .read(isLoadingProvider.notifier)
-              .state = true;
+          if (!await checkInternetConnection()) return;
+
+          ref.read(isLoadingProvider.notifier).state = true;
           WebViewManager.loadUrl(webViewController, url);
         }
       });
@@ -124,8 +133,10 @@ class BottomNavigationTap {
   void onPatternSearchTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) {
     if (PatternResultManager.isResultExist()) {
-      PatternResultManager.showPatternResult(context).then((url) {
+      PatternResultManager.showPatternResult(context).then((url) async {
         if (url != null) {
+          if (!await checkInternetConnection()) return;
+
           ref.read(isLoadingProvider.notifier).state = true;
           WebViewManager.loadUrl(webViewController, url);
         }
@@ -144,13 +155,14 @@ class BottomNavigationTap {
             child: SizedBox(
               width: width,
               height: height,
-              child: PatternBoard(
-              ),
+              child: const PatternBoard(),
             ),
           );
         },
-      ).then((url) {
+      ).then((url) async {
         if (url != null) {
+          if (!await checkInternetConnection()) return;
+
           ref.read(isLoadingProvider.notifier).state = true;
           WebViewManager.loadUrl(webViewController, url);
         }

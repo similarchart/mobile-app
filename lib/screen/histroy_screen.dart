@@ -61,7 +61,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemBuilder: (context, index) {
               final historyItem = reversedList.elementAt(index);
               return Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryColor,
                   border: Border(
                       bottom: BorderSide(
@@ -72,7 +72,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     Navigator.pop(context, historyItem.url);
                   },
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 3, horizontal: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
                     child: Row(
                       children: <Widget>[
                         Expanded(
@@ -80,13 +80,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(historyItem.title,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 14,
                                       color: AppColors.textColor)),
                               Text(
                                   DateFormat('yyyy-MM-dd HH:mm:ss')
                                       .format(historyItem.dateVisited),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textColor)),
                             ],
@@ -94,7 +94,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         IconButton(
                           iconSize: 20,
-                          icon: Icon(Icons.close,
+                          icon: const Icon(Icons.close,
                               color: AppColors.secondaryColor),
                           onPressed: () async {
                             final realIndex = box.values.length - 1 - index;

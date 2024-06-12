@@ -25,6 +25,7 @@ import 'package:web_view/services/toast_service.dart';
 import 'package:web_view/providers/search_state_providers.dart';
 import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
 import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
+import 'package:web_view/services/check_internet.dart';
 
 import 'example_candle_painter.dart';
 
@@ -274,27 +275,26 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                     containsNumber(
                         0, openPrices, closePrices, highPrices, lowPrices))
                     ? () {
-                  SearchingTimer(ref).startTimer(10);
                   sendPattern();
                 }
                     : () {
                   if (selectedMarket == "시장") {
-                    ToastService().showToastMessage("시장을 선택해 주세요.");
+                    ToastService().showToastMessage("시장을 선택해 주세요");
                   } else if (isLoading) {
-                    ToastService().showToastMessage("잠시만 기다려주세요.");
+                    ToastService().showToastMessage("잠시만 기다려주세요");
                   } else if (isCooldownActive) {
                     ToastService().showToastMessage(
-                        "$remainingTimeInSeconds초 후 재검색이 가능합니다.");
+                        "$remainingTimeInSeconds초 후 재검색이 가능합니다");
                   } else if (!containsNumber(9, openPrices, closePrices,
                       highPrices, lowPrices)) {
                     ToastService().showToastMessage(
-                        "하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요.");
+                        "하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요");
                   } else if (!containsNumber(0, openPrices, closePrices,
                       highPrices, lowPrices)) {
                     ToastService().showToastMessage(
-                        "하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요.");
+                        "하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요");
                   } else {
-                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다");
                   }
                 },
               ),
@@ -806,7 +806,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
   }
 
   void sendPattern() async {
-    // 로딩 상태를 true로 설정
+    if (!await checkInternetConnection()) return;
+
+    SearchingTimer(ref).startTimer(10);
     ref.read(isLoadingProvider.notifier).state = true;
 
     // API 호출 결과를 저장하기 위한 Completer

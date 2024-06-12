@@ -33,7 +33,7 @@ class MainPagePreference {
 
   static Future<String> getMainPageSetting() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_key) ?? 'chart';
+    return prefs.getString(_key) ?? 'naver';
   }
 
   static Future<void> setMainPageSetting(String page) async {

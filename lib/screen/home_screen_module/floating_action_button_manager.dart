@@ -7,6 +7,8 @@ import 'package:web_view/constants/urls.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:web_view/providers/home_screen_state_providers.dart';
 
+import '../../services/check_internet.dart';
+
 class FloatingActionButtonManager {
   InAppWebViewController webViewController;
 
@@ -33,6 +35,8 @@ class FloatingActionButtonManager {
   }
 
   Future<void> onFloatingActionButtonPressed(WidgetRef ref) async {
+    if (!await checkInternetConnection()) return;
+
     WebUri? uri = await webViewController.getUrl();
     String currentUrl = uri.toString();
     print("currentUrl = $currentUrl");

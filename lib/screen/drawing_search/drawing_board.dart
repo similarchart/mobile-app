@@ -21,6 +21,7 @@ import 'package:web_view/screen/drawing_search/drawing_utils.dart';
 import 'dart:ui' as ui;
 import 'dart:convert';
 import 'package:web_view/providers/home_screen_state_providers.dart';
+import 'package:web_view/services/check_internet.dart';
 
 class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
@@ -206,22 +207,21 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                     !isLoading &&
                     !isCooldownActive)
                     ? () {
-                  SearchingTimer(ref).startTimer(10);
                   sendDrawing(widget.screenHeight);
                 }
                     : () {
                   if (selectedSize == "비교일") {
-                    ToastService().showToastMessage("비교 일수를 선택해 주세요.");
+                    ToastService().showToastMessage("비교 일수를 선택해 주세요");
                   } else if (selectedMarket == "시장") {
-                    ToastService().showToastMessage("시장을 선택해 주세요.");
+                    ToastService().showToastMessage("시장을 선택해 주세요");
                   } else if (drawingEnabled) {
-                    ToastService().showToastMessage("검색을 위해 그림을 그려주세요.");
+                    ToastService().showToastMessage("검색을 위해 그림을 그려주세요");
                   } else if (isLoading) {
-                    ToastService().showToastMessage("잠시만 기다려주세요.");
+                    ToastService().showToastMessage("잠시만 기다려주세요");
                   } else if (isCooldownActive) {
-                    ToastService().showToastMessage("$remainingTimeInSeconds초 후 재검색이 가능합니다.");
+                    ToastService().showToastMessage("$remainingTimeInSeconds초 후 재검색이 가능합니다");
                   } else {
-                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다.");
+                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다");
                   }
                 },
               ),
@@ -298,7 +298,9 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
   }
 
   void sendDrawing(double screenHeight) async {
-    // 로딩 상태를 true로 설정
+    if (!await checkInternetConnection()) return;
+
+    SearchingTimer(ref).startTimer(10);
     ref.read(isLoadingProvider.notifier).state = true;
 
     // API 호출 결과를 저장하기 위한 Completer
@@ -309,12 +311,16 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       apiResultCompleter.complete(apiResult);
     });
 
-    // 전면 광고를 먼저 보여줌
-    _adManager.showInterstitialAd(context, () async {
-      // 광고가 닫히면 호출되는 콜백
-      Map<String, dynamic> apiResult = await apiResultCompleter.future;
-      _handleDrawingApiResponse(context, apiResult);
-    });
+    // // 전면 광고를 먼저 보여줌
+    // _adManager.showInterstitialAd(context, () async {
+    //   // 광고가 닫히면 호출되는 콜백
+    //   Map<String, dynamic> apiResult = await apiResultCompleter.future;
+    //   _handleDrawingApiResponse(context, apiResult);
+    // });
+
+    // 광고를 건너뛰고 바로 API 결과를 처리
+    Map<String, dynamic> apiResult = await apiResultCompleter.future;
+    _handleDrawingApiResponse(context, apiResult);
   }
 
   Future<Map<String, dynamic>> _fetchDrawingResult(double screenHeight) async {
