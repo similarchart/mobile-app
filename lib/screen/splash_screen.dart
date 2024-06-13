@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -30,25 +32,25 @@ class _SplashScreenState extends State<SplashScreen> {
                         Image.asset(
                           'assets/logo_1024.png',
                           width: 80),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         const Text('Similar Chart Finder',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800)),
-                        const Text('주식매매를 위한 필수 보조지표',
-                            style: TextStyle(
+                        Text(AppLocalizations.of(context).translate('essential_indicators_for_trading'),
+                            style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700)),
-                        SizedBox(height: 20),
-                        const Row(
+                        const SizedBox(height: 20),
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('차트 로드중... ',
-                                style: TextStyle(
+                            Text(AppLocalizations.of(context).translate('loading_chart'),
+                                style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500)),
-                            SizedBox(width: 20),
-                            SizedBox(
+                            const SizedBox(width: 20),
+                            const SizedBox(
                               height: 16,
                               width: 16,
                               child: CircularProgressIndicator(

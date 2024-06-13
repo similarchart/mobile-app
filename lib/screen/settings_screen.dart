@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:web_view/screen/histroy_screen.dart';
-import 'package:web_view/services/preferences.dart'; // 필요에 따라 수정하세요
-import 'package:web_view/services/push_notifications_preference.dart'; // 필요에 따라 수정하세요
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_view/services/push_notifications_preference.dart';
 import 'package:web_view/constants/colors.dart';
-import 'package:web_view/services/toast_service.dart'; // 필요에 따라 수정하세요
+import 'package:web_view/services/toast_service.dart';
+import 'package:web_view/l10n/app_localizations.dart';
+import 'package:web_view/providers/language_provider.dart';
+import 'package:web_view/services/preferences.dart';
+import 'package:web_view/screen/histroy_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final double height = 60;
-  late String? _selectedLanguage;
   late bool _selectedPushNotification;
   late bool _isBottomBarVisible;
   late String? _selectedMainPage;
@@ -24,9 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    _selectedLanguage = await LanguagePreference.getLanguageSetting();
     _selectedPushNotification =
-        await PushNotificationPreference.getPushNotificationSetting();
+    await PushNotificationPreference.getPushNotificationSetting();
     _selectedMainPage = await MainPagePreference.getMainPageSetting();
     _isBottomBarVisible = await BottomBarPreference.getIsBottomBarFixed();
     setState(() {});
@@ -37,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: const Text('설정', style: TextStyle(color: AppColors.textColor)),
+        title: Text(AppLocalizations.of(context).translate('settings'), style: const TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
       ),
       body: Padding(
@@ -46,11 +49,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Expanded(
               child: ListView.separated(
-                itemCount: 5, // 설정 옵션의 수
+                itemCount: 5,
                 itemBuilder: (context, index) {
                   switch (index) {
                     case 0:
-                      return _buildMainPageSetting();
+                      return _buildMainPageSetting(context);
                     case 1:
                       return _buildLanguageSetting();
                     case 2:
@@ -64,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 },
                 separatorBuilder: (context, index) =>
-                    const Divider(color: AppColors.tertiaryColor, height: 1),
+                const Divider(color: AppColors.tertiaryColor, height: 1),
               ),
             ),
           ],
@@ -74,44 +77,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLanguageSetting() {
-    return Container(
-      height: height,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            '비슷한 차트 페이지 언어',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textColor),
-          ),
-          DropdownButton<String>(
-            value: _selectedLanguage,
-            dropdownColor: AppColors.secondaryColor,
-            items: const [
-              DropdownMenuItem(
-                  value: 'ko',
-                  child: Text('한국어',
-                      style: TextStyle(color: AppColors.textColor))),
-              DropdownMenuItem(
-                  value: 'en',
-                  child: Text('English',
-                      style: TextStyle(color: AppColors.textColor))),
+    return Consumer(
+      builder: (context, ref, child) {
+        final locale = ref.watch(languageProvider);
+        final selectedLanguage = locale?.languageCode ?? 'ko';
+
+        return Container(
+          height: height,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context).translate('language'),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textColor),
+              ),
+              DropdownButton<String>(
+                value: selectedLanguage,
+                dropdownColor: AppColors.secondaryColor,
+                items: const [
+                  DropdownMenuItem(
+                      value: 'ko',
+                      child: Text('한국어',
+                          style: TextStyle(color: AppColors.textColor))),
+                  DropdownMenuItem(
+                      value: 'en',
+                      child: Text('English',
+                          style: TextStyle(color: AppColors.textColor))),
+                ],
+                onChanged: (value) {
+                  ref.read(languageProvider.notifier).setLocale(Locale(value!));
+                  String lang = value == 'ko' ? '한국어' : 'English';
+                  ToastService().showToastMessage("language : $lang");
+                },
+                style: const TextStyle(color: AppColors.textColor),
+                underline: Container(height: 2, color: AppColors.textColor),
+              ),
             ],
-            onChanged: (value) {
-              setState(() {
-                _selectedLanguage = value;
-                LanguagePreference.setLanguageSetting(value!);
-                String lang = value == 'ko' ? '한국어' : 'English';
-                ToastService().showToastMessage("비슷한 차트 페이지 언어 : $lang");
-              });
-            },
-            style: const TextStyle(color: AppColors.textColor),
-            underline: Container(height: 2, color: AppColors.textColor),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -122,9 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: () => onHistoryTap(context),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          child: const Text(
-            '방문 기록',
-            style: TextStyle(
+          child: Text(
+            AppLocalizations.of(context).translate('history'),
+            style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textColor),
@@ -140,9 +147,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Align(
         alignment: Alignment.center,
         child: SwitchListTile(
-          title: const Text(
-            '푸시 알림 허용',
-            style: TextStyle(
+          title: Text(
+            AppLocalizations.of(context).translate('push_notifications'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppColors.textColor,
@@ -153,11 +160,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             setState(() {
               _selectedPushNotification = value;
               PushNotificationPreference.setPushNotificationSetting(value);
-              ToastService().showToastMessage(value ? "푸시 알림 활성화" : "푸시 알림 비활성화");
+              ToastService().showToastMessage(value ? AppLocalizations.of(context).translate('push_notifications_enabled') : AppLocalizations.of(context).translate('push_notifications_disabled'));
             });
           },
           activeColor: Colors.green,
-          contentPadding: EdgeInsets.symmetric(horizontal: 0),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 0),
         ),
       ),
     );
@@ -169,9 +176,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Align(
         alignment: Alignment.center,
         child: SwitchListTile(
-          title: const Text(
-            '하단 바 고정',
-            style: TextStyle(
+          title: Text(
+            AppLocalizations.of(context).translate('bottom_bar_fixed'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppColors.textColor,
@@ -182,25 +189,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             setState(() {
               _isBottomBarVisible = value;
               BottomBarPreference.setIsBottomBarFixed(value);
-              ToastService().showToastMessage(value ? "하단 바 고정" : "하단 바 고정 해제");
+              ToastService().showToastMessage(value ? AppLocalizations.of(context).translate('bottom_bar_fixed') : AppLocalizations.of(context).translate('bottom_bar_unfixed'));
             });
           },
           activeColor: Colors.green,
-          contentPadding: EdgeInsets.symmetric(horizontal: 0),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 0),
         ),
       ),
     );
   }
 
-  Widget _buildMainPageSetting() {
+  Widget _buildMainPageSetting(BuildContext context) {
     return Container(
       height: height,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            '메인 페이지',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).translate('main_page'),
+            style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textColor),
@@ -208,22 +215,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           DropdownButton<String>(
             value: _selectedMainPage,
             dropdownColor: AppColors.secondaryColor,
-            items: const [
+            items: [
               DropdownMenuItem(
                   value: 'naver',
-                  child: Text('네이버증권',
-                      style: TextStyle(color: AppColors.textColor))),
+                  child: Text(AppLocalizations.of(context).translate('naver_finance'),
+                      style: const TextStyle(color: AppColors.textColor))),
               DropdownMenuItem(
                   value: 'chart',
-                  child: Text('비슷한차트',
-                      style: TextStyle(color: AppColors.textColor))),
+                  child: Text(AppLocalizations.of(context).translate('similar_chart'),
+                      style: const TextStyle(color: AppColors.textColor))),
             ],
             onChanged: (value) {
               setState(() {
                 _selectedMainPage = value;
                 MainPagePreference.setMainPageSetting(value!);
-                String page = value == 'naver' ? '네이버증권' : '비슷한차트';
-                ToastService().showToastMessage("메인 페이지 : $page");
+                String page = value == 'naver' ? AppLocalizations.of(context).translate('naver_finance') : AppLocalizations.of(context).translate('similar_chart');
+                ToastService().showToastMessage("${AppLocalizations.of(context).translate('main_page')} : $page");
               });
             },
             style: const TextStyle(color: AppColors.textColor),
@@ -241,6 +248,6 @@ onHistoryTap(BuildContext context) async {
     MaterialPageRoute(builder: (context) => HistoryScreen()),
   );
   if (url != null) {
-    Navigator.pop(context, url); // apply 문자열 대신 url 반환
+    Navigator.pop(context, url);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:web_view/services/preferences.dart';
 
+import '../l10n/app_localizations.dart';
+
 class LoadingOverlay {
   static final LoadingOverlay _instance = LoadingOverlay._internal();
 
@@ -34,7 +36,7 @@ class LoadingOverlay {
                       ? 'assets/loading_image.gif'
                       : 'assets/loading_image_en.gif');
                 } else {
-                  return const Text('로딩 이미지를 불러올 수 없습니다.');
+                  return Text(AppLocalizations.of(context).translate("failed_to_load_loading_image"));
                 }
               },
             ),

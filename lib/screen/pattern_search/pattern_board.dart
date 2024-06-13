@@ -27,6 +27,7 @@ import 'package:web_view/screen/pattern_search/candlestick_chart_painter.dart';
 import 'package:web_view/screen/pattern_search/half_circle_painter.dart';
 import 'package:web_view/services/check_internet.dart';
 import 'package:web_view/system/logger.dart';
+import '../../l10n/app_localizations.dart';
 import 'example_candle_painter.dart';
 
 enum PriceType { open, close, high, low }
@@ -46,23 +47,36 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
   List<int> closePrices = [2, 4, 6, 8];
   List<int> highPrices = [3, 5, 7, 9];
   List<int> lowPrices = [0, 2, 4, 6];
-  String selectedMarket = '시장';
-  final List<String> countries = ['시장', '미국', '한국'];
+  String selectedMarket = '';
+  List<String> countries = [];
   int selectedCandleIndex = 0; // 선택된 캔들스틱의 인덱스
   String lang = 'ko'; // 기본 언어 설정을 한국어로
   PriceType? selectedPriceType;
   GlobalKey repaintBoundaryKey = GlobalKey();
-
   int? highlightedRowIndex;
-
   Client? _httpClient;
+  late AppLocalizations localizations;
+
+  void _initializeValues() {
+    selectedMarket = localizations.translate('market');
+    countries = [
+      localizations.translate('market'),
+      localizations.translate('US'),
+      localizations.translate('KR')
+    ];
+
+    // 초기화 시 selectedMarket이 리스트의 값 중 하나와 일치하는지 확인
+    if (!countries.contains(selectedMarket)) {
+      selectedMarket = countries.first;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+
     _httpClient = http.Client();
 
-    loadPreferences();
     loadPrices(); // Load prices from SharedPreferences
     loadLanguagePreference(); // 언어 설정 로드
     checkFirstLaunch();
@@ -72,15 +86,25 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+  }
+
+  @override // localizations 은 initState 이후 사용 가능하므로 localizations 이 필요한 초기화 코드는 여기로
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    localizations = AppLocalizations.of(context);
+    _initializeValues();
+    loadPreferences();
+
     if (!PatternResultManager.isResultExist()) {
-      ToastService().showToastMessage("원하는 패턴을 그려보세요!");
+      ToastService().showToastMessage(localizations.translate("draw_desired_pattern"));
     }
   }
 
   Future<void> loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedMarket = prefs.getString('selectedMarket') ?? '시장';
+      String storedMarket = prefs.getString('selectedMarket') ?? localizations.translate("market");
+      selectedMarket = countries.contains(storedMarket) ? storedMarket : countries.first;
     });
   }
 
@@ -98,10 +122,10 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Center(
+          title: Center(
             child: Text(
-              '캔들스틱 그리는 방법',
-              style: TextStyle(fontSize: 22),
+              localizations.translate("how_to_draw_candlestick"),
+              style: const TextStyle(fontSize: 22),
             ),
           ),
           content: Column(
@@ -115,16 +139,20 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                   painter: ExampleCandlePainter(),
                 ),
               ),
-              const Text(
-                '1. 아래꼬리 끝부분\n2. 몸통의 아래부분\n3. 몸통의 윗부분\n4. 윗꼬리의 끝부분\n\n4개의 부분 중 하나를 터치하여 드래그하면 캔들스틱을 그릴 수 있습니다',
+              Text(
+                '1. ${localizations.translate('lower_tail_end')}\n'
+                    '2. ${localizations.translate('lower_body')}\n'
+                    '3. ${localizations.translate('upper_body')}\n'
+                    '4. ${localizations.translate('upper_tail_end')}\n\n'
+                    '${localizations.translate('touch_and_drag')}',
                 textAlign: TextAlign.center,
               ),
-              Divider(
+              const Divider(
                 color: Colors.black,
                 thickness: 2,
               ),
               Text(
-                '하나 이상의 캔들을 맨 위 칸까지, 하나 이상의 캔들을 맨 아래 칸까지 그려주세요',
+                localizations.translate('draw_to_top_bottom'),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -134,7 +162,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('확인'),
+              child: Text(localizations.translate('ok')),
             ),
           ],
         );
@@ -214,9 +242,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
             backgroundColor: AppColors.primaryColor,
             title: Row(
               children: [
-                const Text(
-                  '캔들패턴검색',
-                  style: TextStyle(color: AppColors.textColor),
+                Text(
+                  localizations.translate('pattern_search'),
+                  style: const TextStyle(color: AppColors.textColor),
                 ),
                 IconButton(
                   icon: const Icon(Icons.help_outline),
@@ -257,7 +285,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
               IconButton(
                 icon: Icon(
                   Icons.send,
-                  color: (selectedMarket != "시장" &&
+                  color: (selectedMarket != localizations.translate('market') &&
                       !isLoading &&
                       !isCooldownActive &&
                       containsNumber(9, openPrices, closePrices, highPrices,
@@ -267,7 +295,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                       ? AppColors.textColor
                       : AppColors.secondaryColor,
                 ),
-                onPressed: (selectedMarket != "시장" &&
+                onPressed: (selectedMarket != localizations.translate('market') &&
                     !isLoading &&
                     !isCooldownActive &&
                     containsNumber(9, openPrices, closePrices, highPrices,
@@ -278,23 +306,21 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                   sendPattern();
                 }
                     : () {
-                  if (selectedMarket == "시장") {
-                    ToastService().showToastMessage("시장을 선택해 주세요");
+                  if (selectedMarket == localizations.translate('market')) {
+                    ToastService().showToastMessage(localizations.translate("select_market"));
                   } else if (isLoading) {
-                    ToastService().showToastMessage("잠시만 기다려주세요");
+                    ToastService().showToastMessage(localizations.translate("please_wait"));
                   } else if (isCooldownActive) {
                     ToastService().showToastMessage(
-                        "$remainingTimeInSeconds초 후 재검색이 가능합니다");
+                        localizations.translateWithArgs("remaining_time", [remainingTimeInSeconds]));
                   } else if (!containsNumber(9, openPrices, closePrices,
                       highPrices, lowPrices)) {
-                    ToastService().showToastMessage(
-                        "하나 이상의 캔들스틱을 맨 위 칸까지 그려주세요");
+                    ToastService().showToastMessage(localizations.translate("draw_to_top_cell"));
                   } else if (!containsNumber(0, openPrices, closePrices,
                       highPrices, lowPrices)) {
-                    ToastService().showToastMessage(
-                        "하나 이상의 캔들스틱을 맨 아래 칸까지 그려주세요");
+                    ToastService().showToastMessage(localizations.translate("draw_to_bottom_cell"));
                   } else {
-                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다");
+                    ToastService().showToastMessage(localizations.translate("unknown_error"));
                   }
                 },
               ),
@@ -458,7 +484,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                           selectedCandleIndex, PriceType.close);
                                     });
 
-                                    ToastService().showToastMessage("시가 종가 반전",
+                                    ToastService().showToastMessage(localizations.translate("open_close_reversal"),
                                         durationInSeconds: 0.5,
                                         gravity: ToastGravity.CENTER);
                                   },
@@ -488,7 +514,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                           selectedCandleIndex, PriceType.open);
                                     });
 
-                                    ToastService().showToastMessage("꼬리 제거",
+                                    ToastService().showToastMessage(localizations.translate("remove_tail"),
                                         durationInSeconds: 0.5,
                                         gravity: ToastGravity.CENTER);
                                   },
@@ -517,7 +543,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                           selectedCandleIndex, PriceType.open);
                                     });
 
-                                    ToastService().showToastMessage("기본 캔들",
+                                    ToastService().showToastMessage(localizations.translate("default_candle"),
                                         durationInSeconds: 0.5,
                                         gravity: ToastGravity.CENTER);
                                   },
@@ -549,7 +575,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                         });
                                       }
 
-                                      ToastService().showToastMessage("전체 한칸 위",
+                                      ToastService().showToastMessage(localizations.translate("one_step_up"),
                                           durationInSeconds: 0.5,
                                           gravity: ToastGravity.CENTER);
                                     },
@@ -575,7 +601,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
                                       }
 
                                       ToastService().showToastMessage(
-                                          "전체 한칸 아래",
+                                          localizations.translate("one_step_down"),
                                           durationInSeconds: 0.5,
                                           gravity: ToastGravity.CENTER);
                                     },
@@ -670,13 +696,13 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
   Widget buildSinglePriceInput(PriceType type, List<int> prices, int index) {
     String label = '';
     if (type == PriceType.open) {
-      label = '시가';
+      label = localizations.translate("opening_price");
     } else if (type == PriceType.close) {
-      label = '종가';
+      label = localizations.translate("closing_price");
     } else if (type == PriceType.high) {
-      label = '고가';
+      label = localizations.translate("high_price");
     } else if (type == PriceType.low) {
-      label = '저가';
+      label = localizations.translate("low_price");
     }
     Color textColor = Colors.black;
 
@@ -841,7 +867,7 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
     String encodedDrawing = base64Encode(pngBytes);
 
     String url = dotenv.env["PATTERN_SEARCH_API_URL"] ?? "";
-    String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
+    String market = selectedMarket == localizations.translate("KR") ? 'kospi_daq' : 'nyse_naq';
     String lang = await LanguagePreference.getLanguageSetting();
     String pattern = openPrices.join() +
         closePrices.join() +

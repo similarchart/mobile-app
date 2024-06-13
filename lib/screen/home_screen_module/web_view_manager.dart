@@ -77,6 +77,7 @@ class WebViewManager {
       stockName = stockName.split(' - 미지원').first.trimRight();
       if (RegExp(r'^\d+$').hasMatch(stockName) ||
           stockName.contains('http') ||
+          stockName.contains('Pattern Search') ||
           stockName.contains('?') ||
           stockName.contains('=') ||
           stockName.contains('비슷한') ||

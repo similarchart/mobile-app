@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:intl/intl.dart';
 import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/screen/home_screen.dart';
 import 'package:web_view/model/history_item.dart';
@@ -7,6 +7,11 @@ import 'package:web_view/services/background_tasks.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:web_view/l10n/app_localizations.dart';
+import 'package:web_view/providers/language_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:web_view/services/translation_service.dart';
 
 // RouteObserver 객체 생성
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -15,6 +20,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureBackgroundFetch();
 
+  Locale locale = Locale(Intl.getCurrentLocale().split('_')[0]);
+  await TranslationService.loadTranslations(locale);
   MobileAds.instance.initialize();
 
   // Hive 초기화 및 박스 열기
@@ -26,15 +33,27 @@ void main() async {
 
   await dotenv.load(fileName: ".env");
 
-  // 앱 실행
   runApp(ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(languageProvider);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('ko', ''),
+      ],
       home: const HomeScreen(),
       navigatorObservers: [routeObserver], // RouteObserver 추가
     );

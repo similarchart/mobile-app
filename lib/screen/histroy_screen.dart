@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/history_item.dart';
 
+import '../l10n/app_localizations.dart';
+
 class HistoryScreen extends StatefulWidget {
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -18,7 +20,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: const Text('방문기록', style: TextStyle(color: AppColors.textColor)),
+        title: Text(AppLocalizations.of(context).translate("history"), style: const TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         actions: <Widget>[
           IconButton(
@@ -28,8 +30,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text('삭제 확인'),
-                    content: const Text('방문기록을 모두 지우시겠습니까?'),
+                    title: Text(AppLocalizations.of(context).translate("delete_confirmation")),
+                    content: Text(AppLocalizations.of(context).translate("delete_all_visit_history")),
                     actions: <Widget>[
                       TextButton(
                         child: const Text('No'),

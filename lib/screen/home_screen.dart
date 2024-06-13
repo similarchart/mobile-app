@@ -18,6 +18,7 @@ import 'package:web_view/main.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:web_view/services/check_internet.dart';
 import 'package:web_view/system/logger.dart';
+import '../l10n/app_localizations.dart';
 import 'loading_overlay.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -71,11 +72,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
     String preferPage = await MainPagePreference.getMainPageSetting();
     if (preferPage == 'naver') {
-      ref.read(subPageLabelProvider.notifier).state = '비슷한차트';
-      ref.read(homePageLabelProvider.notifier).state = '네이버증권';
+      ref.read(subPageLabelProvider.notifier).state = "chart";
+      ref.read(homePageLabelProvider.notifier).state = "naver";
     } else if (preferPage == 'chart') {
-      ref.read(subPageLabelProvider.notifier).state = '네이버증권';
-      ref.read(homePageLabelProvider.notifier).state = '비슷한차트';
+      ref.read(subPageLabelProvider.notifier).state = "naver";
+      ref.read(homePageLabelProvider.notifier).state = "chart";
     }
 
     String lang = await LanguagePreference.getLanguageSetting();
@@ -157,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       future: _initializationFuture, // 초기화 작업 Future
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else {
@@ -171,21 +172,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('앱 종료', style: TextStyle(color: AppColors.textColor)),
-                    content: const Text('앱을 종료하시겠습니까?', style: TextStyle(color: AppColors.textColor)),
+                    title: Text(AppLocalizations.of(context).translate("exit_app"), style: const TextStyle(color: AppColors.textColor)),
+                    content: Text(AppLocalizations.of(context).translate("confirm_exit_app"), style: const TextStyle(color: AppColors.textColor)),
                     backgroundColor: AppColors.primaryColor,
                     actions: [
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('아니오', style: TextStyle(color: AppColors.textColor)),
+                        child: const Text('No', style: TextStyle(color: AppColors.textColor)),
                       ),
                       TextButton(
                         onPressed: () {
                           SystemNavigator.pop();
                         },
-                        child: const Text('예', style: TextStyle(color: AppColors.textColor)),
+                        child: const Text('Yes', style: TextStyle(color: AppColors.textColor)),
                       ),
                     ],
                   ),
@@ -256,7 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 Positioned(
                   right: 16,
                   bottom: bottomNavigationBarHeight + fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
-                  child: showFloatingActionButton ? fabManager.buildFloatingActionButton(true, ref) : Container(),
+                  child: showFloatingActionButton ? fabManager.buildFloatingActionButton(context, true, ref) : Container(),
                 ),
               ],
             ),
@@ -375,24 +376,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   }
 
   Widget _buildBottomNavigationBar() {
-    final String subPageLabel = ref.watch(subPageLabelProvider);
-    final String homePageLabel = ref.watch(homePageLabelProvider);
+    String subPageLabel = ref.watch(subPageLabelProvider);
+    subPageLabel = AppLocalizations.of(context).translate(subPageLabel);
+
+    String homePageLabel = ref.watch(homePageLabelProvider);
+    homePageLabel = AppLocalizations.of(context).translate(homePageLabel);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.brush, '드로잉검색', () => bottomNavigationTap.onDrawingSearchTap(context, ref, webViewController!)),
-        // BottomNavigationBuilder.buildBottomIcon(
-        //     Icons.candlestick_chart, '패턴검색', () => bottomNavigationTap.onPatternSearchTap(context, ref, webViewController!)),
+            Icons.brush, AppLocalizations.of(context).translate("drawing"), () => bottomNavigationTap.onDrawingSearchTap(context, ref, webViewController!)),
+        BottomNavigationBuilder.buildBottomIcon(
+            Icons.candlestick_chart, AppLocalizations.of(context).translate("pattern"), () => bottomNavigationTap.onPatternSearchTap(context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
             Icons.trending_up, subPageLabel, () => bottomNavigationTap.onSubPageTap(context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
             Icons.home, homePageLabel, () => bottomNavigationTap.onHomeTap(context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.history, '최근본종목', () => bottomNavigationTap.onFavoriteTap(context, ref, webViewController!)),
+            Icons.history, AppLocalizations.of(context).translate("recents"), () => bottomNavigationTap.onFavoriteTap(context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.settings, '설정', () => bottomNavigationTap.onSettingsTap(context, ref, webViewController!)),
+            Icons.settings, AppLocalizations.of(context).translate("settings"), () => bottomNavigationTap.onSettingsTap(context, ref, webViewController!)),
       ],
     );
   }

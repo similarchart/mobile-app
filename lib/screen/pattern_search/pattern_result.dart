@@ -5,6 +5,7 @@ import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 import 'package:web_view/screen/pattern_search/pattern_board.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/preferences.dart';
 
 class PatternResult extends StatelessWidget {
@@ -14,9 +15,9 @@ class PatternResult extends StatelessWidget {
 
   const PatternResult(
       {super.key,
-        required this.results,
-        required this.userPattern,
-        required this.market});
+      required this.results,
+      required this.userPattern,
+      required this.market});
 
   String createResultUrl(String code, String date, String lang) {
     return 'https://www.similarchart.com/pattern_search/?code=$code&base_date=$date&market=$market&lang=$lang';
@@ -29,7 +30,7 @@ class PatternResult extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: const Text('패턴검색 결과', style: TextStyle(color: AppColors.textColor)),
+        title: Text(AppLocalizations.of(context).translate("pattern_search_result"), style: TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         centerTitle: true,
         leading: IconButton(
@@ -45,7 +46,8 @@ class PatternResult extends StatelessWidget {
             flex: 2,
             child: Center(
               child: Container(
-                color: Colors.white, // Set a background color that suits the image
+                color:
+                    Colors.white, // Set a background color that suits the image
                 child: Image.memory(
                   userImage,
                   fit: BoxFit.contain,
@@ -56,7 +58,10 @@ class PatternResult extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10),
             child: Text(
-              results.isEmpty ? "비슷한 패턴을 찾지 못했습니다" : "비슷한 패턴 : 초록색 배경의 4개 캔들\n원하는 패턴을 선택하세요",
+              results.isEmpty
+                  ? AppLocalizations.of(context)
+                      .translate("no_similar_patterns")
+                  : "${AppLocalizations.of(context).translate("green_background")}\n${AppLocalizations.of(context).translate("select_desired_chart")}",
               style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textColor,
@@ -79,7 +84,8 @@ class PatternResult extends StatelessWidget {
                 return InkWell(
                   onTap: () async {
                     String lang = await LanguagePreference.getLanguageSetting();
-                    String url = createResultUrl(result['code'], result['date'], lang);
+                    String url =
+                        createResultUrl(result['code'], result['date'], lang);
                     Navigator.pop(context, url);
                   },
                   child: Ink.image(
@@ -112,18 +118,18 @@ class PatternResult extends StatelessWidget {
                       child: SizedBox(
                         width: width,
                         height: height,
-                        child: PatternBoard(
-                        ),
+                        child: PatternBoard(),
                       ),
                     );
                   },
                 );
               },
-              child: Text('다시 검색하기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondaryColor,
                 foregroundColor: AppColors.textColor,
               ),
+              child:
+                  Text(AppLocalizations.of(context).translate("search_again")),
             ),
           ),
           // const BottomBannerAd(),
@@ -142,8 +148,8 @@ class PatternResultManager {
 
   static void initializePatternResult(
       {required List<dynamic> res,
-        required String pattern,
-        required String mkt}) {
+      required String pattern,
+      required String mkt}) {
     results = res;
     userPattern = pattern;
     market = mkt;

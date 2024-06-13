@@ -4,6 +4,7 @@ import 'package:web_view/constants/colors.dart';
 import 'package:web_view/model/recent_item.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/preferences.dart';
 
 class FavoriteScreen extends StatefulWidget {
@@ -21,8 +22,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title:
-            const Text('최근 본 종목', style: TextStyle(color: AppColors.textColor)),
+        title: Text(AppLocalizations.of(context).translate("recents2"), style: const TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         actions: <Widget>[
           IconButton(
@@ -32,8 +32,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text('삭제 확인'),
-                    content: const Text('즐겨찾기를 제외한 종목들을 모두 지우시겠습니까?'),
+                    title: Text(AppLocalizations.of(context).translate("delete_confirmation")),
+                    content: Text(AppLocalizations.of(context).translate("delete_all_except_favorites")),
                     actions: <Widget>[
                       TextButton(
                         child: const Text('No'),

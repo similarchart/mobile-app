@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:web_view/services/push_notifications_preference.dart';
 import 'package:background_fetch/background_fetch.dart'; // 추가: 백그라운드 플러그인 import
 import 'package:http/http.dart' as http; // 추가: HTTP 클라이언트 import
 import 'dart:convert'; // 추가: JSON 파싱을 위한 import
 import 'package:intl/intl.dart';
 import 'package:web_view/services/notification.dart';
+import 'package:web_view/services/translation_service.dart';
 
 void _onBackgroundFetch(String taskId) async {
   if (!await PushNotificationPreference.getPushNotificationSetting()) {
@@ -23,9 +26,13 @@ void _onBackgroundFetch(String taskId) async {
         'https://www.similarchart.com/api/market_status/$formattedDate/kospi_daq'));
     var body = json.decode(response.body);
     if (body['is_open']) {
-      FlutterLocalNotification.showNotification(
-          '최신 업데이트 완료', '내 종목의 차트는 몇점 일까요?');
+      Locale locale = Locale(Intl.getCurrentLocale().split('_')[0]);
+      await TranslationService.loadTranslations(locale);
+      String title = TranslationService.translate('latest_update_completed');
+      String message = TranslationService.translate('stock_chart_score');
+      FlutterLocalNotification.showNotification(title, message);
     }
+
   }
   BackgroundFetch.finish(taskId);
 }

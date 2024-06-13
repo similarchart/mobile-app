@@ -24,6 +24,8 @@ import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/services/check_internet.dart';
 import 'package:web_view/system/logger.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class DrawingBoard extends ConsumerStatefulWidget {
   final double screenHeight;
 
@@ -39,19 +41,42 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
   List<Offset> points = [];
   List<Offset> originalPoints = [];
   bool drawingEnabled = true;
-  String selectedSize = '비교일';
-  String selectedMarket = '시장';
-  final List<String> sizes = ['비교일', '128', '64', '32', '16', '8'];
-  final List<String> countries = ['시장', '미국', '한국'];
+  String selectedSize = '';
+  String selectedMarket = '';
+  List<String> sizes = [];
+  List<String> countries = [];
   GlobalKey repaintBoundaryKey = GlobalKey();
-
   late AnimationController _controller;
   late Animation<Color?> _colorAnimation;
+  late AppLocalizations localizations;
   Client? _httpClient;
+
+  void _initializeValues() {
+    selectedSize = localizations.translate('day');
+    selectedMarket = localizations.translate('market');
+    sizes = [
+      localizations.translate('day'),
+      '128', '64', '32', '16', '8'
+    ];
+    countries = [
+      localizations.translate('market'),
+      localizations.translate('US'),
+      localizations.translate('KR')
+    ];
+
+    // 초기화 시 selectedSize와 selectedMarket이 리스트의 값 중 하나와 일치하는지 확인
+    if (!sizes.contains(selectedSize)) {
+      selectedSize = sizes.first;
+    }
+    if (!countries.contains(selectedMarket)) {
+      selectedMarket = countries.first;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+
     _httpClient = http.Client();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -71,17 +96,28 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    localizations = AppLocalizations.of(context);
+    _initializeValues();
 
     if (!DrawingResultManager.isResultExist()) {
-      ToastService().showToastMessage("원하는 차트를 그려보세요!");
+      ToastService().showToastMessage(localizations.translate("draw_desired_chart"));
     }
   }
 
   void loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedSize = prefs.getString('selectedSize') ?? '비교일';
-      selectedMarket = prefs.getString('selectedMarket') ?? '시장';
+      // 저장된 값을 현재 언어로 번역된 값과 일치시킴
+      String storedSize = prefs.getString('selectedSize') ?? localizations.translate("day");
+      String storedMarket = prefs.getString('selectedMarket') ?? localizations.translate("market");
+
+      selectedSize = sizes.contains(storedSize) ? storedSize : sizes.first;
+      selectedMarket = countries.contains(storedMarket) ? storedMarket : countries.first;
     });
   }
 
@@ -117,9 +153,9 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
         return Scaffold(
           appBar: AppBar(
             backgroundColor: AppColors.primaryColor,
-            title: const Text(
-              '드로잉검색',
-              style: TextStyle(
+            title: Text(
+              localizations.translate("drawing_search"),
+              style: const TextStyle(
                 color: AppColors.textColor,
               ),
             ),
@@ -133,8 +169,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                   setState(() {
                     selectedSize = newValue!;
                   });
-                  SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
                   await prefs.setString('selectedSize', selectedSize);
                   points = originalPoints;
                   makeReadyToSend();
@@ -152,7 +187,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                   );
                 }).toList(),
               ),
-              SizedBox(width: 10.0),
+              const SizedBox(width: 10.0),
               DropdownButton<String>(
                 value: selectedMarket,
                 onChanged: isLoading
@@ -161,8 +196,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                   setState(() {
                     selectedMarket = newValue!;
                   });
-                  SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
                   await prefs.setString('selectedMarket', selectedMarket);
                 },
                 style: const TextStyle(color: AppColors.textColor),
@@ -194,16 +228,16 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
               IconButton(
                 icon: Icon(
                   Icons.send,
-                  color: (selectedSize != "비교일" &&
-                      selectedMarket != "시장" &&
+                  color: (selectedSize != localizations.translate("day") &&
+                      selectedMarket != localizations.translate("market") &&
                       !drawingEnabled &&
                       !isLoading &&
                       !isCooldownActive)
                       ? AppColors.textColor
                       : AppColors.secondaryColor,
                 ),
-                onPressed: (selectedSize != "비교일" &&
-                    selectedMarket != "시장" &&
+                onPressed: (selectedSize != localizations.translate("day") &&
+                    selectedMarket != localizations.translate("market") &&
                     !drawingEnabled &&
                     !isLoading &&
                     !isCooldownActive)
@@ -211,18 +245,18 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
                   sendDrawing(widget.screenHeight);
                 }
                     : () {
-                  if (selectedSize == "비교일") {
-                    ToastService().showToastMessage("비교 일수를 선택해 주세요");
-                  } else if (selectedMarket == "시장") {
-                    ToastService().showToastMessage("시장을 선택해 주세요");
+                  if (selectedSize == localizations.translate("day")) {
+                    ToastService().showToastMessage(localizations.translate("select_comparison_days"));
+                  } else if (selectedMarket == localizations.translate("market")) {
+                    ToastService().showToastMessage(localizations.translate("select_market"));
                   } else if (drawingEnabled) {
-                    ToastService().showToastMessage("검색을 위해 그림을 그려주세요");
+                    ToastService().showToastMessage(localizations.translate("draw_to_search"));
                   } else if (isLoading) {
-                    ToastService().showToastMessage("잠시만 기다려주세요");
+                    ToastService().showToastMessage(localizations.translate("please_wait"));
                   } else if (isCooldownActive) {
-                    ToastService().showToastMessage("$remainingTimeInSeconds초 후 재검색이 가능합니다");
+                    ToastService().showToastMessage(localizations.translateWithArgs("remaining_time", [remainingTimeInSeconds]));
                   } else {
-                    ToastService().showToastMessage("알 수 없는 오류가 발생했습니다");
+                    ToastService().showToastMessage(localizations.translate("unknown_error"));
                   }
                 },
               ),
@@ -341,7 +375,7 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
     int dayNum = int.tryParse(selectedSize) ?? 0;
 
     String url = dotenv.env["DRAWING_SEARCH_API_URL"] ?? "";
-    String market = selectedMarket == '한국' ? 'kospi_daq' : 'nyse_naq';
+    String market = selectedMarket == localizations.translate("KR") ? 'kospi_daq' : 'nyse_naq';
     String lang = await LanguagePreference.getLanguageSetting();
 
     Map<String, dynamic> body = {

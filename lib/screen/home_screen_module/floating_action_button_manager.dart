@@ -9,6 +9,8 @@ import 'package:web_view/providers/home_screen_state_providers.dart';
 import 'package:web_view/system/logger.dart';
 import 'package:web_view/services/check_internet.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class FloatingActionButtonManager {
   InAppWebViewController webViewController;
 
@@ -16,7 +18,7 @@ class FloatingActionButtonManager {
     required this.webViewController,
   });
 
-  Widget buildFloatingActionButton(
+  Widget buildFloatingActionButton(BuildContext context,
       bool showFloatingActionButton, WidgetRef ref) {
     return Positioned(
       right: 16,
@@ -24,17 +26,17 @@ class FloatingActionButtonManager {
       child: showFloatingActionButton
           ? FloatingActionButton(
               onPressed: () async {
-                await onFloatingActionButtonPressed(ref);
-              },
-              child: Image.asset('assets/logo_2.png'), // 로컬 에셋 이미지 사용
+                await onFloatingActionButtonPressed(context, ref);
+              }, // 로컬 에셋 이미지 사용
               backgroundColor: Colors.transparent, // 배경색 투명하게 설정
-              elevation: 0, // 그림자 제거
+              elevation: 0,
+              child: Image.asset('assets/logo_2.png'), // 그림자 제거
             )
           : Container(),
     );
   }
 
-  Future<void> onFloatingActionButtonPressed(WidgetRef ref) async {
+  Future<void> onFloatingActionButtonPressed(BuildContext context, WidgetRef ref) async {
     if (!await checkInternetConnection()) return;
 
     WebUri? uri = await webViewController.getUrl();
@@ -44,7 +46,7 @@ class FloatingActionButtonManager {
         currentUrl.startsWith(Urls.naverWorldUrl)) {
       await _goStockInfoPage(ref);
     } else {
-      ToastService().showToastMessage("특정 종목 정보 페이지에서 터치해 보세요!");
+      ToastService().showToastMessage(AppLocalizations.of(context).translate("touch_specific_stock_info_page"));
     }
   }
 

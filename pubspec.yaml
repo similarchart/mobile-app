@@ -84,6 +84,9 @@ flutter:
   assets:
     - assets/
     - .env
+    - lib/l10n/
+    - assets/i18n/en.json
+    - assets/i18n/ko.json
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

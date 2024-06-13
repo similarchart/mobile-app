@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:web_view/constants/colors.dart';
 import 'package:web_view/component/bottom_banner_ad.dart';
 
-import '../../services/preferences.dart';
+import 'package:web_view/services/preferences.dart';
+import '../../l10n/app_localizations.dart';
 import 'drawing_board.dart';
 
 class DrawingResult extends StatelessWidget {
@@ -13,17 +14,14 @@ class DrawingResult extends StatelessWidget {
   final String market;
   final String size;
 
-  void initState() {
+  void initState() {}
 
-  }
-
-  DrawingResult(
-      {Key? key,
+  const DrawingResult(
+      {super.key,
       required this.results,
       required this.userDrawing,
       required this.market,
-      required this.size})
-      : super(key: key);
+      required this.size});
 
   String createResultUrl(String code, String date, String lang) {
     return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$lang';
@@ -36,11 +34,12 @@ class DrawingResult extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       appBar: AppBar(
-        title: Text('드로잉검색 결과', style: TextStyle(color: AppColors.textColor)),
+        title: Text(AppLocalizations.of(context).translate("drawing_search_result"),
+            style: const TextStyle(color: AppColors.textColor)),
         backgroundColor: AppColors.secondaryColor,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -62,10 +61,13 @@ class DrawingResult extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             child: Text(
-              results.isEmpty ? "비슷한 차트를 찾지 못했습니다" : "원하는 차트를 선택하세요",
-              style: TextStyle(
+              results.isEmpty
+                  ? AppLocalizations.of(context).translate("no_similar_charts")
+                  : AppLocalizations.of(context)
+                      .translate("select_desired_chart"),
+              style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textColor,
               ),
@@ -75,7 +77,7 @@ class DrawingResult extends StatelessWidget {
           Expanded(
             flex: 6,
             child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 10.0,
                 mainAxisSpacing: 10.0,
@@ -108,14 +110,8 @@ class DrawingResult extends StatelessWidget {
                 Navigator.of(context).pop();
                 DrawingResultManager.clearData();
 
-                double width = min(
-                    MediaQuery
-                        .of(context)
-                        .size
-                        .height, MediaQuery
-                    .of(context)
-                    .size
-                    .width);
+                double width = min(MediaQuery.of(context).size.height,
+                    MediaQuery.of(context).size.width);
                 double appBarHeight = AppBar().preferredSize.height;
                 double adHeight = 60;
                 double height = width + appBarHeight + adHeight;
@@ -141,7 +137,8 @@ class DrawingResult extends StatelessWidget {
                 backgroundColor: AppColors.secondaryColor,
                 foregroundColor: AppColors.textColor,
               ),
-              child: const Text('다시 검색하기'),
+              child:
+                  Text(AppLocalizations.of(context).translate("search_again")),
             ),
           ),
           // const BottomBannerAd(),
