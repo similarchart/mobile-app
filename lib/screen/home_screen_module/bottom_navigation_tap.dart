@@ -69,11 +69,14 @@ class BottomNavigationTap {
       currentUri = Uri.parse(url);
     }
 
-    Map<String, String> newQueryParameters =
-        Map.from(currentUri.queryParameters);
-    newQueryParameters['lang'] = currentLang;
+    Uri newUri = currentUri;
+    if(currentUri.toString().contains("similarchart.com")) {
+      Map<String, String> newQueryParameters =
+      Map.from(currentUri.queryParameters);
+      newQueryParameters['lang'] = currentLang;
 
-    Uri newUri = currentUri.replace(queryParameters: newQueryParameters);
+      newUri = currentUri.replace(queryParameters: newQueryParameters);
+    }
 
     ref.read(isLoadingProvider.notifier).state = true;
     WebViewManager.loadUrl(webViewController, newUri.toString());
