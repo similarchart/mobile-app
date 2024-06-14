@@ -26,8 +26,7 @@ void _onBackgroundFetch(String taskId) async {
         'https://www.similarchart.com/api/market_status/$formattedDate/kospi_daq'));
     var body = json.decode(response.body);
     if (body['is_open']) {
-      Locale locale = Locale(Intl.getCurrentLocale().split('_')[0]);
-      await TranslationService.loadTranslations(locale);
+      await TranslationService.loadTranslations();
       String title = TranslationService.translate('latest_update_completed');
       String message = TranslationService.translate('stock_chart_score');
       FlutterLocalNotification.showNotification(title, message);

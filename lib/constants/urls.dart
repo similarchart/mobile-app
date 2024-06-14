@@ -7,6 +7,8 @@ class Urls {
       'https://m.stock.naver.com/worldstock/stock/';
   static const String naverWorldEtfUrl =
       'https://m.stock.naver.com/worldstock/etf/';
+  static const String yahooHomeUrl = 'https://finance.yahoo.com/';
+  static const String yahooItemUrl = 'https://finance.yahoo.com/quote/';
   static const String appHeader = "SimilarChartFinder/1.0/dev";
   // static const String appHeader = "SimilarChartFinder/1.0";
 }

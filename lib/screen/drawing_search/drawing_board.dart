@@ -346,16 +346,12 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
       apiResultCompleter.complete(apiResult);
     });
 
-    // // 전면 광고를 먼저 보여줌
-    // _adManager.showInterstitialAd(context, () async {
-    //   // 광고가 닫히면 호출되는 콜백
-    //   Map<String, dynamic> apiResult = await apiResultCompleter.future;
-    //   _handleDrawingApiResponse(context, apiResult);
-    // });
-
-    // 광고를 건너뛰고 바로 API 결과를 처리
-    Map<String, dynamic> apiResult = await apiResultCompleter.future;
-    _handleDrawingApiResponse(context, apiResult);
+    // 전면 광고를 먼저 보여줌
+    _adManager.showInterstitialAd(context, () async {
+      // 광고가 닫히면 호출되는 콜백
+      Map<String, dynamic> apiResult = await apiResultCompleter.future;
+      _handleDrawingApiResponse(context, apiResult);
+    });
   }
 
   Future<Map<String, dynamic>> _fetchDrawingResult(double screenHeight) async {

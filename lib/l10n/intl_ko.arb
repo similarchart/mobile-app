@@ -2,6 +2,8 @@
   "@@locale": "ko",
   "naver_finance": "네이버증권",
   "similar_chart": "비슷한차트",
+  "yahoo_finance": "야후 증권",
+  "yahoo": "야후 증권",
   "essential_indicators_for_trading": "주식매매를 위한 필수 보조지표",
   "loading_chart": "차트 로드중...",
   "latest_update_completed": "최신 업데이트 완료",

@@ -41,6 +41,8 @@ class BottomNavigationTap {
           webViewController, 'https://www.similarchart.com?lang=$lang&app=1');
     } else if (page == 'naver') {
       WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
+    } else if (page == 'yahoo') {
+      WebViewManager.loadUrl(webViewController, Urls.yahooHomeUrl);
     }
   }
 
@@ -180,7 +182,7 @@ class BottomNavigationTap {
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
-    } else if (page == 'naver') {
+    } else if (page == 'naver' || page == 'yahoo') {
       String lang = await LanguagePreference.getLanguageSetting();
       WebViewManager.loadUrl(
           webViewController, 'https://www.similarchart.com?lang=$lang&app=1');

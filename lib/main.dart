@@ -20,8 +20,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureBackgroundFetch();
 
-  Locale locale = Locale(Intl.getCurrentLocale().split('_')[0]);
-  await TranslationService.loadTranslations(locale);
+  await TranslationService.loadTranslations();
   MobileAds.instance.initialize();
 
   // Hive 초기화 및 박스 열기

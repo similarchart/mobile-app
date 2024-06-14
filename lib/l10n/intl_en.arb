@@ -2,6 +2,8 @@
   "@@locale": "en",
   "naver_finance": "Naver Finance",
   "similar_chart": "Similar Chart",
+  "yahoo_finance": "Yahoo Finance",
+  "yahoo": "Yahoo",
   "essential_indicators_for_trading": "Essential indicators for trading",
   "loading_chart": "Loading chart...",
   "latest_update_completed": "Latest update completed",

@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class TranslationService {
   static Map<String, String> _localizedStrings = {};
 
-  static Future<void> loadTranslations(Locale locale) async {
+  static Future<void> loadTranslations() async {
+    Locale locale = Locale(Intl.getCurrentLocale().split('_')[0]);
     String jsonString =
     await rootBundle.loadString('assets/i18n/${locale.languageCode}.json');
     Map<String, dynamic> jsonMap = json.decode(jsonString);

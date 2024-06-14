@@ -224,12 +224,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   value: 'chart',
                   child: Text(AppLocalizations.of(context).translate('similar_chart'),
                       style: const TextStyle(color: AppColors.textColor))),
+              DropdownMenuItem(
+                  value: 'yahoo',
+                  child: Text(AppLocalizations.of(context).translate('yahoo_finance'),
+                      style: const TextStyle(color: AppColors.textColor))),
             ],
             onChanged: (value) {
               setState(() {
                 _selectedMainPage = value;
                 MainPagePreference.setMainPageSetting(value!);
-                String page = value == 'naver' ? AppLocalizations.of(context).translate('naver_finance') : AppLocalizations.of(context).translate('similar_chart');
+                String page;
+                switch (value) {
+                  case 'naver':
+                    page = AppLocalizations.of(context).translate('naver_finance');
+                    break;
+                  case 'chart':
+                    page = AppLocalizations.of(context).translate('similar_chart');
+                    break;
+                  case 'yahoo':
+                    page = AppLocalizations.of(context).translate('yahoo_finance');
+                    break;
+                  default:
+                    page = '';
+                }
                 ToastService().showToastMessage("${AppLocalizations.of(context).translate('main_page')} : $page");
               });
             },

@@ -67,24 +67,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   }
 
   Future<void> _loadPreferences() async {
-    bool bottomBarFixedPref = await BottomBarPreference.getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
+    bool bottomBarFixedPref = await BottomBarPreference
+        .getIsBottomBarFixed(); // SharedPreferences에서 설정값 불러오기
     ref.read(bottomBarFixedPrefProvider.notifier).state = bottomBarFixedPref;
 
     String preferPage = await MainPagePreference.getMainPageSetting();
-    if (preferPage == 'naver') {
-      ref.read(subPageLabelProvider.notifier).state = "chart";
-      ref.read(homePageLabelProvider.notifier).state = "naver";
-    } else if (preferPage == 'chart') {
+    if (preferPage == 'chart') {
       ref.read(subPageLabelProvider.notifier).state = "naver";
       ref.read(homePageLabelProvider.notifier).state = "chart";
+    } else if (preferPage == 'chart') {
+      ref.read(subPageLabelProvider.notifier).state = "chart";
+      ref.read(homePageLabelProvider.notifier).state = "naver";
+    } else if (preferPage == 'yahoo') {
+      ref.read(subPageLabelProvider.notifier).state = "chart";
+      ref.read(homePageLabelProvider.notifier).state = "yahoo";
     }
 
     String lang = await LanguagePreference.getLanguageSetting();
     String page = await MainPagePreference.getMainPageSetting();
     if (page == 'chart') {
       homeUrl = 'https://www.similarchart.com?lang=$lang&app=1';
-    } else {
+    } else if (page == 'naver') {
       homeUrl = Urls.naverHomeUrl;
+    } else if (page == 'yahoo') {
+      homeUrl = Urls.yahooHomeUrl;
     }
   }
 
@@ -145,7 +151,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     });
 
     final bool isFirstLoad = ref.watch(isFirstLoadProvider);
-    final bool showFloatingActionButton = ref.watch(showFloatingActionButtonProvider);
+    final bool showFloatingActionButton =
+        ref.watch(showFloatingActionButtonProvider);
     final bool didScrollDown = ref.watch(didScrollDownProvider);
     final bool bottomBarFixedPref = ref.watch(bottomBarFixedPrefProvider);
     final double startY = ref.watch(startYProvider);
@@ -165,28 +172,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           return PopScope(
             canPop: false,
             onPopInvoked: (didPop) async {
-              if (webViewController != null && await webViewController!.canGoBack()) {
+              if (webViewController != null &&
+                  await webViewController!.canGoBack()) {
                 webViewController?.goBack();
                 return;
               } else {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: Text(AppLocalizations.of(context).translate("exit_app"), style: const TextStyle(color: AppColors.textColor)),
-                    content: Text(AppLocalizations.of(context).translate("confirm_exit_app"), style: const TextStyle(color: AppColors.textColor)),
+                    title: Text(
+                        AppLocalizations.of(context).translate("exit_app"),
+                        style: const TextStyle(color: AppColors.textColor)),
+                    content: Text(
+                        AppLocalizations.of(context)
+                            .translate("confirm_exit_app"),
+                        style: const TextStyle(color: AppColors.textColor)),
                     backgroundColor: AppColors.primaryColor,
                     actions: [
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('No', style: TextStyle(color: AppColors.textColor)),
+                        child: const Text('No',
+                            style: TextStyle(color: AppColors.textColor)),
                       ),
                       TextButton(
                         onPressed: () {
                           SystemNavigator.pop();
                         },
-                        child: const Text('Yes', style: TextStyle(color: AppColors.textColor)),
+                        child: const Text('Yes',
+                            style: TextStyle(color: AppColors.textColor)),
                       ),
                     ],
                   ),
@@ -201,63 +216,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                     resizeToAvoidBottomInset: false,
                     body: bottomBarFixedPref
                         ? Column(
-                      children: [
-                        Expanded(
-                          child: createWebView(),
-                        ),
-                        SizedBox(height: bottomNavigationBarHeight, child: _buildBottomNavigationBar())
-                      ],
-                    )
+                            children: [
+                              Expanded(
+                                child: createWebView(),
+                              ),
+                              SizedBox(
+                                  height: bottomNavigationBarHeight,
+                                  child: _buildBottomNavigationBar())
+                            ],
+                          )
                         : Stack(
-                      children: [
-                        // 웹뷰를 Stack의 바닥에 위치시키기
-                        Positioned.fill(
-                          child: Listener(
-                            onPointerDown: (PointerDownEvent event) {
-                              ref.read(startYProvider.notifier).state = event.position.dy; // 시작 지점 저장
-                              ref.read(isDraggingProvider.notifier).state = true; // 드래그 시작
-                            },
-                            onPointerMove: (PointerMoveEvent event) {
-                              if (isDragging) {
-                                double distance = startY - event.position.dy; // 이동 거리 계산
-                                if (distance > 70) {
-                                  // 50픽셀 이상 위로 드래그
-                                  ref.read(didScrollDownProvider.notifier).state = false;
-                                  ref.read(isDraggingProvider.notifier).state = false; // 드래그 중지
-                                } else if (distance < -70) {
-                                  // 50픽셀 이상 아래로 드래그
-                                  ref.read(didScrollDownProvider.notifier).state = true;
-                                  ref.read(isDraggingProvider.notifier).state = false; // 드래그 중지
-                                }
-                              }
-                            },
-                            onPointerUp: (PointerUpEvent event) {
-                              ref.read(isDraggingProvider.notifier).state = false; // 드래그 종료
-                            },
-                            child: createWebView(),
+                            children: [
+                              // 웹뷰를 Stack의 바닥에 위치시키기
+                              Positioned.fill(
+                                child: Listener(
+                                  onPointerDown: (PointerDownEvent event) {
+                                    ref.read(startYProvider.notifier).state =
+                                        event.position.dy; // 시작 지점 저장
+                                    ref
+                                        .read(isDraggingProvider.notifier)
+                                        .state = true; // 드래그 시작
+                                  },
+                                  onPointerMove: (PointerMoveEvent event) {
+                                    if (isDragging) {
+                                      double distance = startY -
+                                          event.position.dy; // 이동 거리 계산
+                                      if (distance > 70) {
+                                        // 50픽셀 이상 위로 드래그
+                                        ref
+                                            .read(
+                                                didScrollDownProvider.notifier)
+                                            .state = false;
+                                        ref
+                                            .read(isDraggingProvider.notifier)
+                                            .state = false; // 드래그 중지
+                                      } else if (distance < -70) {
+                                        // 50픽셀 이상 아래로 드래그
+                                        ref
+                                            .read(
+                                                didScrollDownProvider.notifier)
+                                            .state = true;
+                                        ref
+                                            .read(isDraggingProvider.notifier)
+                                            .state = false; // 드래그 중지
+                                      }
+                                    }
+                                  },
+                                  onPointerUp: (PointerUpEvent event) {
+                                    ref
+                                        .read(isDraggingProvider.notifier)
+                                        .state = false; // 드래그 종료
+                                  },
+                                  child: createWebView(),
+                                ),
+                              ),
+                              // 하단바를 웹뷰 위에 배치하기
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 500),
+                                  height: bottomNavigationBarHeight,
+                                  transform: Matrix4.translationValues(
+                                      0.0,
+                                      didScrollDown
+                                          ? 0.0
+                                          : bottomNavigationBarHeight,
+                                      0.0),
+                                  child: _buildBottomNavigationBar(),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        // 하단바를 웹뷰 위에 배치하기
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 500),
-                            height: bottomNavigationBarHeight,
-                            transform: Matrix4.translationValues(0.0, didScrollDown ? 0.0 : bottomNavigationBarHeight, 0.0),
-                            child: _buildBottomNavigationBar(),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
-                isFirstLoad ? const SplashScreen() : Container(), // 첫 로드면 스플래시 화면 띄우기
+                isFirstLoad
+                    ? const SplashScreen()
+                    : Container(), // 첫 로드면 스플래시 화면 띄우기
                 Positioned(
                   right: 16,
-                  bottom: bottomNavigationBarHeight + fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
-                  child: showFloatingActionButton ? fabManager.buildFloatingActionButton(context, true, ref) : Container(),
+                  bottom: bottomNavigationBarHeight +
+                      fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
+                  child: showFloatingActionButton
+                      ? fabManager.buildFloatingActionButton(context, true, ref)
+                      : Container(),
                 ),
               ],
             ),
@@ -271,7 +314,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     return InAppWebView(
       key: webViewKey,
       // 시작 페이지
-      initialUrlRequest: URLRequest(url: WebUri(homeUrl), headers: {"SimilarChart-App": Urls.appHeader}),
+      initialUrlRequest: URLRequest(
+          url: WebUri(homeUrl), headers: {"SimilarChart-App": Urls.appHeader}),
       initialSettings: InAppWebViewSettings(
         useShouldOverrideUrlLoading: true, // URL 로딩 제어
         mediaPlaybackRequiresUserGesture: false, // 미디어 자동 재생
@@ -286,7 +330,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       // 인앱웹뷰 생성 시 컨트롤러 정의
       onWebViewCreated: (InAppWebViewController controller) async {
         webViewController = controller;
-        fabManager = FloatingActionButtonManager(webViewController: webViewController!);
+        fabManager =
+            FloatingActionButtonManager(webViewController: webViewController!);
         startTimer(webViewController);
       },
       onCreateWindow: (controller, createWindowRequest) async {
@@ -320,14 +365,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           return NavigationActionPolicy.CANCEL;
         }
 
-        if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(url.scheme)) {
+        if (!["http", "https", "file", "chrome", "data", "javascript", "about"]
+            .contains(url.scheme)) {
           if (await canLaunchUrl(url)) {
             await launchUrl(url);
             return NavigationActionPolicy.CANCEL;
           }
         }
 
-        await controller.loadUrl(urlRequest: URLRequest(url: WebUri(url.toString()), headers: {"SimilarChart-App": Urls.appHeader}));
+        await controller.loadUrl(
+            urlRequest: URLRequest(
+                url: WebUri(url.toString()),
+                headers: {"SimilarChart-App": Urls.appHeader}));
         return NavigationActionPolicy.CANCEL;
       },
       // 페이지 로딩이 정지 시 메서드 정의
@@ -337,7 +386,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         ref.read(isLoadingProvider.notifier).state = false;
         ref.read(isPageLoadingProvider.notifier).state = false;
         updateFloatingActionButtonVisibility(url.toString());
-        webViewManager.addCurrentUrlToHistory(url.toString(), webViewController);
+        webViewManager.addCurrentUrlToHistory(
+            url.toString(), webViewController);
         webViewManager.addCurrentUrlToRecent(url.toString(), webViewController);
         await webViewManager.saveCookies(webViewController);
       },
@@ -372,7 +422,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     bool isNaverHome = (url == Urls.naverHomeUrl);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
-    ref.read(showFloatingActionButtonProvider.notifier).state = startsWithDomestic || startsWithWorld || isNaverHome;
+    bool isYahooHome = (url == Urls.yahooHomeUrl);
+    bool startsWithYahooItem = url.startsWith(Urls.yahooItemUrl);
+    ref.read(showFloatingActionButtonProvider.notifier).state =
+        startsWithYahooItem ||
+            isYahooHome ||
+            startsWithDomestic ||
+            startsWithWorld ||
+            isNaverHome;
   }
 
   Widget _buildBottomNavigationBar() {
@@ -386,17 +443,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.brush, AppLocalizations.of(context).translate("drawing"), () => bottomNavigationTap.onDrawingSearchTap(context, ref, webViewController!)),
+            Icons.brush,
+            AppLocalizations.of(context).translate("drawing"),
+            () => bottomNavigationTap.onDrawingSearchTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.candlestick_chart, AppLocalizations.of(context).translate("pattern"), () => bottomNavigationTap.onPatternSearchTap(context, ref, webViewController!)),
+            Icons.candlestick_chart,
+            AppLocalizations.of(context).translate("pattern"),
+            () => bottomNavigationTap.onPatternSearchTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.trending_up, subPageLabel, () => bottomNavigationTap.onSubPageTap(context, ref, webViewController!)),
+            Icons.trending_up,
+            subPageLabel,
+            () => bottomNavigationTap.onSubPageTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.home, homePageLabel, () => bottomNavigationTap.onHomeTap(context, ref, webViewController!)),
+            Icons.home,
+            homePageLabel,
+            () => bottomNavigationTap.onHomeTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.history, AppLocalizations.of(context).translate("recents"), () => bottomNavigationTap.onFavoriteTap(context, ref, webViewController!)),
+            Icons.history,
+            AppLocalizations.of(context).translate("recents"),
+            () => bottomNavigationTap.onFavoriteTap(
+                context, ref, webViewController!)),
         BottomNavigationBuilder.buildBottomIcon(
-            Icons.settings, AppLocalizations.of(context).translate("settings"), () => bottomNavigationTap.onSettingsTap(context, ref, webViewController!)),
+            Icons.settings,
+            AppLocalizations.of(context).translate("settings"),
+            () => bottomNavigationTap.onSettingsTap(
+                context, ref, webViewController!)),
       ],
     );
   }
