@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Image.asset(
-                          'assets/logo_1024.png',
+                          'assets/logo_2.png',
                           width: 80),
                         const SizedBox(height: 10),
                         const Text('Similar Chart Finder',

@@ -180,10 +180,15 @@ class BottomNavigationTap {
       InAppWebViewController webViewController) async {
     ref.read(isLoadingProvider.notifier).state = true;
     String page = await MainPagePreference.getMainPageSetting();
+    String lang = await LanguagePreference.getLanguageSetting();
     if (page == 'chart') {
-      WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
+      if (lang == 'ko') {
+        WebViewManager.loadUrl(webViewController, Urls.naverHomeUrl);
+      }
+      else{
+        WebViewManager.loadUrl(webViewController, Urls.yahooHomeUrl);
+      }
     } else if (page == 'naver' || page == 'yahoo') {
-      String lang = await LanguagePreference.getLanguageSetting();
       WebViewManager.loadUrl(
           webViewController, 'https://www.similarchart.com?lang=$lang&app=1');
     }
