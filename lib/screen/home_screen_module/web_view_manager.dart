@@ -63,14 +63,15 @@ class WebViewManager {
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);
     bool startsWithWorldEtf = url.startsWith(Urls.naverWorldEtfUrl);
+    bool startsWithYahooItem = url.startsWith(Urls.yahooItemUrl);
 
     String codeValue;
     String stockName = '';
     if (uri.queryParameters.containsKey('code')) {
       codeValue = uri.queryParameters['code']!;
       String? title = await webViewController.getTitle();
-
-      stockName = title!.split(' - 비슷한').first.trimRight();
+      if (title == null) {return;}
+      stockName = title.split(' - 비슷한').first.trimRight();
       stockName = stockName.split(' - Stock').first.trimRight();
       stockName = stockName.split(' - Similar').first.trimRight();
       stockName = stockName.split(' - 네이버').first.trimRight();
@@ -82,7 +83,8 @@ class WebViewManager {
           stockName.contains('=') ||
           stockName.contains('비슷한') ||
           stockName.contains('없음') ||
-          stockName.contains('네이버')) {
+          stockName.contains('네이버') ||
+          stockName.contains('')){
         return;
       }
 
@@ -90,7 +92,29 @@ class WebViewManager {
       String lang = await LanguagePreference.getLanguageSetting();
       url =
           'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$lang';
-    } else if (startsWithWorld || startsWithDomestic || startsWithWorldEtf) {
+    } else if (startsWithYahooItem){
+      // 정규 표현식을 사용하여 'stock'과 'total' 사이의 값을 추출
+      RegExp regExp = RegExp(r'/quote/([^/]+)/');
+      final matches = regExp.firstMatch(url);
+      if (matches != null && matches.groupCount >= 1) {
+        codeValue = matches.group(1)!; // 1번 그룹이 'stock'과 'total' 사이의 값
+      } else {
+        return;
+      }
+
+      String? title = await webViewController.getTitle();
+      if (title == null) {return;}
+      stockName = title.split('($codeValue)').first.trimRight();
+      if (RegExp(r'^\d+$').hasMatch(stockName) ||
+          stockName.contains('Yahoo Finance') ||
+          stockName.contains('(')){
+        return;
+      }
+
+      url = Urls.yahooItemUrl + codeValue;
+      codeValue = codeValue.split('.').first.trimRight();
+    }
+    else if (startsWithWorld || startsWithDomestic || startsWithWorldEtf) {
       String jsCode = """
       var element = document.querySelector('[class^="GraphMain_name"]');
       if (element) {

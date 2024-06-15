@@ -282,8 +282,8 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
               }),
             ],
           ),
-          // bottomNavigationBar: const BottomBannerAd(),
-          bottomNavigationBar: Container(height: 60, color: AppColors.primaryColor),
+          bottomNavigationBar: const BottomBannerAd(),
+          // bottomNavigationBar: Container(height: 60, color: AppColors.primaryColor),
         );
       }),
     );

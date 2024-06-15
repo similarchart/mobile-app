@@ -39,6 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   late FloatingActionButtonManager fabManager;
   late PullToRefreshController pullToRefreshController; // 당겨서 새로고침 컨트롤러
   late Future<void> _initializationFuture; // 초기화 작업 Future
+  int? loadingProgress;
 
   @override
   void didChangeDependencies() {
@@ -73,7 +74,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
     String preferPage = await MainPagePreference.getMainPageSetting();
     if (preferPage == 'chart') {
-      ref.read(subPageLabelProvider.notifier).state = "naver";
+      String lang = await LanguagePreference.getLanguageSetting();
+      if (lang == 'ko') {
+        ref.read(subPageLabelProvider.notifier).state = "naver";
+      } else {
+        ref.read(subPageLabelProvider.notifier).state = "yahoo";
+      }
       ref.read(homePageLabelProvider.notifier).state = "chart";
     } else if (preferPage == 'chart') {
       ref.read(subPageLabelProvider.notifier).state = "chart";
@@ -296,8 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                     : Container(), // 첫 로드면 스플래시 화면 띄우기
                 Positioned(
                   right: 16,
-                  bottom: bottomNavigationBarHeight +
-                      fabRadius, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
+                  bottom: 85, // FAB를 BottomNavigationBar 바로 위에 위치시킵니다.
                   child: showFloatingActionButton
                       ? fabManager.buildFloatingActionButton(context, true, ref)
                       : Container(),
@@ -335,6 +340,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         startTimer(webViewController);
       },
       onCreateWindow: (controller, createWindowRequest) async {
+        ref.read(isPageLoadingProvider.notifier).state = true;
+        ref.read(isLoadingProvider.notifier).state = true;
         // 새 창 요청을 현재 웹뷰 컨트롤러를 사용하여 로드합니다.
         controller.loadUrl(urlRequest: createWindowRequest.request);
         return false; // 새 창을 만들지 않고, 현재 창에서 처리했음을 나타냅니다.
@@ -398,6 +405,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       },
       // 로딩 상태 변경 시 메서드 정의
       onProgressChanged: (InAppWebViewController controller, progress) async {
+        loadingProgress = progress;
         // 로딩이 완료되면 당겨서 새로고침 중단
         if (progress >= 100) {
           pullToRefreshController.endRefreshing();
@@ -419,6 +427,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   }
 
   void updateFloatingActionButtonVisibility(String url) {
+    if (loadingProgress != 100){
+      return;
+    }
+
     bool isNaverHome = (url == Urls.naverHomeUrl);
     bool startsWithDomestic = url.startsWith(Urls.naverDomesticUrl);
     bool startsWithWorld = url.startsWith(Urls.naverWorldUrl);

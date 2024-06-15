@@ -141,7 +141,7 @@ class DrawingResult extends StatelessWidget {
                   Text(AppLocalizations.of(context).translate("search_again")),
             ),
           ),
-          // const BottomBannerAd(),
+          const BottomBannerAd(),
         ],
       ),
     );

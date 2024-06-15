@@ -22,7 +22,7 @@ class FloatingActionButtonManager {
       bool showFloatingActionButton, WidgetRef ref) {
     return Positioned(
       right: 16,
-      bottom: 100, // 예시로 BottomNavigationBar의 높이와 FAB 반지름을 사용
+      bottom: 85, // 예시로 BottomNavigationBar의 높이와 FAB 반지름을 사용
       child: showFloatingActionButton
           ? FloatingActionButton(
               onPressed: () async {

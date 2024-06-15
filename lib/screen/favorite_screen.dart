@@ -113,7 +113,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
               },
             ),
           ),
-          // const BottomBannerAd(),
+          const BottomBannerAd(),
         ],
       ),
     );

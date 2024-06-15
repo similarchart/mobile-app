@@ -668,8 +668,8 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
               );
             },
           ),
-          // bottomNavigationBar: const BottomBannerAd(),
-          bottomNavigationBar: Container(height: 60, color: AppColors.primaryColor),
+          bottomNavigationBar: const BottomBannerAd(),
+          // bottomNavigationBar: Container(height: 60, color: AppColors.primaryColor),
         );
       }),
     );
