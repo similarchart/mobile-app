@@ -70,5 +70,8 @@
   "select_desired_chart": "원하는 차트를 선택하세요",
   "select_desired_pattern": "원하는 패턴을 선택하세요",
   "touch_specific_stock_info_page": "특정 종목 정보 페이지에서 터치해 보세요!",
-  "failed_to_load_loading_image": "로딩 이미지를 불러올 수 없습니다"
+  "failed_to_load_loading_image": "로딩 이미지를 불러올 수 없습니다",
+
+  "splash_img": "assets/logo_ko_1024.png",
+  "floating_img": "assets/glass_ko.png"
 }

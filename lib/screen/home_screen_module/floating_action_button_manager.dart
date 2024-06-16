@@ -30,7 +30,7 @@ class FloatingActionButtonManager {
               }, // 로컬 에셋 이미지 사용
               backgroundColor: Colors.transparent, // 배경색 투명하게 설정
               elevation: 0,
-              child: Image.asset('assets/logo_2.png'), // 그림자 제거
+              child: Image.asset(AppLocalizations.of(context).translate('floating_img')), // 그림자 제거
             )
           : Container(),
     );

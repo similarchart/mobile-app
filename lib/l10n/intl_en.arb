@@ -70,5 +70,8 @@
   "select_desired_chart": "Select the desired chart",
   "select_desired_pattern": "Select the desired pattern",
   "touch_specific_stock_info_page": "Touch on the specific stock info page!",
-  "failed_to_load_loading_image": "Failed to load loading image"
+  "failed_to_load_loading_image": "Failed to load loading image",
+
+  "splash_img": "assets/logo_en_1024.png",
+  "floating_img": "assets/glass_en.png"
 }
