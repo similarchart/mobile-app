@@ -30,6 +30,10 @@ class DrawingResult extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var userImage = base64Decode(userDrawing);
+    double screenHeight = MediaQuery.of(context).size.height;
+    double appBarHeight = AppBar().preferredSize.height;
+    double bottomBannerHeight = 60; // 가정된 하단 배너 높이
+    double availableHeight = screenHeight - appBarHeight - bottomBannerHeight - 20; // 20은 패딩 등 여유 공간
 
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
@@ -51,8 +55,7 @@ class DrawingResult extends StatelessWidget {
             flex: 2,
             child: Center(
               child: Container(
-                color:
-                    Colors.white, // Set a background color that suits the image
+                color: Colors.white, // Set a background color that suits the image
                 child: Image.memory(
                   userImage,
                   fit: BoxFit.contain,
@@ -65,8 +68,7 @@ class DrawingResult extends StatelessWidget {
             child: Text(
               results.isEmpty
                   ? AppLocalizations.of(context).translate("no_similar_charts")
-                  : AppLocalizations.of(context)
-                      .translate("select_desired_chart"),
+                  : AppLocalizations.of(context).translate("select_desired_chart"),
               style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textColor,
@@ -74,8 +76,8 @@ class DrawingResult extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          Expanded(
-            flex: 6,
+          Container(
+            height: availableHeight * 0.6, // availableHeight의 60%를 GridView에 할당
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
@@ -89,8 +91,7 @@ class DrawingResult extends StatelessWidget {
                 return InkWell(
                   onTap: () async {
                     String lang = await LanguagePreference.getLanguageSetting();
-                    String url =
-                        createResultUrl(result['code'], result['date'], lang);
+                    String url = createResultUrl(result['code'], result['date'], lang);
                     Navigator.pop(context, url);
                   },
                   child: Ink.image(
@@ -137,8 +138,7 @@ class DrawingResult extends StatelessWidget {
                 backgroundColor: AppColors.secondaryColor,
                 foregroundColor: AppColors.textColor,
               ),
-              child:
-                  Text(AppLocalizations.of(context).translate("search_again")),
+              child: Text(AppLocalizations.of(context).translate("search_again")),
             ),
           ),
           const BottomBannerAd(),
