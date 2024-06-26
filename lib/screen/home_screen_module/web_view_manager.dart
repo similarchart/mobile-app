@@ -79,12 +79,15 @@ class WebViewManager {
       if (RegExp(r'^\d+$').hasMatch(stockName) ||
           stockName.contains('http') ||
           stockName.contains('Pattern Search') ||
+          stockName.contains('Similar') ||
+          stockName.contains('similar') ||
+          stockName.contains('Validation') ||
+          stockName.contains('검증') ||
           stockName.contains('?') ||
           stockName.contains('=') ||
           stockName.contains('비슷한') ||
           stockName.contains('없음') ||
-          stockName.contains('네이버') ||
-          stockName.contains('')){
+          stockName.contains('네이버')){
         return;
       }
 
