@@ -13,10 +13,10 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-    flutterVersionCode = '19'
+    flutterVersionCode = '20'
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
-    flutterVersionName = '19.0'
+    flutterVersionName = '20.0'
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -26,7 +26,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "com.similarchart.chartfinder"
-    compileSdk flutter.compileSdkVersion
+    compileSdkVersion 34 // 업데이트된 SDK 버전
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -48,7 +48,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion 21
-        targetSdkVersion flutter.targetSdkVersion
+        targetSdkVersion 34 // 업데이트된 SDK 버전
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
