@@ -88,7 +88,7 @@ class FloatingActionButtonManager {
 
     // 최종 URL을 구성합니다.
     String finalUrl =
-        'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$currentLang';
+        'https://www.similarchart.com/stock/?code=$codeValue&lang=$currentLang';
 
     // 구성한 URL로 웹뷰를 이동시킵니다.
     WebViewManager.loadUrl(webViewController, finalUrl);

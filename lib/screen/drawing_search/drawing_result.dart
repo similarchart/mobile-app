@@ -24,7 +24,7 @@ class DrawingResult extends StatelessWidget {
       required this.size});
 
   String createResultUrl(String code, String date, String lang) {
-    return 'https://www.similarchart.com/result/?code=$code&base_date=$date&market=$market&day_num=$size&lang=$lang';
+    return 'https://www.similarchart.com/result/?code=$code&base-date=$date&market=$market&day-num=$size&lang=$lang';
   }
 
   @override

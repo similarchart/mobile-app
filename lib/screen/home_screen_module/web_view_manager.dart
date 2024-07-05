@@ -94,7 +94,7 @@ class WebViewManager {
       // 항상 종합 비교 결과 페이지로 설정 (N일치 결과 페이지로 올 경우)
       String lang = await LanguagePreference.getLanguageSetting();
       url =
-          'https://www.similarchart.com/stock_info/?code=$codeValue&lang=$lang';
+          'https://www.similarchart.com/stock/?code=$codeValue&lang=$lang';
     } else if (startsWithYahooItem){
       // 정규 표현식을 사용하여 'stock'과 'total' 사이의 값을 추출
       RegExp regExp = RegExp(r'/quote/([^/]+)/');
