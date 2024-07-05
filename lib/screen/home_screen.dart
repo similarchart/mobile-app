@@ -81,7 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         ref.read(subPageLabelProvider.notifier).state = "yahoo";
       }
       ref.read(homePageLabelProvider.notifier).state = "chart";
-    } else if (preferPage == 'chart') {
+    } else if (preferPage == 'naver') {
       ref.read(subPageLabelProvider.notifier).state = "chart";
       ref.read(homePageLabelProvider.notifier).state = "naver";
     } else if (preferPage == 'yahoo') {
