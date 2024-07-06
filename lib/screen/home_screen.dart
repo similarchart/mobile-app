@@ -73,30 +73,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     ref.read(bottomBarFixedPrefProvider.notifier).state = bottomBarFixedPref;
 
     String preferPage = await MainPagePreference.getMainPageSetting();
-    if (preferPage == 'chart') {
-      String lang = await LanguagePreference.getLanguageSetting();
-      if (lang == 'ko') {
-        ref.read(subPageLabelProvider.notifier).state = "naver";
-      } else {
-        ref.read(subPageLabelProvider.notifier).state = "yahoo";
-      }
-      ref.read(homePageLabelProvider.notifier).state = "chart";
-    } else if (preferPage == 'naver') {
+    String preferLang = await LanguagePreference.getLanguageSetting();
+
+    if (preferPage == 'naver') {
       ref.read(subPageLabelProvider.notifier).state = "chart";
       ref.read(homePageLabelProvider.notifier).state = "naver";
     } else if (preferPage == 'yahoo') {
       ref.read(subPageLabelProvider.notifier).state = "chart";
       ref.read(homePageLabelProvider.notifier).state = "yahoo";
+    } else {
+      if (preferLang == 'ko') {
+        ref.read(subPageLabelProvider.notifier).state = "naver";
+      } else {
+        ref.read(subPageLabelProvider.notifier).state = "yahoo";
+      }
+      ref.read(homePageLabelProvider.notifier).state = "chart";
     }
 
-    String lang = await LanguagePreference.getLanguageSetting();
-    String page = await MainPagePreference.getMainPageSetting();
-    if (page == 'chart') {
-      homeUrl = 'https://www.similarchart.com?lang=$lang&app=1';
-    } else if (page == 'naver') {
+    if (preferPage == 'naver') {
       homeUrl = Urls.naverHomeUrl;
-    } else if (page == 'yahoo') {
+    } else if (preferPage == 'yahoo') {
       homeUrl = Urls.yahooHomeUrl;
+    } else {
+      homeUrl = 'https://www.similarchart.com?lang=$preferLang&app=1';
     }
   }
 
@@ -427,7 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   }
 
   void updateFloatingActionButtonVisibility(String url) {
-    if (loadingProgress != 100){
+    if (loadingProgress != 100) {
       return;
     }
 
