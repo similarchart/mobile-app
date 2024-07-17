@@ -379,6 +379,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           }
         }
 
+        // 설정에서 언어 변경 후 사용자가 뒤로가기를 눌러 기존 언어로 가버리면 언어설정이 제대로 적용되지 않는 문제발생
+        // similarchart.com 도메인이 포함된 경우 언어를 preferLang으로 강제
+        if (url.host.contains('similarchart.com')) {
+          Map<String, String> params = Map.from(url.queryParameters);
+          String preferLang = await LanguagePreference.getLanguageSetting();
+          params['lang'] = preferLang;
+
+          Uri newUrl = url.replace(queryParameters: params);
+
+          await controller.loadUrl(
+              urlRequest: URLRequest(
+                  url: WebUri(newUrl.toString()),
+                  headers: {"SimilarChart-App": Urls.appHeader}));
+          return NavigationActionPolicy.CANCEL;
+        }
+
         await controller.loadUrl(
             urlRequest: URLRequest(
                 url: WebUri(url.toString()),
