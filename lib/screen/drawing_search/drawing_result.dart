@@ -108,31 +108,8 @@ class DrawingResult extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context, 'again');
                 DrawingResultManager.clearData();
-
-                double width = min(MediaQuery.of(context).size.height,
-                    MediaQuery.of(context).size.width);
-                double appBarHeight = AppBar().preferredSize.height;
-                double adHeight = 60;
-                double height = width + appBarHeight + adHeight;
-
-                showDialog(
-                  context: context,
-                  barrierDismissible: true,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      insetPadding: const EdgeInsets.all(0),
-                      child: SizedBox(
-                        width: width,
-                        height: height,
-                        child: DrawingBoard(
-                          screenHeight: height - appBarHeight,
-                        ),
-                      ),
-                    );
-                  },
-                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondaryColor,

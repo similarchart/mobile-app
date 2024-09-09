@@ -89,50 +89,62 @@ class BottomNavigationTap {
     if (DrawingResultManager.isResultExist()) {
       DrawingResultManager.showDrawingResult(context).then((url) async {
         if (url != null) {
-          if (!await checkInternetConnection()) return;
+          if (url == 'again'){
+            showDrawingBoard(context, ref, webViewController);
+          }
+          else {
+            if (!await checkInternetConnection()) return;
 
-          ref.read(isLoadingProvider.notifier).state = true;
-          WebViewManager.loadUrl(webViewController, url);
+            ref
+                .read(isLoadingProvider.notifier)
+                .state = true;
+            WebViewManager.loadUrl(webViewController, url);
+          }
         }
       });
     }
     else {
-      double width = min(
-          MediaQuery
-              .of(context)
-              .size
-              .height, MediaQuery
-          .of(context)
-          .size
-          .width);
-      double appBarHeight = AppBar().preferredSize.height;
-      double adHeight = 60;
-      double height = width + appBarHeight + adHeight;
-
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return Dialog(
-            insetPadding: const EdgeInsets.all(0),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: DrawingBoard(
-                screenHeight: height - appBarHeight,
-              ),
-            ),
-          );
-        },
-      ).then((url) async {
-        if (url != null) {
-          if (!await checkInternetConnection()) return;
-
-          ref.read(isLoadingProvider.notifier).state = true;
-          WebViewManager.loadUrl(webViewController, url);
-        }
-      });
+      showDrawingBoard(context, ref, webViewController);
     }
+  }
+
+  void showDrawingBoard(BuildContext context, WidgetRef ref,
+      InAppWebViewController webViewController){
+    double width = min(
+        MediaQuery
+            .of(context)
+            .size
+            .height, MediaQuery
+        .of(context)
+        .size
+        .width);
+    double appBarHeight = AppBar().preferredSize.height;
+    double adHeight = 60;
+    double height = width + appBarHeight + adHeight;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(0),
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: DrawingBoard(
+              screenHeight: height - appBarHeight,
+            ),
+          ),
+        );
+      },
+    ).then((url) async {
+      if (url != null) {
+        if (!await checkInternetConnection()) return;
+
+        ref.read(isLoadingProvider.notifier).state = true;
+        WebViewManager.loadUrl(webViewController, url);
+      }
+    });
   }
 
   void onPatternSearchTap(BuildContext context, WidgetRef ref,
@@ -140,41 +152,52 @@ class BottomNavigationTap {
     if (PatternResultManager.isResultExist()) {
       PatternResultManager.showPatternResult(context).then((url) async {
         if (url != null) {
-          if (!await checkInternetConnection()) return;
+          if(url == 'again'){
+            showPatternBoard(context, ref, webViewController);
+          }
+          else {
+            if (!await checkInternetConnection()) return;
 
-          ref.read(isLoadingProvider.notifier).state = true;
-          WebViewManager.loadUrl(webViewController, url);
+            ref
+                .read(isLoadingProvider.notifier)
+                .state = true;
+            WebViewManager.loadUrl(webViewController, url);
+          }
         }
       });
     } else {
-      double width = min(MediaQuery.of(context).size.height,
-          MediaQuery.of(context).size.width);
-      double height = MediaQuery.of(context).size.height * 0.75;
-
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return Dialog(
-            insetPadding: const EdgeInsets.all(0),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: const PatternBoard(),
-            ),
-          );
-        },
-      ).then((url) async {
-        if (url != null) {
-          if (!await checkInternetConnection()) return;
-
-          ref.read(isLoadingProvider.notifier).state = true;
-          WebViewManager.loadUrl(webViewController, url);
-        }
-      });
+      showPatternBoard(context, ref, webViewController);
     }
   }
 
+  void showPatternBoard(BuildContext context, WidgetRef ref,
+      InAppWebViewController webViewController){
+    double width = min(MediaQuery.of(context).size.height,
+        MediaQuery.of(context).size.width);
+    double height = MediaQuery.of(context).size.height * 0.75;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(0),
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: const PatternBoard(),
+          ),
+        );
+      },
+    ).then((url) async {
+      if (url != null) {
+        if (!await checkInternetConnection()) return;
+
+        ref.read(isLoadingProvider.notifier).state = true;
+        WebViewManager.loadUrl(webViewController, url);
+      }
+    });
+  }
 
   Future<void> onSubPageTap(BuildContext context, WidgetRef ref,
       InAppWebViewController webViewController) async {

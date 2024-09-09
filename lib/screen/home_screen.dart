@@ -41,6 +41,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   late Future<void> _initializationFuture; // 초기화 작업 Future
   int? loadingProgress;
 
+  //이 코드를 통해 위젯은 현재 라우트의 상태 변화를 감지하고, 필요할 때마다 RouteAware 인터페이스의 메서드를 호출하여
+  // 적절한 동작을 수행할 수 있게 됩니다. 예를 들어, 화면이 보일 때마다 데이터를 다시 불러오거나,
+  // 다른 화면에서 돌아왔을 때 특정 동작을 수행하는 것과 같은 시나리오에서 사용됩니다.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -162,9 +165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     final bool bottomBarFixedPref = ref.watch(bottomBarFixedPrefProvider);
     final double startY = ref.watch(startYProvider);
     final bool isDragging = ref.watch(isDraggingProvider);
-
-    // FloatingActionButton의 반지름입니다. 실제 크기에 따라 조정할 수 있습니다.
-    const double fabRadius = 18;
 
     return FutureBuilder<void>(
       future: _initializationFuture, // 초기화 작업 Future

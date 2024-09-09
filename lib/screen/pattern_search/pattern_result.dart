@@ -87,6 +87,7 @@ class PatternResult extends StatelessWidget {
                   onTap: () async {
                     String lang = await LanguagePreference.getLanguageSetting();
                     String url = createResultUrl(result['code'], result['date'], lang);
+                    print("url : $url");
                     Navigator.pop(context, url);
                   },
                   child: Ink.image(
@@ -103,27 +104,8 @@ class PatternResult extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context, "again");
                 PatternResultManager.clearData();
-
-                double width = min(MediaQuery.of(context).size.height,
-                    MediaQuery.of(context).size.width);
-                double height = MediaQuery.of(context).size.height * 0.75;
-
-                showDialog(
-                  context: context,
-                  barrierDismissible: true,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      insetPadding: const EdgeInsets.all(0),
-                      child: SizedBox(
-                        width: width,
-                        height: height,
-                        child: PatternBoard(),
-                      ),
-                    );
-                  },
-                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondaryColor,

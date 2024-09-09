@@ -415,13 +415,15 @@ class _DrawingBoardState extends ConsumerState<DrawingBoard>
 
     if (response['success']) {
       String? resultUrl = await DrawingResultManager.showDrawingResult(context);
-      Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
-
+      if(resultUrl != 'again') {
+        Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
+      }
       setState(() {
         points.clear();
         originalPoints.clear();
         drawingEnabled = true;
       });
+
     } else {
       Log.instance.e('Error: ${response['error']}');
       // 에러 메시지를 표시하는 로직 추가 가능

@@ -911,7 +911,9 @@ class _PatternBoardState extends ConsumerState<PatternBoard>
 
     if (response['success']) {
       String? resultUrl = await PatternResultManager.showPatternResult(context);
-      Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
+      if(resultUrl != 'again') {
+        Navigator.pop(context, resultUrl); // URL을 반환하며 화면을 닫음
+      }
     } else {
       Log.instance.e('Error: ${response['error']}');
       // 에러 메시지를 표시하는 로직 추가 가능

@@ -27,6 +27,7 @@ class CooldownNotifier extends StateNotifier<int> {
   }
 }
 
+// cooldownDurationProvider는 CooldownNotifier 클래스의 state 변수와 연결되어 있습니다.
 final cooldownDurationProvider = StateNotifierProvider<CooldownNotifier, int>((ref) {
   return CooldownNotifier();
 });

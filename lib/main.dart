@@ -43,6 +43,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: locale,
+      //  앱에서 다양한 언어로의 전환을 지원하기 위해 필요한 텍스트 리소스를 로드하는 "도우미들"을 지정하는 부분
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
