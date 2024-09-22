@@ -13,10 +13,10 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-    flutterVersionCode = '26'
+    flutterVersionCode = '27'
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
-    flutterVersionName = '26.0'
+    flutterVersionName = '27.0'
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')

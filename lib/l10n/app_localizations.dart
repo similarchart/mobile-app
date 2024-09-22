@@ -32,13 +32,13 @@ class AppLocalizations {
   }
 
   String translateWithArgs(String key, List<Object> args) {
-    return Intl.message(
-      _localizedStrings[key] ?? key,
-      name: key,
-      args: args,
-      locale: locale.toString(),
-    );
+    String template = _localizedStrings[key] ?? key;
+    for (int i = 0; i < args.length; i++) {
+      template = template.replaceAll('{$i}', args[i].toString());
+    }
+    return template;
   }
+
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

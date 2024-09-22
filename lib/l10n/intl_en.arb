@@ -55,7 +55,7 @@
   "one_step_down": "One Step Down",
   "select_market": "Please select a market",
   "please_wait": "Please wait a moment",
-  "remaining_time": "You can search again in {seconds} seconds",
+  "remaining_time": "You can search again in {0} seconds",
   "unknown_error": "An unknown error occurred",
   "draw_desired_chart": "Draw the desired chart",
   "draw_desired_pattern": "Draw the desired pattern",

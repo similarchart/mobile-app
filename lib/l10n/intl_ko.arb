@@ -55,7 +55,16 @@
   "one_step_down": "전체 한칸 아래",
   "select_market": "시장을 선택해 주세요",
   "please_wait": "잠시만 기다려주세요",
-  "remaining_time": "{seconds}초 후 재검색이 가능합니다",
+  "remaining_time": "{0} 초 후 재검색이 가능합니다",
+  "@remaining_time": {
+    "description": "남은 시간을 나타내는 메시지",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
   "unknown_error": "알 수 없는 오류가 발생했습니다",
   "draw_desired_chart": "원하는 차트를 그려보세요",
   "draw_desired_pattern": "원하는 패턴을 그려보세요",
