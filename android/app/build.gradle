@@ -13,10 +13,10 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-    flutterVersionCode = '27'
+flutterVersionCode = '28'
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
-    flutterVersionName = '27.0'
+flutterVersionName = '28.0'
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -26,16 +26,18 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "com.similarchart.chartfinder"
-    compileSdkVersion 34 // 업데이트된 SDK 버전
+    compileSdkVersion 35 // 업데이트된 SDK 버전
     ndkVersion flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
 
     sourceSets {
@@ -47,8 +49,8 @@ android {
         applicationId "com.similarchart.chartfinder"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 21
-        targetSdkVersion 34 // 업데이트된 SDK 버전
+        minSdkVersion 24
+        targetSdkVersion 35 // 업데이트된 SDK 버전
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
@@ -75,4 +77,6 @@ flutter {
     source '../..'
 }
 
-dependencies {}
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+}

@@ -10,7 +10,6 @@ import 'package:web_view/screen/home_screen_module/web_view_manager.dart';
 import 'package:web_view/screen/splash_screen.dart';
 import 'package:web_view/services/preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:web_view/providers/home_screen_state_providers.dart';
@@ -371,13 +370,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           return NavigationActionPolicy.CANCEL;
         }
 
-        if (!["http", "https", "file", "chrome", "data", "javascript", "about"]
-            .contains(url.scheme)) {
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url);
-            return NavigationActionPolicy.CANCEL;
-          }
-        }
+        // if (!["http", "https", "file", "chrome", "data", "javascript", "about"]
+        //     .contains(url.scheme)) {
+        //   if (await canLaunchUrl(url)) {
+        //     await launchUrl(url);
+        //     return NavigationActionPolicy.CANCEL;
+        //   }
+        // }
 
         // 설정에서 언어 변경 후 사용자가 뒤로가기를 눌러 기존 언어로 가버리면 언어설정이 제대로 적용되지 않는 문제발생
         // similarchart.com 도메인이 포함된 경우 언어를 preferLang으로 강제
